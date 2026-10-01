@@ -65,7 +65,7 @@ export function loadSkills(root: string): SkillSeed[] {
 }
 
 export default Plugin.define({
-  id: "org-opencode",
+  id: "simpsonm09-org-opencode",
   async setup(ctx) {
     const skills = loadSkills(join(here, "skills"));
     if (skills.length === 0) return;

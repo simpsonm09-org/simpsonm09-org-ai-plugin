@@ -1,4 +1,4 @@
-# org-opencode-plugin
+# simpsonm09-org-opencode
 
 The shared OpenCode layer for the `simpsonm09-org` organization.
 
@@ -21,7 +21,7 @@ GitHub, Postman, library docs, browsers, and Jira and Atlassian are handled by `
 
 ## Plugin and skills
 
-The layer is configuration and a plugin at the same time. `maxstack`'s `Install-Workspace.ps1` merges the fragment into `opencode.jsonc` and copies the files named in `layer.json` into `.opencode/plugins/org-opencode`, where OpenCode loads the plugin. The plugin registers every `skills/<id>/SKILL.md` through `ctx.skill.transform`.
+The layer is configuration and a plugin at the same time. `maxstack`'s `Install-Workspace.ps1` merges the fragment into `opencode.jsonc` and copies the files named in `layer.json` into `.opencode/plugins/simpsonm09-org-opencode`, where OpenCode loads the plugin. The plugin registers every `skills/<id>/SKILL.md` through `ctx.skill.transform`.
 
 | Skill | Purpose |
 | --- | --- |

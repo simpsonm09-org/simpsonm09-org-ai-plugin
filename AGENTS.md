@@ -1,4 +1,4 @@
-# org-opencode-plugin working agreements
+# simpsonm09-org-opencode working agreements
 
 The shared OpenCode layer for the `simpsonm09-org` organization.
 

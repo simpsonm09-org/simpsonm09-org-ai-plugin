@@ -1,5 +1,5 @@
 {
-  "name": "org-opencode-plugin",
+  "name": "simpsonm09-org-opencode",
   "description": "Shared OpenCode layer for the simpsonm09-org organization.",
   "kind": "config",
   "config": "opencode.fragment.jsonc",

@@ -1,5 +1,5 @@
 {
-  "name": "org-opencode",
+  "name": "simpsonm09-org-opencode",
   "version": "0.1.0",
   "description": "The shared OpenCode plugin for the simpsonm09-org organization. Registers the skills every repository should have.",
   "license": "MIT",

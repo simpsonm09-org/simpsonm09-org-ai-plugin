@@ -1,0 +1,23 @@
+{
+  "name": "org-opencode",
+  "version": "0.1.0",
+  "description": "The shared OpenCode plugin for the simpsonm09-org organization. Registers the skills every repository should have.",
+  "license": "MIT",
+  "type": "module",
+  "main": "index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "files": [
+    "index.ts",
+    "package.json",
+    "skills",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@opencode/plugin": "2.0.18"
+  }
+}

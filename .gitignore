@@ -1,0 +1,12 @@
+# Local scan output
+*.sarif
+aislop.sarif
+trivy.sarif
+
+# Local tool state
+.aislop/history.jsonl
+.aislop/agent/
+.DS_Store
+
+# Node
+node_modules/

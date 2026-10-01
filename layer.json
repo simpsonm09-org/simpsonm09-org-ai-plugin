@@ -1,0 +1,7 @@
+{
+  "name": "org-opencode-plugin",
+  "description": "Shared OpenCode layer for the simpsonm09-org organization.",
+  "kind": "config",
+  "config": "opencode.fragment.jsonc",
+  "files": ["index.ts", "package.json", "skills", "README.md"]
+}

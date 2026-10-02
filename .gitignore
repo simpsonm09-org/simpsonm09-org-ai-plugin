@@ -10,3 +10,4 @@ trivy.sarif
 
 # Node
 node_modules/
+coverage/

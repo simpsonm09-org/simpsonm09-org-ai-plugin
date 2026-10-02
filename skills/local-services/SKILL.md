@@ -5,7 +5,7 @@ description: Use when a task touches the local container services on this machin
 
 # Local services
 
-The machine runs container-backed services on the Docker Engine inside Ubuntu WSL2. `dev-setup-starter` owns their Compose files and their documentation.
+The machine runs container-backed services on the Docker Engine inside Ubuntu WSL2. `dev-setup-starter` owns their Compose files and their documentation. The service list, ports, and volumes are this machine's; the personal layer records the machine-specific values. This skill keeps the general Docker and Compose practice.
 
 | Service | Job | Address |
 | --- | --- | --- |

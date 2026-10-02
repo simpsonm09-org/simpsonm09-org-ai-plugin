@@ -1,6 +1,6 @@
 ---
 name: service-integrations
-description: Use when a task needs an external developer service in this workspace, such as library documentation, code search, GitHub, Postman, a browser, Jira, Kubernetes, Jenkins, or Vault. This is the general integration registry. It names the CLI that owns each job and defers accounts, boards, workspaces, and clusters to the personal layer.
+description: Use when a task needs an external developer service in this workspace, such as library documentation, code search, GitHub, Postman, a browser, Jira, Kubernetes, Jenkins, Vault, or secrets. This is the general integration registry. It names the CLI that owns each job and defers accounts, boards, workspaces, and clusters to the personal layer.
 ---
 
 # Service integrations
@@ -27,10 +27,15 @@ The registry is general and portable. It names the owner and the command. Accoun
 | Kubernetes manifest rendering | `kustomize` | `kustomize build <dir>` | winget or the release |
 | Jenkins jobs, builds, and logs | the Jenkins CLI | `java -jar jenkins-cli.jar -s <url> build <job>` | fetched from the controller |
 | Secrets in Vault | `vault` | `vault kv get secret/<path>` | winget, apt, or the release |
+| Secrets, the workspace source of truth | `infisical` | `infisical login`, `infisical export` | npm or the release |
 | Repository tasks | `just` | `just <recipe>` | `mise install` in the repository |
+| Pinned tool versions | `mise` | `mise install`, `mise exec -- <tool>` | the mise installer |
 | Container runtime | `docker` | `docker ps`, `docker logs` | WSL engine |
+| Dependency, secret, and misconfig scan | `trivy` | `trivy fs --scanners vuln,secret,misconfig .` | winget, apt, or the release |
 
 Install is the per-machine step. Prefer `winget` on Windows and `apt` in WSL, with `scoop` as the Windows fallback when no winget entry exists.
+
+The machine's container stack has a console and no CLI. Portainer CE, DbGate, and the Infisical console are documented in the `local-services` skill, with their addresses kept in the personal layer.
 
 ## Personal layer
 
@@ -175,13 +180,32 @@ vault kv put secret/<path> key=value
 
 Prefer reading a value into the environment over passing it on a command line that lands in shell history.
 
+## Secrets via `infisical`
+
+The workspace loads its secrets from a self-hosted Infisical through the loaders, not by calling `infisical` directly. WSL loads the workspace `.envrc` through direnv; Windows runs `scripts/Import-Secrets.ps1 -Apply`. The address and project are personal; see the personal layer.
+
+```bash
+infisical login --method=universal-auth --plain --silent
+infisical export --token "$TOKEN" --projectId "$INFISICAL_PROJECT_ID" --env dev --format json
+```
+
 ## Code search
 
 Two owners, split by scope. Use the local `grep` tool for anything inside the repository. Use `gh search code "<pattern>"` for public GitHub, remembering its limits. There is no regex and only the default branch is searched.
 
 ## Repository tasks
 
-For run, build, test, lint, or verify, use `just`. See the `repo-tasks` skill for the recipe names and the authoring rules.
+For run, build, test, lint, or verify, use `just`. Repositories pin their tool versions with `mise`, so run `mise install` first; `just` is one of the pinned tools. See the `repo-tasks` skill for the recipe names and the authoring rules.
+
+## Scanning via `trivy`
+
+`trivy` scans dependencies, secrets, and misconfiguration. CI runs it as the `security / trivy` gate. Run it locally before pushing.
+
+```bash
+trivy fs --scanners vuln,secret,misconfig .
+```
+
+See the `repo-standard` skill for the gate and its suppression file.
 
 ## MCP exceptions, documented but not installed
 

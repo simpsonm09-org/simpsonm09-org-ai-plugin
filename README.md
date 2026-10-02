@@ -17,7 +17,7 @@ It is CLI-first and contributes no MCP server. It contributes the shared skills 
 
 The org layer contributes no MCP server. `opencode.fragment.jsonc` is empty. Every shared service is reached through a CLI documented in the `service-integrations` registry. Keep an MCP server for a job only when no CLI covers it, and add it on demand.
 
-GitHub, Postman and its `newman` runner, library docs, browsers, Jira and Atlassian, Kubernetes, Jenkins, and Vault are handled by `gh`, `postman`, `newman`, `npx ctx7`, `@playwright/cli`, the `chrome-devtools` CLI, `acli`, `kubectl` and `helm`, the Jenkins CLI, and `vault`. Code search uses the local `grep` tool, and repo tasks use `just`. See the `service-integrations` registry for the owner of each job and the `local-services` skill for the container stack. Accounts, boards, workspaces, clusters, and personal services such as Discord and email live in the personal layer, which this layer defers to.
+GitHub, Postman and its `newman` runner, library docs, browsers, Jira and Atlassian, Kubernetes, Jenkins, Vault, secrets, tool versions, and scanning are handled by `gh`, `postman`, `newman`, `npx ctx7`, `@playwright/cli`, the `chrome-devtools` CLI, `acli`, `kubectl` and `helm`, the Jenkins CLI, `vault`, `infisical`, `mise`, and `trivy`. Code search uses the local `grep` tool, and repo tasks use `just`. See the `service-integrations` registry for the owner of each job and the `local-services` skill for the container stack. Accounts, boards, workspaces, clusters, and personal services such as Discord and email live in the personal layer, which this layer defers to.
 
 ## Plugin and skills
 

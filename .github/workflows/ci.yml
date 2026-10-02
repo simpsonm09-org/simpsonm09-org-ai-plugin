@@ -15,24 +15,24 @@ concurrency:
 jobs:
   lint:
     if: github.repository_owner == 'simpsonm09-org'
-    uses: simpsonm09-org/simpsonm09-repo-standard/.github/workflows/lint.yml@ca6555b8e6bc16a78ea0b6eeeeee1e5c0a527c57 # repo-standard main
+    uses: simpsonm09-org/simpsonm09-repo-standard/.github/workflows/lint.yml@ff73db7e9c71bb56643138a5addabc87f7e586b2 # repo-standard main
   aislop:
     if: github.repository_owner == 'simpsonm09-org'
     permissions:
       contents: read
       security-events: write
-    uses: simpsonm09-org/simpsonm09-repo-standard/.github/workflows/aislop.yml@ca6555b8e6bc16a78ea0b6eeeeee1e5c0a527c57 # repo-standard main
+    uses: simpsonm09-org/simpsonm09-repo-standard/.github/workflows/aislop.yml@ff73db7e9c71bb56643138a5addabc87f7e586b2 # repo-standard main
   security:
     if: github.repository_owner == 'simpsonm09-org'
     permissions:
       contents: read
       security-events: write
-    uses: simpsonm09-org/simpsonm09-repo-standard/.github/workflows/security.yml@ca6555b8e6bc16a78ea0b6eeeeee1e5c0a527c57 # repo-standard main
+    uses: simpsonm09-org/simpsonm09-repo-standard/.github/workflows/security.yml@ff73db7e9c71bb56643138a5addabc87f7e586b2 # repo-standard main
   standard:
     if: github.repository_owner == 'simpsonm09-org'
     permissions:
       contents: read
-    uses: simpsonm09-org/simpsonm09-repo-standard/.github/workflows/standard.yml@ca6555b8e6bc16a78ea0b6eeeeee1e5c0a527c57 # repo-standard main
+    uses: simpsonm09-org/simpsonm09-repo-standard/.github/workflows/standard.yml@ff73db7e9c71bb56643138a5addabc87f7e586b2 # repo-standard main
 
   test:
     if: github.repository_owner == 'simpsonm09-org'
@@ -41,6 +41,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -48,5 +49,11 @@ jobs:
           node-version: 24
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
-      - name: Test
-        run: npm test
+      - name: Test with coverage
+        run: |
+          mkdir -p coverage
+          node --test --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=coverage/lcov.info
+      - name: Patch coverage
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: node scripts/patch-coverage.mjs --lcov coverage/lcov.info --base "$BASE" --threshold 80

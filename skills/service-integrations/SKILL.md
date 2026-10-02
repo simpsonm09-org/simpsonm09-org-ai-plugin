@@ -1,33 +1,59 @@
 ---
 name: service-integrations
-description: Use when a task needs an external service in this workspace, such as library documentation, code search, GitHub, Postman, a browser, Jira, or a repository command. This skill is the integration registry. It points to the CLI that owns each job.
+description: Use when a task needs an external developer service in this workspace, such as library documentation, code search, GitHub, Postman, a browser, Jira, Kubernetes, Jenkins, or Vault. This is the general integration registry. It names the CLI that owns each job and defers accounts, boards, workspaces, and clusters to the personal layer.
 ---
 
 # Service integrations
 
-This skill is the integration registry for the org layer. Reach a service through a command line tool. A service has one CLI owner. Use an MCP server only when no CLI covers the job, and keep it off by default.
+This skill is the general integration registry for the org layer. Reach a service through a command line tool. A service has one CLI owner. Use an MCP server only when no CLI covers the job, and keep it off by default.
+
+The registry is general and portable. It names the owner and the command. Accounts, boards, workspaces, clusters, and machine services are personal and live in the personal layer. See [Personal layer](#personal-layer).
 
 ## Pick the owner
 
-| Job | Owner | Command | Notes |
+| Job | Owner | Command | Install |
 | --- | --- | --- | --- |
-| GitHub issues, pull requests, Actions, releases | `gh` | `gh pr view`, `gh issue list`, `gh api` | Authenticated as `simpsonm09`. |
-| Public GitHub code search | `gh search code` | `gh search code "<pattern>" --language <lang>` | Legacy engine, no regex, default branch only, files under 384 KB. |
-| Postman collections, environments, specs | `postman` | `postman collection get <id>`, `postman describe` | Install with `npm install -g postman-cli`, then `postman login`. |
-| Library, framework, SDK docs | `npx ctx7` | `npx ctx7 library <name> "<topic>"` | Anonymous works. `npx ctx7 login` raises the rate limit. |
-| Browser automation and capture | `@playwright/cli` | `playwright-cli open <url>`, `goto`, `click`, `screenshot`, `pdf`, `attach --extension` | Purpose-built for coding agents. `attach --extension` reaches a logged-in browser and keeps persistent sessions. |
-| Chrome performance and debugging | `chrome-devtools` CLI | `chrome-devtools navigate_page`, `take_screenshot`, `lighthouse_audit` | CLI over the same daemon as the MCP. It covers most tools. |
-| Jira and Atlassian issues, JQL search, comments, transitions | `acli` | `acli jira workitem view/search --jql`, `comment-create`, `workitem transition` | Official and maintained. macOS `brew install atlassian/homebrew-acli/acli`, Linux apt or yum, Windows binary download. |
-| Discord, including messages, channels, roles, members, threads, DMs, and webhooks | `discli` | `discli message send <channel> "<text>"`, `discli server list` | See the `discord` skill in the personal layer for the token, profiles, and the command set. |
-| Local containers | `docker` | `docker ps`, `docker logs`, `docker restart`, `docker compose -f services/<name>/docker-compose.yml up -d` | Docker runs in WSL only, never in Windows. See the `local-services` skill. |
-| Containers and Compose stacks in a GUI | Portainer CE | `https://localhost:9443` | First run needs the setup token from `docker logs portainer`. See the `local-services` skill. |
-| Secrets, the source of truth | Infisical | `infisical login`, `infisical export`, or `http://localhost:8088` | Loaders: the workspace `.envrc` in WSL, `scripts/Import-Secrets.ps1 -Apply` on Windows. See the `local-services` and `secrets` docs. |
-| Local code search | the `grep` tool | `grep` with a literal or a regex | Prefer this inside the repo. |
-| Run, build, test, verify a repository | `just` | `just <recipe>` | See the `repo-tasks` skill. |
+| GitHub issues, pull requests, Actions, releases | `gh` | `gh pr view`, `gh issue list`, `gh api` | winget, apt, or the GitHub release |
+| Public GitHub code search | `gh search code` | `gh search code "<pattern>" --language <lang>` | with `gh` |
+| Local code search | the `grep` tool | `grep` with a literal or a regex | built in |
+| Postman collections, environments, specs | `postman` | `postman collection get <id>`, `postman describe` | `npm install -g postman-cli` |
+| Postman collection runs, local and CI | `newman` | `newman run <collection.json>` | `npm install -g newman` |
+| Library, framework, SDK docs | `npx ctx7` | `npx ctx7 library <name> "<topic>"` | `npx` |
+| Browser automation and capture | `@playwright/cli` | `playwright-cli open <url>`, `goto`, `click`, `screenshot`, `pdf`, `attach --extension` | `npm install -g @playwright/cli` |
+| Chrome performance and debugging | `chrome-devtools` CLI | `chrome-devtools navigate_page`, `take_screenshot`, `lighthouse_audit` | `npm install -g chrome-devtools` |
+| Jira and Atlassian issues, JQL search, comments, transitions | `acli` | `acli jira workitem view/search --jql`, `comment-create`, `workitem transition` | official binary |
+| Kubernetes objects | `kubectl` | `kubectl get`, `kubectl apply -f`, `kubectl logs` | winget, apt, or the release |
+| Kubernetes packaging | `helm` | `helm upgrade --install`, `helm template` | winget, apt, or the release |
+| Kubernetes manifest rendering | `kustomize` | `kustomize build <dir>` | winget or the release |
+| Jenkins jobs, builds, and logs | the Jenkins CLI | `java -jar jenkins-cli.jar -s <url> build <job>` | fetched from the controller |
+| Secrets in Vault | `vault` | `vault kv get secret/<path>` | winget, apt, or the release |
+| Repository tasks | `just` | `just <recipe>` | `mise install` in the repository |
+| Container runtime | `docker` | `docker ps`, `docker logs` | WSL engine |
+
+Install is the per-machine step. Prefer `winget` on Windows and `apt` in WSL, with `scoop` as the Windows fallback when no winget entry exists.
+
+## Personal layer
+
+The general owner is here. The concrete value is not. The personal layer holds the account, board, workspace, cluster, and machine specifics, and the personal services that sit below the org boundary.
+
+- Accounts and sites: the GitHub account, the Jira site and board, the Postman workspace.
+- Infrastructure: the Kubernetes context, the Vault address and namespace, the Infisical project.
+- Personal services: email through `himalaya`, phone notifications through `ntfy`, texting through `smsgate`, and Discord through `discli`.
+
+See the personal layer skills `integrations-personal`, `discord`, and `dev-tools` in `simpsonm09-personal-opencode`.
+
+## Best practices
+
+- Use the owner in the table instead of a second path to the same service.
+- Read a secret from the environment, as `$env:NAME` on Windows or `$NAME` in WSL. Never write the value into a file.
+- Prefer `--json` when a script consumes the result.
+- Prefer a CLI over an MCP server. Add an MCP server only when no CLI covers the job, and keep it off by default.
+- Verify the tool before blaming a command: `--version`, `gh auth status`, `vault status`, `kubectl config current-context`.
+- Never drive an interactive wizard from an agent. Configure the tool with individual commands and a config file.
 
 ## GitHub via `gh`
 
-Check the session with `gh auth status`. Sign in with `gh auth login`.
+Check the session with `gh auth status`. Sign in with `gh auth login`. The personal layer records which account is in use.
 
 | Need | Command |
 | --- | --- |
@@ -44,9 +70,9 @@ Check the session with `gh auth status`. Sign in with `gh auth login`.
 
 When you land a pull request, merge it and delete the head branch in one step. `--delete-branch` deletes the remote and the local branch. The repository's "automatically delete head branches" setting removes the branch on the remote only.
 
-## Postman via `postman`
+## Postman and `newman`
 
-Install once with `npm install -g postman-cli`. Sign in with `postman login` (browser) or `postman login --with-api-key $env:POSTMAN_API_KEY`, then confirm with `postman whoami`. Commands that read the Postman cloud need a login. Commands that read local files do not.
+`postman` owns the Postman cloud. `newman` runs an exported collection from a file, locally or in CI. Install `postman` with `npm install -g postman-cli` and sign in with `postman login` or `postman login --with-api-key $env:POSTMAN_API_KEY`, then confirm with `postman whoami`. Install `newman` with `npm install -g newman`.
 
 | Need | Command |
 | --- | --- |
@@ -61,10 +87,10 @@ Install once with `npm install -g postman-cli`. Sign in with `postman login` (br
 | Read a specification | `postman spec get <id>` |
 | Search entities | `postman search collections "<query>"` |
 | Aggregate context for a coding agent | `postman describe` |
-| Run a collection | `postman collection run <path>` |
-| Send a one-off request | `postman request <method> <url>` |
+| Run a collection from the cloud | `postman collection run <path>` |
+| Run an exported collection offline | `newman run <collection.json> -e <env.json>` |
 
-Add `--json` for machine-readable output. `postman workspace pull` writes a workspace's elements to disk when you want the files, not a listing.
+Add `--json` for machine-readable output. `postman workspace pull` writes a workspace's elements to disk when you want the files, not a listing. Name the personal workspace and environment in the personal layer.
 
 ## Library docs via `ctx7`
 
@@ -103,7 +129,7 @@ chrome-devtools lighthouse_audit
 
 ## Jira and Atlassian via `acli`
 
-`acli` is the official Atlassian CLI. It owns Jira issues, JQL search, comments, and transitions.
+`acli` is the official Atlassian CLI. It owns Jira issues, JQL search, comments, and transitions. The site and board are personal; see the personal layer.
 
 ```bash
 acli jira workitem view <key>
@@ -112,9 +138,46 @@ acli jira workitem comment-create <key> --body "text"
 acli jira workitem transition <key> --status Done
 ```
 
+## Kubernetes via `kubectl`, `helm`, and `kustomize`
+
+`kubectl` reads and writes cluster objects. `helm` manages releases. `kustomize` renders overlays. The context and cluster are personal; see the personal layer.
+
+```bash
+kubectl config current-context
+kubectl get pods -A
+kubectl apply -f manifest.yaml
+kubectl logs <pod> --tail 100
+helm upgrade --install <release> <chart> -n <namespace>
+kustomize build overlays/dev
+```
+
+## Jenkins via the Jenkins CLI
+
+The Jenkins CLI is a jar served by the controller. Fetch it from `<url>/jnlpJars/jenkins-cli.jar`, then authenticate with an API token from the environment rather than a password.
+
+```bash
+java -jar jenkins-cli.jar -s <url> -auth "$JENKINS_USER:$JENKINS_API_TOKEN" who-am-i
+java -jar jenkins-cli.jar -s <url> -auth "$JENKINS_USER:$JENKINS_API_TOKEN" build <job>
+java -jar jenkins-cli.jar -s <url> -auth "$JENKINS_USER:$JENKINS_API_TOKEN" console <build>
+```
+
+Never drive the Jenkins setup wizard from an agent.
+
+## Vault via `vault`
+
+`vault` reads and writes secrets in HashiCorp Vault. The address, namespace, and auth method are personal; see the personal layer.
+
+```bash
+vault status
+vault kv get secret/<path>
+vault kv put secret/<path> key=value
+```
+
+Prefer reading a value into the environment over passing it on a command line that lands in shell history.
+
 ## Code search
 
-Two owners, split by scope. Use the local `grep` tool for anything inside the repo. Use `gh search code "<pattern>"` for public GitHub, remembering its limits. There is no regex and only the default branch is searched.
+Two owners, split by scope. Use the local `grep` tool for anything inside the repository. Use `gh search code "<pattern>"` for public GitHub, remembering its limits. There is no regex and only the default branch is searched.
 
 ## Repository tasks
 
@@ -134,5 +197,6 @@ No MCP server is installed by default. These three are the only jobs where an MC
 
 - A service has one CLI owner. Use the owner the table names instead of a second path to the same service.
 - Use an MCP server only when no CLI covers the job. Keep it off by default and turn it on for the task that needs it.
-- A secret comes from the environment, as `$env:POSTMAN_API_KEY` on Windows or `$POSTMAN_API_KEY` in WSL. Never write the value into a file.
+- A secret comes from the environment, as `$env:NAME` on Windows or `$NAME` in WSL. Never write the value into a file.
+- Keep this registry general. Put the account, board, workspace, cluster, and machine value in the personal layer.
 - The workspace MCP servers are composed from the org and personal layers. The full list, prerequisites, and removal notes are in `maxstack/docs/mcp.md`.

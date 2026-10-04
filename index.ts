@@ -23,21 +23,42 @@ const REPO_STANDARD = join(
   "repos",
   "simpsonm09-repo-standard",
 );
-const ACCESS_SCRIPT = join(REPO_STANDARD, "scripts", "agent-access.mjs");
-const TOKEN_SCRIPT = join(REPO_STANDARD, "scripts", "agent-token.mjs");
 const OWNER = "simpsonm09-org";
+
+interface Scripts {
+  access: string;
+  token: string;
+}
+
+// The resolver and broker default to the repo-standard clone in the workspace.
+// A caller may point them elsewhere with options.scripts, which keeps the gate
+// testable in a checkout that has no workspace around it.
+function scriptsFor(options: unknown): Scripts {
+  const configured = (options as { scripts?: Partial<Scripts> } | undefined)
+    ?.scripts;
+  return {
+    access:
+      configured?.access ?? join(REPO_STANDARD, "scripts", "agent-access.mjs"),
+    token:
+      configured?.token ?? join(REPO_STANDARD, "scripts", "agent-token.mjs"),
+  };
+}
 
 // Run the frozen resolver interface. It classifies the command to a capability
 // and exits 0 when the level grants it, 1 when it does not, 2 when the catalog
 // is unreadable. A missing script is an unknown answer, not a crash: the gate
 // fails closed on a write and leaves a read alone. The JSON on stdout carries
 // the level for the context line.
-function resolveAccess(repo: string, command: string): CliResult {
-  if (!existsSync(ACCESS_SCRIPT)) return { code: 2, stdout: "" };
+function resolveAccess(
+  script: string,
+  repo: string,
+  command: string,
+): CliResult {
+  if (!existsSync(script)) return { code: 2, stdout: "" };
   try {
     const stdout = execFileSync(
       process.execPath,
-      [ACCESS_SCRIPT, repo, "--command", command, "--json"],
+      [script, repo, "--command", command, "--json"],
       { encoding: "utf8" },
     );
     return { code: 0, stdout: stdout ?? "" };
@@ -54,17 +75,13 @@ function resolveAccess(repo: string, command: string): CliResult {
 
 // Read the resolved level for the context line. The command decision above is
 // the authority; the level is informational.
-function resolveLevel(repo: string): string {
-  if (!existsSync(ACCESS_SCRIPT)) return fallbackLevel();
+function resolveLevel(script: string, repo: string): string {
+  if (!existsSync(script)) return fallbackLevel();
   try {
-    const stdout = execFileSync(
-      process.execPath,
-      [ACCESS_SCRIPT, repo, "--json"],
-      {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "ignore"],
-      },
-    );
+    const stdout = execFileSync(process.execPath, [script, repo, "--json"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
     const parsed = JSON.parse(stdout ?? "") as { level?: unknown };
     return typeof parsed.level === "string" ? parsed.level : fallbackLevel();
   } catch {
@@ -81,14 +98,14 @@ let tokenCache: TokenCache | null = null;
 
 // Mint an installation token for one repository and cache it until it nears
 // expiry. The token never leaves the process environment; it is never logged.
-async function tokenFor(repo: string): Promise<string | null> {
+async function tokenFor(script: string, repo: string): Promise<string | null> {
   if (tokenUsable(tokenCache, Date.now()))
     return (tokenCache as TokenCache).token;
-  if (!existsSync(TOKEN_SCRIPT)) return null;
+  if (!existsSync(script)) return null;
   try {
     const stdout = execFileSync(
       process.execPath,
-      [TOKEN_SCRIPT, `${OWNER}/${repo}`, "--json"],
+      [script, `${OWNER}/${repo}`, "--json"],
       { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
     );
     const parsed = JSON.parse(stdout ?? "") as Partial<TokenCache>;
@@ -162,6 +179,8 @@ export function loadSkills(root: string): SkillSeed[] {
 export default Plugin.define({
   id: "simpsonm09-org-opencode",
   async setup(ctx) {
+    const scripts = scriptsFor(ctx.options);
+
     const skills = loadSkills(join(here, "skills"));
     if (skills.length > 0) {
       await ctx.skill.transform((editor) => {
@@ -185,8 +204,9 @@ export default Plugin.define({
       await gateShellEdit(input, input.env, {
         cwd: input.cwd,
         workspaceRoot,
-        resolve: resolveAccess,
-        tokenFor,
+        resolve: (name, command) =>
+          resolveAccess(scripts.access, name, command),
+        tokenFor: (name) => tokenFor(scripts.token, name),
       });
     });
 
@@ -195,7 +215,7 @@ export default Plugin.define({
       if (!repo) return;
       event.system.push({
         type: "text",
-        text: contextLine(repo, resolveLevel(repo)),
+        text: contextLine(repo, resolveLevel(scripts.access, repo)),
       });
     });
   },

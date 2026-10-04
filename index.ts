@@ -1,13 +1,14 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { Plugin } from "@opencode/plugin";
 import {
   type CliResult,
   contextLine,
   fallbackLevel,
   gateShellEdit,
+  nodeRunner,
   repoFromCwd,
   tokenUsable,
 } from "./gate.mjs";
@@ -44,20 +45,82 @@ function scriptsFor(options: unknown): Scripts {
   };
 }
 
-// Run the frozen resolver interface. It classifies the command to a capability
-// and exits 0 when the level grants it, 1 when it does not, 2 when the catalog
-// is unreadable. A missing script is an unknown answer, not a crash: the gate
-// fails closed on a write and leaves a read alone. The JSON on stdout carries
-// the level for the context line.
-function resolveAccess(
+// The resolver module (scripts/agent-access.mjs) exports the decision it makes
+// for its own CLI, so the gate calls the functions in-process instead of
+// spawning. Importing avoids the interpreter trap: the plugin runs inside the
+// OpenCode binary, where process.execPath is the OpenCode CLI, not Node. Only
+// the exports the gate needs are typed here.
+interface AccessApi {
+  loadCatalog: (path?: string) => unknown;
+  loadCommittedCatalog?: (dir?: string) => unknown | null;
+  resolveLevel: (catalog: unknown, repoName: string) => { level?: unknown };
+  decide: (
+    level: string,
+    command: string,
+  ) => { capability: string | null; allowed: boolean };
+}
+
+interface TokenApi {
+  mintForRepo: (
+    owner: string,
+    repo: string,
+  ) => Promise<{ token: string; expires_at: string }>;
+}
+
+// Import a configured script and return it only when it exports the interface
+// the gate calls. A missing file, a syntax error, or a script without the API
+// is a genuine unknown, which the caller treats conservatively.
+async function importModule<T>(script: string): Promise<T | null> {
+  if (!existsSync(script)) return null;
+  try {
+    return (await import(pathToFileURL(script).href)) as T;
+  } catch {
+    return null;
+  }
+}
+
+function isAccessApi(value: unknown): value is AccessApi {
+  const api = value as Partial<AccessApi> | null;
+  return (
+    typeof api?.loadCatalog === "function" &&
+    typeof api.resolveLevel === "function" &&
+    typeof api.decide === "function"
+  );
+}
+
+// Load the committed catalog the way the resolver CLI does, then classify the
+// command. This mirrors agent-access.mjs main(): prefer the committed catalog,
+// fall back to the working-tree catalog, and exit 2 when neither loads.
+function accessFromApi(
+  api: AccessApi,
+  repo: string,
+  command: string,
+): CliResult {
+  const catalog = api.loadCommittedCatalog?.() ?? api.loadCatalog();
+  const resolved = api.resolveLevel(catalog, repo);
+  const level =
+    typeof resolved.level === "string" ? resolved.level : fallbackLevel();
+  const decision = api.decide(level, command);
+  return {
+    code: decision.allowed ? 0 : 1,
+    stdout: JSON.stringify({
+      level,
+      capability: decision.capability,
+      allowed: decision.allowed,
+    }),
+  };
+}
+
+// The last resort when the script exports no API: run it as a CLI. Run it with
+// a Node runtime, never the OpenCode binary, so the spawn cannot open OpenCode.
+function accessFromCli(
   script: string,
   repo: string,
   command: string,
 ): CliResult {
-  if (!existsSync(script)) return { code: 2, stdout: "" };
   try {
     const stdout = execFileSync(
-      process.execPath,
+      nodeRunner(process.execPath),
       [script, repo, "--command", command, "--json"],
       { encoding: "utf8" },
     );
@@ -73,17 +136,36 @@ function resolveAccess(
   }
 }
 
+// Resolve access for one command. The in-process module is the preferred path;
+// a script that only ships a CLI is spawned with a Node runtime. A module that
+// loads but then throws is an unknown answer, not a crash.
+function resolveAccess(
+  api: AccessApi | null,
+  script: string,
+  repo: string,
+  command: string,
+): CliResult {
+  if (api) {
+    try {
+      return accessFromApi(api, repo, command);
+    } catch {
+      return { code: 2, stdout: "" };
+    }
+  }
+  if (!existsSync(script)) return { code: 2, stdout: "" };
+  return accessFromCli(script, repo, command);
+}
+
 // Read the resolved level for the context line. The command decision above is
 // the authority; the level is informational.
-function resolveLevel(script: string, repo: string): string {
-  if (!existsSync(script)) return fallbackLevel();
+function levelFor(api: AccessApi | null, repo: string): string {
+  if (!api) return fallbackLevel();
   try {
-    const stdout = execFileSync(process.execPath, [script, repo, "--json"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    });
-    const parsed = JSON.parse(stdout ?? "") as { level?: unknown };
-    return typeof parsed.level === "string" ? parsed.level : fallbackLevel();
+    const catalog = api.loadCommittedCatalog?.() ?? api.loadCatalog();
+    const resolved = api.resolveLevel(catalog, repo);
+    return typeof resolved.level === "string"
+      ? resolved.level
+      : fallbackLevel();
   } catch {
     return fallbackLevel();
   }
@@ -98,20 +180,50 @@ let tokenCache: TokenCache | null = null;
 
 // Mint an installation token for one repository and cache it until it nears
 // expiry. The token never leaves the process environment; it is never logged.
-async function tokenFor(script: string, repo: string): Promise<string | null> {
+async function tokenFor(
+  api: TokenApi | null,
+  script: string,
+  repo: string,
+): Promise<string | null> {
   if (tokenUsable(tokenCache, Date.now()))
     return (tokenCache as TokenCache).token;
+  const minted = api
+    ? await mintInProcess(api, repo)
+    : await mintFromCli(script, repo);
+  if (!minted) return null;
+  tokenCache = minted;
+  return minted.token;
+}
+
+async function mintInProcess(
+  api: TokenApi,
+  repo: string,
+): Promise<TokenCache | null> {
+  try {
+    const minted = await api.mintForRepo(OWNER, repo);
+    if (!minted?.token || !minted.expires_at) return null;
+    return { token: minted.token, expires_at: minted.expires_at };
+  } catch {
+    return null;
+  }
+}
+
+// A broker that only ships a CLI is spawned with a Node runtime, matching the
+// resolver fallback. The CLI prints one JSON object on stdout.
+async function mintFromCli(
+  script: string,
+  repo: string,
+): Promise<TokenCache | null> {
   if (!existsSync(script)) return null;
   try {
     const stdout = execFileSync(
-      process.execPath,
+      nodeRunner(process.execPath),
       [script, `${OWNER}/${repo}`, "--json"],
       { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
     );
     const parsed = JSON.parse(stdout ?? "") as Partial<TokenCache>;
     if (!parsed.token || !parsed.expires_at) return null;
-    tokenCache = { token: parsed.token, expires_at: parsed.expires_at };
-    return parsed.token;
+    return { token: parsed.token, expires_at: parsed.expires_at };
   } catch {
     return null;
   }
@@ -181,6 +293,14 @@ export default Plugin.define({
   async setup(ctx) {
     const scripts = scriptsFor(ctx.options);
 
+    // Load the resolver and broker modules once. The gate calls their exports
+    // in-process, so no child process and no interpreter are involved.
+    const access = await importModule<AccessApi>(scripts.access);
+    const accessApi = isAccessApi(access) ? access : null;
+    const broker = await importModule<TokenApi>(scripts.token);
+    const tokenApi =
+      broker && typeof broker.mintForRepo === "function" ? broker : null;
+
     const skills = loadSkills(join(here, "skills"));
     if (skills.length > 0) {
       await ctx.skill.transform((editor) => {
@@ -205,8 +325,8 @@ export default Plugin.define({
         cwd: input.cwd,
         workspaceRoot,
         resolve: (name, command) =>
-          resolveAccess(scripts.access, name, command),
-        tokenFor: (name) => tokenFor(scripts.token, name),
+          resolveAccess(accessApi, scripts.access, name, command),
+        tokenFor: (name) => tokenFor(tokenApi, scripts.token, name),
       });
     });
 
@@ -215,7 +335,7 @@ export default Plugin.define({
       if (!repo) return;
       event.system.push({
         type: "text",
-        text: contextLine(repo, resolveLevel(scripts.access, repo)),
+        text: contextLine(repo, levelFor(accessApi, repo)),
       });
     });
   },

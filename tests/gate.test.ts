@@ -6,8 +6,11 @@ import {
   contextLine,
   denyCommand,
   gateShellEdit,
+  isPowerShell,
   isWriteCommand,
+  nodeRunner,
   parseResolverOutput,
+  powerShellQuote,
   repoFromCwd,
   shouldInject,
   tokenUsable,
@@ -65,16 +68,69 @@ test("isWriteCommand recognizes a gh command and a remote write", () => {
   assert.equal(isWriteCommand("cat file"), false);
 });
 
-test("denyCommand prints to stderr and exits non-zero", () => {
+test("denyCommand prints to stderr and exits non-zero in POSIX form", () => {
   const command = denyCommand("repo is read-only");
   assert.match(command, />&2/);
   assert.match(command, /exit 1/);
   assert.match(command, /agent-access: denied: repo is read-only/);
 });
 
-test("denyCommand quotes a reason that contains a single quote", () => {
+test("denyCommand quotes a reason that contains a single quote in POSIX form", () => {
   const command = denyCommand("it's locked");
   assert.match(command, /'agent-access: denied: it'\\''s locked'/);
+});
+
+test("denyCommand uses PowerShell syntax for a PowerShell shell", () => {
+  const command = denyCommand("repo is read-only", "pwsh");
+  assert.match(command, /^Write-Error '/);
+  assert.match(command, /; exit 1$/);
+  assert.match(command, /agent-access: denied: repo is read-only/);
+  assert.doesNotMatch(command, />&2/);
+});
+
+test("denyCommand doubles an embedded single quote in PowerShell form", () => {
+  const command = denyCommand("it's locked", "powershell");
+  assert.match(
+    command,
+    /Write-Error 'agent-access: denied: it''s locked'; exit 1/,
+  );
+});
+
+test("denyCommand keeps the POSIX form for an unknown shell", () => {
+  const command = denyCommand("nope", "bash");
+  assert.match(command, />&2/);
+  assert.match(command, /agent-access: denied: nope/);
+});
+
+test("isPowerShell matches the PowerShell family only", () => {
+  assert.equal(isPowerShell("pwsh"), true);
+  assert.equal(isPowerShell("powershell"), true);
+  assert.equal(isPowerShell("PowerShell.exe"), true);
+  assert.equal(isPowerShell("pwsh.exe"), true);
+  assert.equal(isPowerShell("bash"), false);
+  assert.equal(isPowerShell("sh"), false);
+  assert.equal(isPowerShell(""), false);
+});
+
+test("powerShellQuote doubles embedded single quotes", () => {
+  assert.equal(powerShellQuote("plain"), "'plain'");
+  assert.equal(powerShellQuote("it's"), "'it''s'");
+});
+
+test("nodeRunner never returns the OpenCode binary", () => {
+  assert.equal(
+    nodeRunner(
+      "C:\\Users\\x\\AppData\\Local\\Programs\\opencode-cli\\opencode.exe",
+    ),
+    "node",
+  );
+  assert.equal(
+    nodeRunner("C:\\Program Files\\nodejs\\node.exe"),
+    "C:\\Program Files\\nodejs\\node.exe",
+  );
+  assert.equal(nodeRunner("/usr/local/bin/node"), "/usr/local/bin/node");
+  assert.equal(nodeRunner("/usr/local/bin/bun"), "/usr/local/bin/bun");
+  assert.equal(nodeRunner(""), "node");
 });
 
 test("tokenUsable rejects an absent, malformed, or expiring cache", () => {
@@ -155,7 +211,7 @@ test("gateShellEdit leaves a command outside a fleet clone alone", async () => {
   assert.equal(env.GH_TOKEN, undefined);
 });
 
-test("gateShellEdit rewrites a denied command into the failing form", async () => {
+test("gateShellEdit rewrites a denied command into the failing POSIX form", async () => {
   const input = { command: "git push origin main" };
   const env: Record<string, string | undefined> = {};
   const decision = await gateShellEdit(
@@ -168,6 +224,22 @@ test("gateShellEdit rewrites a denied command into the failing form", async () =
   assert.equal(decision.level, "read");
   assert.match(input.command, /exit 1/);
   assert.match(input.command, />&2/);
+  assert.equal(env.GH_TOKEN, undefined);
+});
+
+test("gateShellEdit rewrites a denied command into PowerShell form when the shell is pwsh", async () => {
+  const input = { command: "gh pr merge 1", shell: "pwsh" };
+  const env: Record<string, string | undefined> = {};
+  const decision = await gateShellEdit(
+    input,
+    env,
+    stubDeps(() => ({ code: 1, stdout: jsonFor("read") })),
+  );
+
+  assert.equal(decision.action, "deny");
+  assert.match(input.command, /Write-Error '/);
+  assert.match(input.command, /; exit 1$/);
+  assert.doesNotMatch(input.command, />&2/);
   assert.equal(env.GH_TOKEN, undefined);
 });
 

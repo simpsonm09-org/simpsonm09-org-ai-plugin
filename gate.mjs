@@ -9,7 +9,8 @@ const FALLBACK_LEVEL = "read";
 
 /**
  * @typedef {{ code: number, stdout: string }} CliResult
- * @typedef {(repo: string, command: string) => CliResult} Resolver
+ * @typedef {(repo: string, command: string, remoteUrl: string | null) => CliResult} Resolver
+ * @typedef {(remote: string, cwd: string) => string | null} RemoteUrlLookup
  * @typedef {"allow" | "deny" | "unknown"} Classification
  */
 
@@ -35,6 +36,74 @@ export function repoFromCwd(cwd, workspaceRoot) {
  */
 export function shouldInject(command) {
   return /^gh(\s|$)/.test(command);
+}
+
+// Split a shell command on whitespace and quotes, the same light parse the
+// resolver uses. Only enough to reach the command and its git push remote.
+/**
+ * @param {string} command
+ * @returns {string[]}
+ */
+function tokenize(command) {
+  return (command.match(/"[^"]*"|'[^']*'|\S+/g) ?? [])
+    .map((token) => token.replace(/^["']|["']$/g, ""))
+    .filter(Boolean);
+}
+
+// The remote a git push targets: the first non-flag token after "git push",
+// defaulting to "origin" when absent. A token naming a ref ("main",
+// "refs/heads/x", or "X:Y") is a refspec, not a remote, so a bare push still
+// reads as origin. Returns null for a command that is not a git push, so the
+// caller passes no URL and the resolver keeps its governed default.
+/**
+ * @param {string} command
+ * @returns {string | null}
+ */
+export function pushRemote(command) {
+  const parts = tokenize(command);
+  if (parts[0] !== "git" || parts[1] !== "push") return null;
+  const tokens = parts.slice(2).filter((token) => !token.startsWith("-"));
+  const first = tokens[0];
+  if (!first || looksLikeRefspec(first)) return "origin";
+  return first;
+}
+
+// A refspec names a ref. "main" and "refs/heads/main" are the shorthand and the
+// full form, a colon separates source and destination, and a bare remote name
+// has no colon and no slash. This mirrors the resolver's own parse so the gate
+// and the resolver agree on which token is the remote.
+/**
+ * @param {string} token
+ * @returns {boolean}
+ */
+function looksLikeRefspec(token) {
+  if (token.includes(":")) return true;
+  if (token === "HEAD") return true;
+  if (token.startsWith("refs/") || token.startsWith("refs\\")) return true;
+  if (!token.includes("/")) return false;
+  const [head] = token.split(/[/\\]/);
+  return head === "refs" || head === "heads";
+}
+
+// Resolve a remote name to its URL inside the command's cwd with
+// `git remote get-url`. A cwd with no git repo, an unknown remote, or a missing
+// git binary yields null, so the caller passes no URL and the resolver keeps
+// its governed default instead of guessing scope.
+/**
+ * @param {string} remote
+ * @param {string} cwd
+ * @param {(args: string[]) => string} exec
+ * @returns {string | null}
+ */
+export function remoteUrlFor(remote, cwd, exec) {
+  if (!remote || !cwd) return null;
+  try {
+    const url = exec(["-C", cwd, "remote", "get-url", remote]);
+    const trimmed = (url ?? "").trim();
+    return trimmed.length > 0 ? trimmed : null;
+  } catch {
+    return null;
+  }
 }
 
 // Rewrite a denied command into one that reports the reason and exits non-zero.
@@ -165,8 +234,9 @@ export function contextLine(repo, level) {
 }
 
 // The shell wiring. Pure in the sense that every side effect (resolving the
-// level, minting a token) is injected, so a test stubs both and asserts the
-// edit. It mutates only the passed-in command holder and env, never logging.
+// level, resolving the push remote, minting a token) is injected, so a test
+// stubs each and asserts the edit. It mutates only the passed-in command
+// holder and env, never logging.
 /**
  * @param {{ command: string, shell?: string }} input
  * @param {Record<string, string | undefined>} env
@@ -174,6 +244,7 @@ export function contextLine(repo, level) {
  *   cwd: string,
  *   workspaceRoot: string,
  *   resolve: Resolver,
+ *   remoteUrl: RemoteUrlLookup,
  *   tokenFor: (repo: string) => Promise<string | null>,
  * }} deps
  * @returns {Promise<{ action: "pass" | "deny" | "inject", repo: string | null, level: string }>}
@@ -184,7 +255,9 @@ export async function gateShellEdit(input, env, deps) {
 
   const command = input.command;
   const shell = input.shell;
-  const result = deps.resolve(repo, command);
+  const remote = pushRemote(command);
+  const remoteUrl = remote ? deps.remoteUrl(remote, deps.cwd) : null;
+  const result = deps.resolve(repo, command, remoteUrl);
   const classification = classifyResolver(result);
   const parsed = parseResolverOutput(result.stdout);
   const level = parsed?.level ?? FALLBACK_LEVEL;

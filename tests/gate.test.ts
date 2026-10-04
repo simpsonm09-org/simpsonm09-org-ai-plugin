@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { join, resolve } from "node:path";
 import { test } from "node:test";
 import {
   classifyResolver,
@@ -12,19 +13,31 @@ import {
   tokenUsable,
 } from "../gate.mjs";
 
-const ws = String.raw`C:\dev\workspace`;
-const reposRoot = String.raw`C:\dev\workspace\projects\repos`;
+const ws = resolve("workspace");
+const reposRoot = join(ws, "projects", "repos");
 
 test("repoFromCwd names the clone for a directory inside a repo", () => {
-  assert.equal(repoFromCwd(`${reposRoot}\\simpsonm09-org-opencode-plugin`, ws), "simpsonm09-org-opencode-plugin");
-  assert.equal(repoFromCwd(`${reposRoot}\\simpsonm09-org-opencode-plugin\\src\\deep`, ws), "simpsonm09-org-opencode-plugin");
+  assert.equal(
+    repoFromCwd(join(reposRoot, "simpsonm09-org-opencode-plugin"), ws),
+    "simpsonm09-org-opencode-plugin",
+  );
+  assert.equal(
+    repoFromCwd(
+      join(reposRoot, "simpsonm09-org-opencode-plugin", "src", "deep"),
+      ws,
+    ),
+    "simpsonm09-org-opencode-plugin",
+  );
 });
 
 test("repoFromCwd returns null outside projects/repos", () => {
-  assert.equal(repoFromCwd(String.raw`C:\dev\workspace\projects`, ws), null);
-  assert.equal(repoFromCwd(String.raw`C:\dev\workspace`, ws), null);
+  assert.equal(repoFromCwd(join(ws, "projects"), ws), null);
+  assert.equal(repoFromCwd(ws, ws), null);
   assert.equal(repoFromCwd(reposRoot, ws), null);
-  assert.equal(repoFromCwd(String.raw`C:\elsewhere\projects\repos\\x`, ws), null);
+  assert.equal(
+    repoFromCwd(join(ws, "..", "elsewhere", "projects", "repos", "x"), ws),
+    null,
+  );
   assert.equal(repoFromCwd("", ws), null);
   assert.equal(repoFromCwd(reposRoot, ""), null);
 });
@@ -67,40 +80,66 @@ test("denyCommand quotes a reason that contains a single quote", () => {
 test("tokenUsable rejects an absent, malformed, or expiring cache", () => {
   const now = Date.parse("2026-01-01T00:00:00Z");
   assert.equal(tokenUsable(null, now), false);
-  assert.equal(tokenUsable({ token: "", expires_at: "2026-01-01T00:10:00Z" }, now), false);
-  assert.equal(tokenUsable({ token: "x", expires_at: "not-a-date" }, now), false);
-  assert.equal(tokenUsable({ token: "x", expires_at: "2026-01-01T00:02:00Z" }, now), false);
-  assert.equal(tokenUsable({ token: "x", expires_at: "2026-01-01T01:00:00Z" }, now), true);
+  assert.equal(
+    tokenUsable({ token: "", expires_at: "2026-01-01T00:10:00Z" }, now),
+    false,
+  );
+  assert.equal(
+    tokenUsable({ token: "x", expires_at: "not-a-date" }, now),
+    false,
+  );
+  assert.equal(
+    tokenUsable({ token: "x", expires_at: "2026-01-01T00:02:00Z" }, now),
+    false,
+  );
+  assert.equal(
+    tokenUsable({ token: "x", expires_at: "2026-01-01T01:00:00Z" }, now),
+    true,
+  );
 });
 
 test("contextLine names the repository and its level", () => {
-  assert.match(contextLine("simpsonm09-org-opencode-plugin", "read"), /simpsonm09-org-opencode-plugin/);
+  assert.match(
+    contextLine("simpsonm09-org-opencode-plugin", "read"),
+    /simpsonm09-org-opencode-plugin/,
+  );
   assert.match(contextLine("simpsonm09-org-opencode-plugin", "read"), /"read"/);
 });
 
 test("parseResolverOutput reads the level and capability from the resolver JSON", () => {
-  assert.deepEqual(parseResolverOutput('{"level":"merge","capability":"mergePr","allowed":true}'), {
-    level: "merge",
-    capability: "mergePr",
-  });
-  assert.deepEqual(parseResolverOutput('{"level":"read","capability":null,"allowed":true}'), {
-    level: "read",
-    capability: null,
-  });
+  assert.deepEqual(
+    parseResolverOutput(
+      '{"level":"merge","capability":"mergePr","allowed":true}',
+    ),
+    {
+      level: "merge",
+      capability: "mergePr",
+    },
+  );
+  assert.deepEqual(
+    parseResolverOutput('{"level":"read","capability":null,"allowed":true}'),
+    {
+      level: "read",
+      capability: null,
+    },
+  );
   assert.equal(parseResolverOutput(""), null);
   assert.equal(parseResolverOutput("read\n"), null);
   assert.equal(parseResolverOutput('{"capability":"x"}'), null);
 });
 
-const insideRepo = `${reposRoot}\\demo-repo`;
-const outsideRepo = String.raw`C:\dev\workspace\docs`;
-const stubDeps = (resolve: (repo: string, command: string) => { code: number; stdout: string }) => ({
+const insideRepo = join(reposRoot, "demo-repo");
+const outsideRepo = join(ws, "docs");
+const stubDeps = (
+  resolve: (repo: string, command: string) => { code: number; stdout: string },
+) => ({
   cwd: insideRepo,
   workspaceRoot: ws,
   resolve,
   tokenFor: async () => "ghs_stub_token",
 });
-const jsonFor = (level: string) => JSON.stringify({ level, capability: null, allowed: true });
+const jsonFor = (level: string) =>
+  JSON.stringify({ level, capability: null, allowed: true });
 
 test("gateShellEdit leaves a command outside a fleet clone alone", async () => {
   const input = { command: "git push" };

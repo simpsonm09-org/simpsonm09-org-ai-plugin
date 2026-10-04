@@ -1,0 +1,4 @@
+# http-cache-semantics 4.2.0 is the newest release and Trivy reports no fixed
+# version for CVE-2026-93748. It arrives transitively through @opencode/plugin,
+# the runtime this plugin loads into. Revisit when a fixed release ships.
+CVE-2026-93748 exp:2027-01-01

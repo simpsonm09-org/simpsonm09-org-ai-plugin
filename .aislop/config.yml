@@ -1,3 +1,11 @@
 # aislop configuration. Docs: https://scanaislop.com/docs/configuration
 ci:
   failBelow: 80
+
+# @opencode/plugin pulls a transitive http-cache-semantics 4.2.0 that carries
+# CVE-2026-93748, and no fixed version exists. aislop reports it as an error.
+# The standard's Trivy vulnerability scan is the dependency gate for this
+# repository, and .trivyignore records the exception, so the duplicate aislop
+# audit is off here.
+security:
+  audit: false

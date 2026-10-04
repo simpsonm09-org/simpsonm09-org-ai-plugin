@@ -11,6 +11,8 @@ import {
   nodeRunner,
   parseResolverOutput,
   powerShellQuote,
+  pushRemote,
+  remoteUrlFor,
   repoFromCwd,
   shouldInject,
   tokenUsable,
@@ -51,6 +53,62 @@ test("shouldInject only matches a gh command", () => {
   assert.equal(shouldInject("  gh pr list"), false);
   assert.equal(shouldInject("git status"), false);
   assert.equal(shouldInject("npx gh"), false);
+});
+
+test("pushRemote reads the remote after git push, defaulting to origin", () => {
+  assert.equal(pushRemote("git push"), "origin");
+  assert.equal(pushRemote("git push origin main"), "origin");
+  assert.equal(pushRemote("git push upstream main"), "upstream");
+  assert.equal(pushRemote("git push --dry-run origin main"), "origin");
+  assert.equal(pushRemote("git push -f upstream refs/heads/main"), "upstream");
+  assert.equal(pushRemote("git push --force-with-lease"), "origin");
+  // A bare "main" in the remote position reads as a remote, matching the
+  // resolver's own parse: it has no colon and no slash, so it is not a refspec.
+  assert.equal(pushRemote("git push main"), "main");
+  assert.equal(pushRemote("git push refs/heads/main"), "origin");
+  assert.equal(pushRemote("git push feat/x:main"), "origin");
+  // Not a git push: no remote to resolve.
+  assert.equal(pushRemote("gh pr merge 1"), null);
+  assert.equal(pushRemote("git fetch origin"), null);
+  assert.equal(pushRemote("ls -la"), null);
+});
+
+test("remoteUrlFor returns the trimmed URL and null on any failure", () => {
+  const ok = () =>
+    remoteUrlFor(
+      "origin",
+      "/repo",
+      () => "https://github.com/simpsonm09/simpsonm09-repo-standard.git\n",
+    );
+  assert.equal(
+    ok(),
+    "https://github.com/simpsonm09/simpsonm09-repo-standard.git",
+  );
+
+  const seen: string[][] = [];
+  remoteUrlFor("upstream", "/repo", (args) => {
+    seen.push(args);
+    return "https://github.com/simpsonm09-org/x.git";
+  });
+  assert.deepEqual(seen, [["-C", "/repo", "remote", "get-url", "upstream"]]);
+
+  const throws = () =>
+    remoteUrlFor("origin", "/repo", () => {
+      throw new Error("no such remote");
+    });
+  assert.equal(throws(), null);
+  assert.equal(
+    remoteUrlFor("origin", "/repo", () => "  \n"),
+    null,
+  );
+  assert.equal(
+    remoteUrlFor("", "/repo", () => "x"),
+    null,
+  );
+  assert.equal(
+    remoteUrlFor("origin", "", () => "x"),
+    null,
+  );
 });
 
 test("classifyResolver maps exit codes to allow, deny, and unknown", () => {
@@ -195,11 +253,16 @@ test("parseResolverOutput reads the level and capability from the resolver JSON"
 const insideRepo = join(reposRoot, "demo-repo");
 const outsideRepo = join(ws, "docs");
 const stubDeps = (
-  resolve: (repo: string, command: string) => { code: number; stdout: string },
+  resolve: (
+    repo: string,
+    command: string,
+    remoteUrl: string | null,
+  ) => { code: number; stdout: string },
 ) => ({
   cwd: insideRepo,
   workspaceRoot: ws,
   resolve,
+  remoteUrl: () => "https://github.com/simpsonm09-org/demo-repo.git",
   tokenFor: async () => "ghs_stub_token",
 });
 const jsonFor = (level: string) =>
@@ -303,4 +366,100 @@ test("gateShellEdit fails closed when a gh command cannot mint a token", async (
   assert.equal(decision.action, "deny");
   assert.match(input.command, /exit 1/);
   assert.equal(env.GH_TOKEN, undefined);
+});
+
+// A scope-aware resolver stub that mirrors the real resolver: a git push to a
+// known non-organization URL needs no capability and is allowed; every other
+// push against the organization (or an unknown) URL is governed. The gate must
+// resolve the remote and hand the URL to this resolver for the fork push to
+// pass and the organization main push to fail.
+const scopedResolver =
+  (level: string) =>
+  (_repo: string, command: string, remoteUrl: string | null) => {
+    const url = remoteUrl ?? "";
+    const isPush = /(^|\s)git push(\s|$)/.test(command);
+    const outOfScope =
+      isPush && url.length > 0 && !url.includes("simpsonm09-org");
+    const wantsMain = /\bmain\b/.test(command);
+    const allowed = outOfScope || !wantsMain || level === "full";
+    return {
+      code: allowed ? 0 : 1,
+      stdout: JSON.stringify({ level, capability: null, allowed }),
+    };
+  };
+
+test("gateShellEdit passes the fork remote URL and allows a fork push", async () => {
+  const seen: Array<[string, string | null]> = [];
+  const input = { command: "git push --dry-run origin main" };
+  const env: Record<string, string | undefined> = {};
+  const decision = await gateShellEdit(input, env, {
+    ...stubDeps((_repo, command, remoteUrl) => {
+      seen.push([command, remoteUrl]);
+      return scopedResolver("propose")(_repo, command, remoteUrl);
+    }),
+    remoteUrl: () =>
+      "https://github.com/simpsonm09/simpsonm09-repo-standard.git",
+  });
+
+  assert.deepEqual(seen, [
+    [
+      "git push --dry-run origin main",
+      "https://github.com/simpsonm09/simpsonm09-repo-standard.git",
+    ],
+  ]);
+  assert.equal(decision.action, "pass");
+  assert.equal(decision.level, "propose");
+  assert.equal(input.command, "git push --dry-run origin main");
+});
+
+test("gateShellEdit passes the organization remote URL and denies an org main push", async () => {
+  const seen: string[] = [];
+  const input = { command: "git push --dry-run upstream main" };
+  const env: Record<string, string | undefined> = {};
+  const decision = await gateShellEdit(input, env, {
+    ...stubDeps((_repo, command, remoteUrl) => {
+      seen.push(remoteUrl ?? "");
+      return scopedResolver("propose")(_repo, command, remoteUrl);
+    }),
+    remoteUrl: () =>
+      "https://github.com/simpsonm09-org/simpsonm09-repo-standard.git",
+  });
+
+  assert.deepEqual(seen, [
+    "https://github.com/simpsonm09-org/simpsonm09-repo-standard.git",
+  ]);
+  assert.equal(decision.action, "deny");
+  assert.match(input.command, /exit 1/);
+});
+
+test("gateShellEdit passes no URL when git cannot resolve the remote", async () => {
+  const seen: Array<string | null> = [];
+  const input = { command: "git push origin main" };
+  const env: Record<string, string | undefined> = {};
+  const decision = await gateShellEdit(input, env, {
+    ...stubDeps((_repo, command, remoteUrl) => {
+      seen.push(remoteUrl);
+      return scopedResolver("propose")(_repo, command, remoteUrl);
+    }),
+    remoteUrl: () => null,
+  });
+
+  assert.deepEqual(seen, [null]);
+  assert.equal(decision.action, "deny");
+});
+
+test("gateShellEdit skips the remote lookup for a non-push command", async () => {
+  let lookups = 0;
+  const input = { command: "gh pr list" };
+  const env: Record<string, string | undefined> = {};
+  const decision = await gateShellEdit(input, env, {
+    ...stubDeps(() => ({ code: 0, stdout: jsonFor("propose") })),
+    remoteUrl: () => {
+      lookups += 1;
+      return null;
+    },
+  });
+
+  assert.equal(decision.action, "inject");
+  assert.equal(lookups, 0);
 });

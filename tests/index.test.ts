@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -22,8 +23,10 @@ const reposRoot = join(workspaceRoot, "projects", "repos");
 const fleetCwd = join(reposRoot, "demo-repo");
 
 // A resolver module that reports a fixed level and allows commands whose
-// capability is in the allowed set. It exports the same interface as the real
-// scripts/agent-access.mjs, so the plugin calls it in-process. The token is a
+// capability is in the allowed set. It mirrors the real scripts/agent-access.mjs
+// interface, including the optional remoteUrl on decide, so the plugin calls it
+// in-process. A git push to a known non-organization URL is out of scope and
+// allowed; every other decision defers to the allowed set. The token is a
 // literal, never a real credential.
 function accessModuleSource({ level = "propose", allows = ["read"] } = {}) {
   return `export function loadCatalog() {
@@ -35,8 +38,16 @@ export function loadCommittedCatalog() {
 export function resolveLevel(catalog, repoName) {
   return { repo: repoName, tier: "plugin", level: ${JSON.stringify(level)}, source: "tier" };
 }
-export function decide(level, command) {
-  const capability = command.startsWith("gh pr merge") ? "mergePr" : "read";
+export function decide(level, command, remoteUrl) {
+  const url = remoteUrl ?? "";
+  const isPush = /(^|\\s)git push(\\s|$)/.test(command);
+  if (isPush && url.length > 0 && !url.includes("simpsonm09-org")) {
+    return { capability: null, allowed: true };
+  }
+  let capability = "read";
+  if (command.startsWith("gh pr merge")) capability = "mergePr";
+  else if (isPush && /\\bmain\\b/.test(command)) capability = "pushMain";
+  else if (isPush) capability = "pushBranch";
   return { capability, allowed: ${JSON.stringify(allows)}.includes(capability) };
 }
 `;
@@ -300,4 +311,71 @@ test("the context callback leaves a cwd outside the fleet alone", async () => {
   const event = { system: [] };
   sessionContext(event);
   assert.deepEqual(event.system, []);
+});
+
+// A real git clone under projects/repos, so the plugin's git remote lookup runs
+// for real. The remotes point at the fork and the organization, matching the
+// workspace. Returns the directory and a teardown.
+function realFleetClone(name: string, remotes: Record<string, string>) {
+  const dir = join(reposRoot, name);
+  rmSync(dir, { recursive: true, force: true });
+  execFileSync("git", ["init", "-q", dir]);
+  for (const [remote, url] of Object.entries(remotes)) {
+    execFileSync("git", ["-C", dir, "remote", "add", remote, url]);
+  }
+  return { dir, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
+}
+
+test("a fork push is allowed through the live plugin wiring at a propose repo", async () => {
+  const clone = realFleetClone("u8-fork-probe", {
+    origin: "https://github.com/simpsonm09/simpsonm09-repo-standard.git",
+    upstream: "https://github.com/simpsonm09-org/simpsonm09-repo-standard.git",
+  });
+  try {
+    await withFixture(async (scripts) => {
+      const { shellBefore } = await setupWithStubs({
+        location: clone.dir,
+        scripts,
+      });
+
+      const input = {
+        command: "git push --dry-run origin main",
+        cwd: clone.dir,
+        env: {},
+      };
+      await shellBefore(input);
+
+      assert.equal(input.command, "git push --dry-run origin main");
+      assert.doesNotMatch(input.command, /exit 1/);
+    });
+  } finally {
+    clone.cleanup();
+  }
+});
+
+test("an organization main push is denied through the live plugin wiring at a propose repo", async () => {
+  const clone = realFleetClone("u8-org-probe", {
+    origin: "https://github.com/simpsonm09/simpsonm09-repo-standard.git",
+    upstream: "https://github.com/simpsonm09-org/simpsonm09-repo-standard.git",
+  });
+  try {
+    await withFixture(async (scripts) => {
+      const { shellBefore } = await setupWithStubs({
+        location: clone.dir,
+        scripts,
+      });
+
+      const input = {
+        command: "git push --dry-run upstream main",
+        cwd: clone.dir,
+        env: {},
+      };
+      await shellBefore(input);
+
+      assert.match(input.command, /agent-access: denied/);
+      assert.match(input.command, /exit 1/);
+    });
+  } finally {
+    clone.cleanup();
+  }
 });

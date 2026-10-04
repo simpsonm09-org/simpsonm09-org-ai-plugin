@@ -9,6 +9,7 @@ import {
   fallbackLevel,
   gateShellEdit,
   nodeRunner,
+  remoteUrlFor,
   repoFromCwd,
   tokenUsable,
 } from "./gate.mjs";
@@ -57,6 +58,7 @@ interface AccessApi {
   decide: (
     level: string,
     command: string,
+    remoteUrl?: string | null,
   ) => { capability: string | null; allowed: boolean };
 }
 
@@ -90,17 +92,20 @@ function isAccessApi(value: unknown): value is AccessApi {
 
 // Load the committed catalog the way the resolver CLI does, then classify the
 // command. This mirrors agent-access.mjs main(): prefer the committed catalog,
-// fall back to the working-tree catalog, and exit 2 when neither loads.
+// fall back to the working-tree catalog, and exit 2 when neither loads. The
+// remote URL scopes a git push, so a push to a non-organization remote is out
+// of scope and allowed; an unknown URL stays governed.
 function accessFromApi(
   api: AccessApi,
   repo: string,
   command: string,
+  remoteUrl: string | null,
 ): CliResult {
   const catalog = api.loadCommittedCatalog?.() ?? api.loadCatalog();
   const resolved = api.resolveLevel(catalog, repo);
   const level =
     typeof resolved.level === "string" ? resolved.level : fallbackLevel();
-  const decision = api.decide(level, command);
+  const decision = api.decide(level, command, remoteUrl);
   return {
     code: decision.allowed ? 0 : 1,
     stdout: JSON.stringify({
@@ -113,17 +118,20 @@ function accessFromApi(
 
 // The last resort when the script exports no API: run it as a CLI. Run it with
 // a Node runtime, never the OpenCode binary, so the spawn cannot open OpenCode.
+// The remote URL is passed only when it is known, so the CLI keeps its default
+// governed behavior when git cannot resolve it.
 function accessFromCli(
   script: string,
   repo: string,
   command: string,
+  remoteUrl: string | null,
 ): CliResult {
+  const args = [script, repo, "--command", command, "--json"];
+  if (remoteUrl) args.push("--remote-url", remoteUrl);
   try {
-    const stdout = execFileSync(
-      nodeRunner(process.execPath),
-      [script, repo, "--command", command, "--json"],
-      { encoding: "utf8" },
-    );
+    const stdout = execFileSync(nodeRunner(process.execPath), args, {
+      encoding: "utf8",
+    });
     return { code: 0, stdout: stdout ?? "" };
   } catch (error) {
     const failure = error as {
@@ -144,16 +152,17 @@ function resolveAccess(
   script: string,
   repo: string,
   command: string,
+  remoteUrl: string | null,
 ): CliResult {
   if (api) {
     try {
-      return accessFromApi(api, repo, command);
+      return accessFromApi(api, repo, command, remoteUrl);
     } catch {
       return { code: 2, stdout: "" };
     }
   }
   if (!existsSync(script)) return { code: 2, stdout: "" };
-  return accessFromCli(script, repo, command);
+  return accessFromCli(script, repo, command, remoteUrl);
 }
 
 // Read the resolved level for the context line. The command decision above is
@@ -324,8 +333,15 @@ export default Plugin.define({
       await gateShellEdit(input, input.env, {
         cwd: input.cwd,
         workspaceRoot,
-        resolve: (name, command) =>
-          resolveAccess(accessApi, scripts.access, name, command),
+        resolve: (name, command, remoteUrl) =>
+          resolveAccess(accessApi, scripts.access, name, command, remoteUrl),
+        remoteUrl: (remote, cwd) =>
+          remoteUrlFor(remote, cwd, (args) =>
+            execFileSync("git", args, {
+              encoding: "utf8",
+              stdio: ["ignore", "pipe", "ignore"],
+            }),
+          ),
         tokenFor: (name) => tokenFor(tokenApi, scripts.token, name),
       });
     });

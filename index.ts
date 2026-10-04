@@ -1,9 +1,104 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Plugin } from "@opencode/plugin";
+import {
+  type CliResult,
+  contextLine,
+  fallbackLevel,
+  gateShellEdit,
+  repoFromCwd,
+  tokenUsable,
+} from "./gate.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
+
+// The plugin lives at <workspace>/.opencode/plugins/<name>, so the workspace
+// root is three levels up.
+const workspaceRoot = resolve(here, "..", "..", "..");
+const REPO_STANDARD = join(
+  workspaceRoot,
+  "projects",
+  "repos",
+  "simpsonm09-repo-standard",
+);
+const ACCESS_SCRIPT = join(REPO_STANDARD, "scripts", "agent-access.mjs");
+const TOKEN_SCRIPT = join(REPO_STANDARD, "scripts", "agent-token.mjs");
+const OWNER = "simpsonm09-org";
+
+// Run the frozen resolver interface. It classifies the command to a capability
+// and exits 0 when the level grants it, 1 when it does not, 2 when the catalog
+// is unreadable. A missing script is an unknown answer, not a crash: the gate
+// fails closed on a write and leaves a read alone. The JSON on stdout carries
+// the level for the context line.
+function resolveAccess(repo: string, command: string): CliResult {
+  if (!existsSync(ACCESS_SCRIPT)) return { code: 2, stdout: "" };
+  try {
+    const stdout = execFileSync(
+      process.execPath,
+      [ACCESS_SCRIPT, repo, "--command", command, "--json"],
+      { encoding: "utf8" },
+    );
+    return { code: 0, stdout: stdout ?? "" };
+  } catch (error) {
+    const failure = error as {
+      status?: number | null;
+      stdout?: string | Buffer;
+    };
+    if (typeof failure?.status === "number")
+      return { code: failure.status, stdout: String(failure.stdout ?? "") };
+    return { code: 2, stdout: "" };
+  }
+}
+
+// Read the resolved level for the context line. The command decision above is
+// the authority; the level is informational.
+function resolveLevel(repo: string): string {
+  if (!existsSync(ACCESS_SCRIPT)) return fallbackLevel();
+  try {
+    const stdout = execFileSync(
+      process.execPath,
+      [ACCESS_SCRIPT, repo, "--json"],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      },
+    );
+    const parsed = JSON.parse(stdout ?? "") as { level?: unknown };
+    return typeof parsed.level === "string" ? parsed.level : fallbackLevel();
+  } catch {
+    return fallbackLevel();
+  }
+}
+
+interface TokenCache {
+  token: string;
+  expires_at: string;
+}
+
+let tokenCache: TokenCache | null = null;
+
+// Mint an installation token for one repository and cache it until it nears
+// expiry. The token never leaves the process environment; it is never logged.
+async function tokenFor(repo: string): Promise<string | null> {
+  if (tokenUsable(tokenCache, Date.now()))
+    return (tokenCache as TokenCache).token;
+  if (!existsSync(TOKEN_SCRIPT)) return null;
+  try {
+    const stdout = execFileSync(
+      process.execPath,
+      [TOKEN_SCRIPT, `${OWNER}/${repo}`, "--json"],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+    );
+    const parsed = JSON.parse(stdout ?? "") as Partial<TokenCache>;
+    if (!parsed.token || !parsed.expires_at) return null;
+    tokenCache = { token: parsed.token, expires_at: parsed.expires_at };
+    return parsed.token;
+  } catch {
+    return null;
+  }
+}
 
 interface SkillSeed {
   id: string;
@@ -68,19 +163,40 @@ export default Plugin.define({
   id: "simpsonm09-org-opencode",
   async setup(ctx) {
     const skills = loadSkills(join(here, "skills"));
-    if (skills.length === 0) return;
+    if (skills.length > 0) {
+      await ctx.skill.transform((editor) => {
+        for (const skill of skills) {
+          if (editor.get(skill.id)) editor.remove(skill.id);
+          editor.add({
+            id: skill.id,
+            name: skill.name,
+            description: skill.description,
+            path: skill.path,
+            content: skill.content,
+          });
+        }
+      });
+    }
 
-    await ctx.skill.transform((editor) => {
-      for (const skill of skills) {
-        if (editor.get(skill.id)) editor.remove(skill.id);
-        editor.add({
-          id: skill.id,
-          name: skill.name,
-          description: skill.description,
-          path: skill.path,
-          content: skill.content,
-        });
-      }
+    await ctx.shell.hook("create.before", async (input) => {
+      const repo = repoFromCwd(input.cwd, workspaceRoot);
+      if (!repo) return;
+      input.env ??= {};
+      await gateShellEdit(input, input.env, {
+        cwd: input.cwd,
+        workspaceRoot,
+        resolve: resolveAccess,
+        tokenFor,
+      });
+    });
+
+    await ctx.session.hook("context", (event) => {
+      const repo = repoFromCwd(ctx.location.directory, workspaceRoot);
+      if (!repo) return;
+      event.system.push({
+        type: "text",
+        text: contextLine(repo, resolveLevel(repo)),
+      });
     });
   },
 });

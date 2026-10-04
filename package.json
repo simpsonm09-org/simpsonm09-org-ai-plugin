@@ -10,6 +10,7 @@
   },
   "files": [
     "index.ts",
+    "gate.mjs",
     "package.json",
     "skills",
     "README.md"

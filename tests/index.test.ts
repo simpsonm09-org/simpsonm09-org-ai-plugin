@@ -231,7 +231,7 @@ test("the hook emits a PowerShell denial for a pwsh shell", async () => {
       command: "gh pr merge 3",
       cwd: fleetCwd,
       env: {},
-      shell: "pwsh",
+      shell: "C:\\Program Files\\WindowsApps\\PowerShell\\pwsh.EXE",
     };
     await shellBefore(input);
 

@@ -53,15 +53,16 @@ export function denyCommand(reason, shell = "") {
   return `printf '%s\\n' ${shellQuote(message)} >&2; exit 1`;
 }
 
-// The OpenCode shell hook names the shell it will run: "pwsh" or "powershell"
-// on Windows, a POSIX shell elsewhere. Match the PowerShell family by the case
-// used in the hook input.
+// The OpenCode shell hook names the shell it will run. On Windows it is the
+// full path to pwsh.exe or powershell.exe; elsewhere it is a POSIX shell. Match
+// the PowerShell family by the file's base name so a path still resolves.
 /**
  * @param {string} shell
  * @returns {boolean}
  */
 export function isPowerShell(shell) {
-  return /^(pwsh|powershell)(\.exe)?$/i.test(shell.trim());
+  const name = basename((shell ?? "").trim()).toLowerCase();
+  return /^(pwsh|powershell)(\.exe)?$/.test(name);
 }
 
 /**

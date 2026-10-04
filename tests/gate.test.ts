@@ -107,8 +107,20 @@ test("isPowerShell matches the PowerShell family only", () => {
   assert.equal(isPowerShell("powershell"), true);
   assert.equal(isPowerShell("PowerShell.exe"), true);
   assert.equal(isPowerShell("pwsh.exe"), true);
+  assert.equal(
+    isPowerShell(
+      "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.EXE",
+    ),
+    true,
+  );
+  assert.equal(
+    isPowerShell(
+      "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    ),
+    true,
+  );
   assert.equal(isPowerShell("bash"), false);
-  assert.equal(isPowerShell("sh"), false);
+  assert.equal(isPowerShell("/bin/sh"), false);
   assert.equal(isPowerShell(""), false);
 });
 

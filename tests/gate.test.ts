@@ -109,14 +109,12 @@ test("isPowerShell matches the PowerShell family only", () => {
   assert.equal(isPowerShell("pwsh.exe"), true);
   assert.equal(
     isPowerShell(
-      "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.EXE",
+      "C:/Program Files/WindowsApps/Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe/pwsh.EXE",
     ),
     true,
   );
   assert.equal(
-    isPowerShell(
-      "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
-    ),
+    isPowerShell("C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"),
     true,
   );
   assert.equal(isPowerShell("bash"), false);
@@ -131,14 +129,12 @@ test("powerShellQuote doubles embedded single quotes", () => {
 
 test("nodeRunner never returns the OpenCode binary", () => {
   assert.equal(
-    nodeRunner(
-      "C:\\Users\\x\\AppData\\Local\\Programs\\opencode-cli\\opencode.exe",
-    ),
+    nodeRunner("C:/Users/x/AppData/Local/Programs/opencode-cli/opencode.exe"),
     "node",
   );
   assert.equal(
-    nodeRunner("C:\\Program Files\\nodejs\\node.exe"),
-    "C:\\Program Files\\nodejs\\node.exe",
+    nodeRunner("C:/Program Files/nodejs/node.exe"),
+    "C:/Program Files/nodejs/node.exe",
   );
   assert.equal(nodeRunner("/usr/local/bin/node"), "/usr/local/bin/node");
   assert.equal(nodeRunner("/usr/local/bin/bun"), "/usr/local/bin/bun");

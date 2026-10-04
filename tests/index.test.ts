@@ -21,33 +21,57 @@ const reposRoot = join(workspaceRoot, "projects", "repos");
 // workspace. The script paths come from the fixture, never the environment.
 const fleetCwd = join(reposRoot, "demo-repo");
 
-// A resolver that reports the level and capability for the command, and a
-// broker that mints a fixed token. Both write one JSON object, matching the
-// frozen interface. The token is a literal, never a real credential.
-const ACCESS_SCRIPT = `#!/usr/bin/env node
-const args = process.argv.slice(2);
-const json = args.includes("--json");
-const hasCommand = args.includes("--command");
-if (hasCommand) {
-  process.stdout.write(JSON.stringify({ level: "propose", capability: "read", allowed: true }));
-} else if (json) {
-  process.stdout.write(JSON.stringify({ level: "propose" }));
-} else {
-  process.exit(2);
+// A resolver module that reports a fixed level and allows commands whose
+// capability is in the allowed set. It exports the same interface as the real
+// scripts/agent-access.mjs, so the plugin calls it in-process. The token is a
+// literal, never a real credential.
+function accessModuleSource({ level = "propose", allows = ["read"] } = {}) {
+  return `export function loadCatalog() {
+  return { repos: [{ name: "demo-repo", tier: "plugin" }] };
+}
+export function loadCommittedCatalog() {
+  return null;
+}
+export function resolveLevel(catalog, repoName) {
+  return { repo: repoName, tier: "plugin", level: ${JSON.stringify(level)}, source: "tier" };
+}
+export function decide(level, command) {
+  const capability = command.startsWith("gh pr merge") ? "mergePr" : "read";
+  return { capability, allowed: ${JSON.stringify(allows)}.includes(capability) };
 }
 `;
+}
 
-const TOKEN_SCRIPT = `#!/usr/bin/env node
-process.stdout.write(JSON.stringify({ token: "ghs_fixture", expires_at: "2099-01-01T00:00:00Z" }));
+function tokenModuleSource(token = "ghs_fixture") {
+  return `export async function mintForRepo(owner, repo) {
+  return { token: ${JSON.stringify(token)}, expires_at: "2099-01-01T00:00:00Z" };
+}
+`;
+}
+
+// A resolver that ships only a CLI, no module exports. It exercises the spawn
+// fallback, which must run it with a Node runtime. Like the real resolver, it
+// guards its CLI entry so importing it as a module has no side effect.
+const CLI_ACCESS_SCRIPT = `#!/usr/bin/env node
+import { pathToFileURL } from "node:url";
+function main() {
+  const args = process.argv.slice(2);
+  if (args.includes("--command")) {
+    process.stdout.write(JSON.stringify({ level: "propose", capability: "read", allowed: true }));
+  } else {
+    process.stdout.write(JSON.stringify({ level: "propose" }));
+  }
+}
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
 `;
 
-function fixtureScripts() {
+function fixtureScripts({ access, token } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "org-scripts-"));
-  const access = join(dir, "agent-access.mjs");
-  const token = join(dir, "agent-token.mjs");
-  writeFileSync(access, ACCESS_SCRIPT);
-  writeFileSync(token, TOKEN_SCRIPT);
-  return { dir, access, token };
+  const accessPath = join(dir, "agent-access.mjs");
+  const tokenPath = join(dir, "agent-token.mjs");
+  writeFileSync(accessPath, access ?? accessModuleSource());
+  writeFileSync(tokenPath, token ?? tokenModuleSource());
+  return { dir, access: accessPath, token: tokenPath };
 }
 
 async function setupWithStubs({ location, scripts } = {}) {
@@ -96,8 +120,8 @@ async function setupWithStubs({ location, scripts } = {}) {
   };
 }
 
-async function withFixture(body) {
-  const scripts = fixtureScripts();
+async function withFixture(body, options) {
+  const scripts = fixtureScripts(options);
   try {
     await body(scripts);
   } finally {
@@ -177,6 +201,62 @@ test("the shell create.before hook fails closed when the broker cannot mint", as
     assert.match(input.command, /exit 1/);
     assert.equal(input.env.GH_TOKEN, undefined);
   });
+});
+
+test("the hook reports the module's real level, not the fallback, on a denial", async () => {
+  await withFixture(async (scripts) => {
+    const { shellBefore } = await setupWithStubs({
+      location: fleetCwd,
+      scripts,
+    });
+
+    // mergePr is denied at level "propose", so the level in the message must be
+    // "propose", never the "read" fallback the live spawn bug produced.
+    const input = { command: "gh pr merge 3", cwd: fleetCwd, env: {} };
+    await shellBefore(input);
+
+    assert.match(input.command, /denies this command at level "propose"/);
+    assert.doesNotMatch(input.command, /level "read"/);
+  });
+});
+
+test("the hook emits a PowerShell denial for a pwsh shell", async () => {
+  await withFixture(async (scripts) => {
+    const { shellBefore } = await setupWithStubs({
+      location: fleetCwd,
+      scripts,
+    });
+
+    const input = {
+      command: "gh pr merge 3",
+      cwd: fleetCwd,
+      env: {},
+      shell: "C:/Program Files/WindowsApps/PowerShell/pwsh.EXE",
+    };
+    await shellBefore(input);
+
+    assert.match(input.command, /^Write-Error '/);
+    assert.match(input.command, /; exit 1$/);
+    assert.doesNotMatch(input.command, />&2/);
+  });
+});
+
+test("the hook resolves a command through a module that has no CLI shim", async () => {
+  await withFixture(
+    async (scripts) => {
+      const { shellBefore } = await setupWithStubs({
+        location: fleetCwd,
+        scripts,
+      });
+
+      const input = { command: "gh pr list", cwd: fleetCwd, env: {} };
+      await shellBefore(input);
+
+      assert.equal(input.command, "gh pr list");
+      assert.equal(input.env.GH_TOKEN, "ghs_fixture");
+    },
+    { access: CLI_ACCESS_SCRIPT },
+  );
 });
 
 test("the shell create.before hook injects a token for an allowed gh command", async () => {

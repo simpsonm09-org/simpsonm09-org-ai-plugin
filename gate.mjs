@@ -3,7 +3,7 @@
 // token, and how a decision rewrites the command. Everything here is
 // side-effect free so the wiring in index.ts stays testable with stubs.
 
-import { isAbsolute, relative, resolve } from "node:path";
+import { basename, isAbsolute, relative, resolve } from "node:path";
 
 const FALLBACK_LEVEL = "read";
 
@@ -38,13 +38,31 @@ export function shouldInject(command) {
 }
 
 // Rewrite a denied command into one that reports the reason and exits non-zero.
-// The promise hook cannot fail by type, so denial is a rewritten command.
+// The promise hook cannot fail by type, so denial is a rewritten command. The
+// OpenCode shell runs a real shell, so the syntax must match it: PowerShell on
+// Windows, POSIX elsewhere. A shell name we do not recognize gets the POSIX form.
 /**
  * @param {string} reason
+ * @param {string} [shell]
  * @returns {string}
  */
-export function denyCommand(reason) {
-  return `printf '%s\\n' ${shellQuote(`agent-access: denied: ${reason}`)} >&2; exit 1`;
+export function denyCommand(reason, shell = "") {
+  const message = `agent-access: denied: ${reason}`;
+  if (isPowerShell(shell))
+    return `Write-Error ${powerShellQuote(message)}; exit 1`;
+  return `printf '%s\\n' ${shellQuote(message)} >&2; exit 1`;
+}
+
+// The OpenCode shell hook names the shell it will run. On Windows it is the
+// full path to pwsh.exe or powershell.exe; elsewhere it is a POSIX shell. Match
+// the PowerShell family by the file's base name so a path still resolves.
+/**
+ * @param {string} shell
+ * @returns {boolean}
+ */
+export function isPowerShell(shell) {
+  const name = basename((shell ?? "").trim()).toLowerCase();
+  return /^(pwsh|powershell)(\.exe)?$/.test(name);
 }
 
 /**
@@ -53,6 +71,29 @@ export function denyCommand(reason) {
  */
 export function shellQuote(value) {
   return `'${value.replace(/'/g, "'\\''")}'`;
+}
+
+// A PowerShell single-quoted string escapes an embedded quote by doubling it.
+/**
+ * @param {string} value
+ * @returns {string}
+ */
+export function powerShellQuote(value) {
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
+// Pick the interpreter for a spawned script. The OpenCode server runs the
+// plugin inside its own binary, so process.execPath is the OpenCode CLI, not
+// Node. Spawning that with Node arguments opens OpenCode, which exits non-zero
+// and prints help, so every command would fail closed. Use process.execPath only
+// when it is a real Node or Bun runtime; otherwise fall back to `node` on PATH.
+/**
+ * @param {string} execPath
+ * @returns {string}
+ */
+export function nodeRunner(execPath) {
+  const name = basename(execPath ?? "").toLowerCase();
+  return /^(node|node\.exe|bun|bun\.exe)$/.test(name) ? execPath : "node";
 }
 
 /**
@@ -78,7 +119,8 @@ export function parseResolverOutput(stdout) {
     if (typeof parsed?.level !== "string") return null;
     return {
       level: parsed.level,
-      capability: typeof parsed.capability === "string" ? parsed.capability : null,
+      capability:
+        typeof parsed.capability === "string" ? parsed.capability : null,
     };
   } catch {
     return null;
@@ -126,7 +168,7 @@ export function contextLine(repo, level) {
 // level, minting a token) is injected, so a test stubs both and asserts the
 // edit. It mutates only the passed-in command holder and env, never logging.
 /**
- * @param {{ command: string }} input
+ * @param {{ command: string, shell?: string }} input
  * @param {Record<string, string | undefined>} env
  * @param {{
  *   cwd: string,
@@ -141,19 +183,26 @@ export async function gateShellEdit(input, env, deps) {
   if (!repo) return { action: "pass", repo: null, level: FALLBACK_LEVEL };
 
   const command = input.command;
+  const shell = input.shell;
   const result = deps.resolve(repo, command);
   const classification = classifyResolver(result);
   const parsed = parseResolverOutput(result.stdout);
   const level = parsed?.level ?? FALLBACK_LEVEL;
 
   if (classification === "deny") {
-    input.command = denyCommand(`${repo} denies this command at level "${level}"`);
+    input.command = denyCommand(
+      `${repo} denies this command at level "${level}"`,
+      shell,
+    );
     return { action: "deny", repo, level };
   }
 
   if (classification === "unknown") {
     if (isWriteCommand(command)) {
-      input.command = denyCommand(`${repo} could not be resolved for a write`);
+      input.command = denyCommand(
+        `${repo} could not be resolved for a write`,
+        shell,
+      );
       return { action: "deny", repo, level };
     }
     return { action: "pass", repo, level };
@@ -162,7 +211,10 @@ export async function gateShellEdit(input, env, deps) {
   if (shouldInject(command)) {
     const token = await deps.tokenFor(repo);
     if (!token) {
-      input.command = denyCommand(`${repo} could not mint a token for a gh command`);
+      input.command = denyCommand(
+        `${repo} could not mint a token for a gh command`,
+        shell,
+      );
       return { action: "deny", repo, level };
     }
     env.GH_TOKEN = token;

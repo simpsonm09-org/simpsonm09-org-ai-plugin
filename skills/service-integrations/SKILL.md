@@ -220,6 +220,8 @@ No MCP server is installed by default. These three are the only jobs where an MC
 ## Rules
 
 - A service has one CLI owner. Use the owner the table names instead of a second path to the same service.
+- Confirm a CLI exists before citing it. Check it with `Get-Command <tool>` on Windows or `command -v <tool>` in WSL, and confirm `--version`, before you name it as the owner of a job.
+- Keep every MCP-to-CLI claim honest against the real owner of the job. "The CLI shares the daemon" or "the CLI covers most tools" is not full coverage; name the owner and its real limits.
 - Use an MCP server only when no CLI covers the job. Keep it off by default and turn it on for the task that needs it.
 - A secret comes from the environment, as `$env:NAME` on Windows or `$NAME` in WSL. Never write the value into a file.
 - Keep this registry general. Put the account, board, workspace, cluster, and machine value in the personal layer.

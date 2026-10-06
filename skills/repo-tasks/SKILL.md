@@ -27,6 +27,15 @@ Common recipe names:
 
 Arguments are positional. For example, `just emit config.json out.json`.
 
+## Alignment runbook
+
+Run this when asked whether the repository is in sync with its remotes.
+
+1. `git fetch --all --prune`.
+2. Assert local `main`, `origin/main`, and `upstream/main` are the same commit, then report the SHA. Name every one that differs.
+3. Report stale branches and worktrees.
+4. Run `just prune` to prune remote-tracking refs, prune worktrees, and delete local branches merged into `main`.
+
 ## When there is no justfile
 
 Fall back to the commands in the repository README or `mise.toml`. Prefer `just` when it exists.

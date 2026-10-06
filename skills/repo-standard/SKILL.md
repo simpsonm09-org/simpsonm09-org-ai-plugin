@@ -32,6 +32,10 @@ match, and anything that ships carries a release note. The full text is in the s
 Verification is not "it compiles". Run the feature, call the endpoint, or drive the screen,
 and state the command or the observation in the pull request.
 
+When asked to run a specific command, run that exact command and report its raw output. Do
+not substitute another command, and do not describe the expected output in place of the real
+one.
+
 ## How work lands
 
 - `main` is protected. Work on a branch, open a same-repo pull request on the organization,
@@ -39,6 +43,26 @@ and state the command or the observation in the pull request.
 - The pin to the standard is a commit SHA in `.github/workflows/ci.yml`. The `pin-update`
   workflow reports when it falls behind.
 - The task runner is `just`. Run `just lint`, `just test`, and `just verify` before pushing.
+
+## Publishing / going public
+
+A fork or a repository that becomes public exposes every commit, not just the current tree.
+Prove there is no secret in the history before the visibility changes. This is a gate, not a
+review.
+
+- Scan the working tree and the full history. `trivy fs --scanners secret,misconfig .` covers
+  the tree; the `security / secrets` gate covers history. Run both, and cover every branch
+  that will be published, not only `main`.
+- Check for removed-but-recorded values. A secret deleted in a later commit is still in the
+  history.
+- Check for personal content and machine paths. No path under a user's home and no hostname
+  belongs in a public repository.
+- Rotate a leaked secret. Removing it from the history is not enough once it has been pushed
+  and seen.
+- Record the evidence in the pull request: the commands and their raw output.
+
+The preflight passes only when the history scan is clean. When it is not, stop and rotate
+before the visibility changes.
 
 ## Where the standard lives
 

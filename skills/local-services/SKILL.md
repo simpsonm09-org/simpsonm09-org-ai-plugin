@@ -63,7 +63,7 @@ infisical login --method=universal-auth --plain --silent
 infisical export --token "$TOKEN" --projectId "$INFISICAL_PROJECT_ID" --env dev --format json
 ```
 
-The loaders do this for you. WSL loads the workspace `.envrc` through direnv; Windows runs `scripts/Import-Secrets.ps1 -Apply`. See `dev-setup-starter/docs/secrets.md`.
+The loaders do this for you. WSL loads the workspace `.envrc` through direnv; Windows runs `just import-secrets -Apply` in `dev-setup-starter`. See `dev-setup-starter/docs/secrets.md`.
 
 Secrets are rotated in Infisical, then the loader is rerun and the runtime restarted. Never write a value into a repository.
 

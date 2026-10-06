@@ -11,29 +11,29 @@ The registry is general and portable. It names the owner and the command. Accoun
 
 ## Pick the owner
 
-| Job | Owner | Command | Install |
-| --- | --- | --- | --- |
-| GitHub issues, pull requests, Actions, releases | `gh` | `gh pr view`, `gh issue list`, `gh api` | winget, apt, or the GitHub release |
-| Public GitHub code search | `gh search code` | `gh search code "<pattern>" --language <lang>` | with `gh` |
-| Local code search | the `grep` tool | `grep` with a literal or a regex | built in |
-| Postman collections, environments, specs | `postman` | `postman collection get <id>`, `postman describe` | `npm install -g postman-cli` |
-| Postman collection runs, local and CI | `newman` | `newman run <collection.json>` | `npm install -g newman` |
-| Library, framework, SDK docs | `npx ctx7` | `npx ctx7 library <name> "<topic>"` | `npx` |
-| Browser automation and capture | `@playwright/cli` | `playwright-cli open <url>`, `goto`, `click`, `screenshot`, `pdf`, `attach --extension` | `npm install -g @playwright/cli` |
-| Chrome performance and debugging | `chrome-devtools` CLI | `chrome-devtools navigate_page`, `take_screenshot`, `lighthouse_audit` | `npm install -g chrome-devtools` |
-| Jira and Atlassian issues, JQL search, comments, transitions | `acli` | `acli jira workitem view/search --jql`, `comment-create`, `workitem transition` | official binary |
-| Kubernetes objects | `kubectl` | `kubectl get`, `kubectl apply -f`, `kubectl logs` | winget, apt, or the release |
-| Kubernetes packaging | `helm` | `helm upgrade --install`, `helm template` | winget, apt, or the release |
-| Kubernetes manifest rendering | `kustomize` | `kustomize build <dir>` | winget or the release |
-| Jenkins jobs, builds, and logs | the Jenkins CLI | `java -jar jenkins-cli.jar -s <url> build <job>` | fetched from the controller |
-| Secrets in Vault | `vault` | `vault kv get secret/<path>` | winget, apt, or the release |
-| Secrets, the workspace source of truth | `infisical` | `infisical login`, `infisical export` | npm or the release |
-| Repository tasks | `just` | `just <recipe>` | `mise install` in the repository |
-| Pinned tool versions | `mise` | `mise install`, `mise exec -- <tool>` | the mise installer |
-| Container runtime | `docker` | `docker ps`, `docker logs` | WSL engine |
-| Dependency, secret, and misconfig scan | `trivy` | `trivy fs --scanners vuln,secret,misconfig .` | winget, apt, or the release |
+| Job | Owner | Command |
+| --- | --- | --- |
+| GitHub issues, pull requests, Actions, releases | `gh` | `gh pr view`, `gh issue list`, `gh api` |
+| Public GitHub code search | `gh search code` | `gh search code "<pattern>" --language <lang>` |
+| Local code search | the `grep` tool | `grep` with a literal or a regex |
+| Postman collections, environments, specs | `postman` | `postman collection get <id>`, `postman describe` |
+| Postman collection runs, local and CI | `newman` | `newman run <collection.json>` |
+| Library, framework, SDK docs | `npx ctx7` | `npx ctx7 library <name> "<topic>"` |
+| Browser automation and capture | `@playwright/cli` | `playwright-cli open <url>`, `goto`, `click`, `screenshot`, `pdf`, `attach --extension` |
+| Chrome performance and debugging | `chrome-devtools` CLI | `chrome-devtools navigate_page`, `take_screenshot`, `lighthouse_audit` |
+| Jira and Atlassian issues, JQL search, comments, transitions | `acli` | `acli jira workitem view/search --jql`, `comment-create`, `workitem transition` |
+| Kubernetes objects | `kubectl` | `kubectl get`, `kubectl apply -f`, `kubectl logs` |
+| Kubernetes packaging | `helm` | `helm upgrade --install`, `helm template` |
+| Kubernetes manifest rendering | `kustomize` | `kustomize build <dir>` |
+| Jenkins jobs, builds, and logs | the Jenkins CLI | `java -jar jenkins-cli.jar -s <url> build <job>` |
+| Secrets in Vault | `vault` | `vault kv get secret/<path>` |
+| Secrets, the workspace source of truth | `infisical` | `infisical login`, `infisical export` |
+| Repository tasks | `just` | `just <recipe>` |
+| Pinned tool versions | `mise` | `mise install`, `mise exec -- <tool>` |
+| Container runtime | `docker` | `docker ps`, `docker logs` |
+| Dependency, secret, and misconfig scan | `trivy` | `trivy fs --scanners vuln,secret,misconfig .` |
 
-Install is the per-machine step. Prefer `winget` on Windows and `apt` in WSL, with `scoop` as the Windows fallback when no winget entry exists.
+The tools covered by `dev-setup-starter/tools.yaml` install with `just tools-apply`; `tools.yaml` is the source of truth for the per-machine install. The rest (`trivy`, `mise`, `infisical`, `playwright-cli`, `chrome-devtools`, and `ctx7`) install per their own service documentation.
 
 The machine's container stack has a console and no CLI. Portainer CE, DbGate, and the Infisical console are documented in the `local-services` skill, with their addresses kept in the personal layer.
 
@@ -182,7 +182,7 @@ Prefer reading a value into the environment over passing it on a command line th
 
 ## Secrets via `infisical`
 
-The workspace loads its secrets from a self-hosted Infisical through the loaders, not by calling `infisical` directly. WSL loads the workspace `.envrc` through direnv; Windows runs `scripts/Import-Secrets.ps1 -Apply`. The address and project are personal; see the personal layer.
+The workspace loads its secrets from a self-hosted Infisical through the loaders, not by calling `infisical` directly. WSL loads the workspace `.envrc` through direnv; Windows runs `just import-secrets -Apply` in `dev-setup-starter`. The address and project are personal; see the personal layer.
 
 ```bash
 infisical login --method=universal-auth --plain --silent

@@ -33,7 +33,7 @@ The registry is general and portable. It names the owner and the command. Accoun
 | Container runtime | `docker` | `docker ps`, `docker logs` |
 | Dependency, secret, and misconfig scan | `trivy` | `trivy fs --scanners vuln,secret,misconfig .` |
 
-The tools covered by `dev-setup-starter/tools.yaml` install with `just tools`; `tools.yaml` is the source of truth for the per-machine install. The rest (`trivy`, `mise`, `infisical`, `playwright-cli`, `chrome-devtools`, and `ctx7`) install per their own service documentation.
+The tools covered by `dev-setup-starter/tools.yaml` install with `just tools-apply`; `tools.yaml` is the source of truth for the per-machine install. The rest (`trivy`, `mise`, `infisical`, `playwright-cli`, `chrome-devtools`, and `ctx7`) install per their own service documentation.
 
 The machine's container stack has a console and no CLI. Portainer CE, DbGate, and the Infisical console are documented in the `local-services` skill, with their addresses kept in the personal layer.
 

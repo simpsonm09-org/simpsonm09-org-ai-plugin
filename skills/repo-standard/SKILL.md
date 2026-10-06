@@ -64,6 +64,18 @@ review.
 The preflight passes only when the history scan is clean. When it is not, stop and rotate
 before the visibility changes.
 
+## Release preflight
+
+Run this as one sequence. Follow it rather than restating the release from memory.
+
+1. Merge only after `test` and every gate in **The gates** are green on the pull request.
+2. Run the **Alignment runbook** in the `repo-tasks` skill. Confirm local `main`, `origin/main`,
+   and `upstream/main` agree on one commit, and name the SHA.
+3. Run `just prune` to purge stale branches and worktrees.
+4. When the change affects a repository that is or becomes public, run the **Publishing / going
+   public** secret proof.
+5. State the raw commands and their output in the pull request.
+
 ## Where the standard lives
 
 - `repo-standard` owns the checks, the reusable workflows, the rulesets, and the docs.

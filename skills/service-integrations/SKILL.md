@@ -33,7 +33,7 @@ The registry is general and portable. It names the owner and the command. Accoun
 | Container runtime | `docker` | `docker ps`, `docker logs` |
 | Dependency, secret, and misconfig scan | `trivy` | `trivy fs --scanners vuln,secret,misconfig .` |
 
-The fleet installs these tools with `just tools` in `simpsonm09-dev-setup`; its `tools.yaml` is the source of truth for the per-machine install.
+The tools covered by `dev-setup-starter/tools.yaml` install with `just tools`; `tools.yaml` is the source of truth for the per-machine install. The rest (`trivy`, `mise`, `infisical`, `playwright-cli`, `chrome-devtools`, and `ctx7`) install per their own service documentation.
 
 The machine's container stack has a console and no CLI. Portainer CE, DbGate, and the Infisical console are documented in the `local-services` skill, with their addresses kept in the personal layer.
 
@@ -182,7 +182,7 @@ Prefer reading a value into the environment over passing it on a command line th
 
 ## Secrets via `infisical`
 
-The workspace loads its secrets from a self-hosted Infisical through the loaders, not by calling `infisical` directly. WSL loads the workspace `.envrc` through direnv; Windows runs `just import-secrets -Apply` in `simpsonm09-dev-setup`. The address and project are personal; see the personal layer.
+The workspace loads its secrets from a self-hosted Infisical through the loaders, not by calling `infisical` directly. WSL loads the workspace `.envrc` through direnv; Windows runs `just import-secrets -Apply` in `dev-setup-starter`. The address and project are personal; see the personal layer.
 
 ```bash
 infisical login --method=universal-auth --plain --silent

@@ -7,7 +7,7 @@ The shared OpenCode layer for the `simpsonm09-org` organization.
 - The layer contributes no MCP server. Reach a shared service through its CLI, documented in the `service-integrations` registry. Add a server only when no CLI covers the job.
 - Keep `layer.json`, `package.json`, and `opencode.fragment.jsonc` in sync. The contract test checks them.
 - A skill id must match its directory and carry a non-empty third-person description.
-- Keep the registry general and portable. Defer accounts, boards, workspaces, clusters, and machine services to the personal layer.
+- Keep the registry general and portable. Defer accounts, boards, workspaces, and clusters to the personal layer.
 - No personal content, secret, or machine path is committed.
 
 ## Commands

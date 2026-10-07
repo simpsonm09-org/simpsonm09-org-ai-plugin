@@ -1,13 +1,13 @@
 ---
 name: service-integrations
-description: Use when a task needs an external developer service in this workspace, such as library documentation, code search, GitHub, Postman, a browser, Kubernetes, or secrets. This is the general integration registry. It names the CLI that owns each job and defers accounts, boards, workspaces, and clusters to the personal layer.
+description: Use when a task needs an external developer service in this workspace, such as library documentation, code search, GitHub, Postman, a browser, Kubernetes, or secrets. This is the general integration registry. It names the CLI that owns each job and defers accounts, boards, workspaces, clusters, identities, and bundles to the personal layer.
 ---
 
 # Service integrations
 
 This skill is the general integration registry for the org layer. Reach a service through a command line tool. A service has one CLI owner. Use an MCP server only when no CLI covers the job, and keep it off by default.
 
-The registry is general and portable. It names the owner and the command. Accounts, boards, workspaces, clusters, and machine services are personal and live in the personal layer. See [Personal layer](#personal-layer).
+The registry is general and portable. It names the owner and the command. Accounts, boards, workspaces, and clusters are personal and live in the personal layer. See [Personal layer](#personal-layer).
 
 ## Pick the owner
 
@@ -32,7 +32,7 @@ The registry is general and portable. It names the owner and the command. Accoun
 
 The tools covered by `dev-setup-starter/tools.yaml` install with `just tools-apply`; `tools.yaml` is the source of truth for the per-machine install. The rest (`trivy`, `mise`, `infisical`, `playwright-cli`, `chrome-devtools`, and `ctx7`) install per their own service documentation.
 
-The machine's container stack has a console and no CLI. Portainer CE, DbGate, and the Infisical console are documented in the `local-services` skill, with their addresses kept in the personal layer.
+The machine's container stack has a console and no CLI. Portainer CE, DbGate, and the Infisical console are documented in the `local-services` skill.
 
 ## Personal layer
 
@@ -43,7 +43,7 @@ The general owner is here. The concrete value is not. The personal layer holds t
 - Vault: the human and agent vault identities and the bundle for each brokered tool.
 - Personal services: email through `himalaya`, phone notifications through `ntfy`, texting through `smsgate`, and Discord through `discli`.
 
-See the personal layer skills `integrations-personal`, `discord`, and `dev-tools` in `simpsonm09-personal-opencode`.
+See the personal layer skills `integrations-personal`, `discord`, and `dev-tools` in `simpsonm09-personal-opencode-plugin`.
 
 ## Best practices
 
@@ -152,7 +152,7 @@ infisical login --method=universal-auth --plain --silent
 infisical export --token "$TOKEN" --projectId "$INFISICAL_PROJECT_ID" --env dev --format json
 ```
 
-A brokered service is reached through a wrapper, not a raw tool. The agent runs `with-vault --role agent <tool> [args]`; the human runs `with-secrets <tool> [args]` or `with-vault --role human <tool> [args]`. The wrapper attaches the credential for that command only and keeps it out of the environment. Discord and Postman are brokered this way. The identities and the bundles are personal; see the personal layer.
+A brokered service is reached through a wrapper, not a raw tool. The agent runs `with-vault --role agent <tool> [args]`; the human runs `with-secrets <tool> [args]` or `with-vault --role human <tool> [args]`. `with-vault` attaches the credential at the proxy and keeps it out of the environment; `with-secrets` loads the values into that one command's environment. Discord and Postman are brokered this way. The identities and the bundles are personal; see the personal layer.
 
 ## Code search
 

@@ -31,6 +31,7 @@ The layer is configuration and a plugin at the same time. `maxstack`'s `Install-
 | `repo-standard` | The gates, the definition of done, and the branch and pull request flow. |
 | `local-services` | The container stack on this machine: Docker, Portainer, Infisical, and DbGate. |
 | `review-session-history` | Mine stored sessions for recurring corrections, cluster and rank the themes, and route each to a named skill edit. |
+| `machine-inventory` | The fleet machine classes: id, role, storage class, and capability flags, from the `simpsonm09-machine-inventory` records. |
 
 To add a skill, create `skills/<id>/SKILL.md` with `name` and `description` frontmatter. The plugin picks it up on the next install and restart.
 

@@ -32,7 +32,7 @@ The registry is general and portable. It names the owner and the command. Accoun
 
 The tools covered by `dev-setup-starter/tools.yaml` install with `just tools-apply`; `tools.yaml` is the source of truth for the per-machine install. The rest (`trivy`, `mise`, `infisical`, `playwright-cli`, `chrome-devtools`, and `ctx7`) install per their own service documentation.
 
-The machine's container stack has a console and no CLI. Portainer CE, DbGate, and the Infisical console are documented in the `local-services` skill.
+The machine's container stack is managed through a console. Portainer CE, DbGate, and the Infisical console are documented in the `local-services` skill.
 
 ## Personal layer
 
@@ -145,7 +145,7 @@ kustomize build overlays/dev
 
 ## Secrets via `infisical`
 
-The workspace loads its secrets from a self-hosted Infisical through the loaders, not by calling `infisical` directly. WSL loads the workspace `.envrc` through direnv; Windows runs `just import-secrets -Apply` in `dev-setup-starter`. The address and project are personal; see the personal layer.
+The workspace loads its secrets from a self-hosted Infisical through the loaders, not by calling `infisical` directly. WSL loads the workspace `.envrc` through direnv; Windows runs `just import-secrets -Apply` in `dev-setup-starter`. The project is personal; see the personal layer.
 
 ```bash
 infisical login --method=universal-auth --plain --silent

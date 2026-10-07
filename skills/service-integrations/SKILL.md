@@ -7,7 +7,7 @@ description: Use when a task needs an external developer service in this workspa
 
 This skill is the general integration registry for the org layer. Reach a service through a command line tool. A service has one CLI owner. Use an MCP server only when no CLI covers the job, and keep it off by default.
 
-The registry is general and portable. It names the owner and the command. Accounts, boards, workspaces, and clusters are personal and live in the personal layer. See [Personal layer](#personal-layer).
+The registry is general and portable. It names the owner and the command. Accounts, boards, workspaces, clusters, identities, and bundles are personal and live in the personal layer. See [Personal layer](#personal-layer).
 
 ## Pick the owner
 
@@ -36,7 +36,7 @@ The machine's container stack has a console and no CLI. Portainer CE, DbGate, an
 
 ## Personal layer
 
-The general owner is here. The concrete value is not. The personal layer holds the account, board, workspace, and cluster specifics, the machine identity, and the personal services that sit below the org boundary.
+The general owner is here. The concrete value is not. The personal layer holds the account, board, workspace, and cluster specifics, the identities and bundles, the machine identity, and the personal services that sit below the org boundary.
 
 - Accounts and sites: the GitHub account, the Postman workspace.
 - Infrastructure: the Kubernetes context, the Infisical project.
@@ -189,5 +189,5 @@ No MCP server is installed by default. These three are the only jobs where an MC
 - Keep every MCP-to-CLI claim honest against the real owner of the job. "The CLI shares the daemon" or "the CLI covers most tools" is not full coverage; name the owner and its real limits.
 - Use an MCP server only when no CLI covers the job. Keep it off by default and turn it on for the task that needs it.
 - A secret comes from the environment, as `$env:NAME` on Windows or `$NAME` in WSL. Never write the value into a file.
-- Keep this registry general. Put the account, board, workspace, cluster, and machine value in the personal layer.
+- Keep this registry general. Put the account, board, workspace, and cluster values, the identities and bundles, and the machine identity in the personal layer.
 - The workspace MCP servers are composed from the org and personal layers. The full list, prerequisites, and removal notes are in `maxstack/docs/mcp.md`.

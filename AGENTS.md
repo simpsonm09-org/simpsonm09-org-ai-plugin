@@ -18,7 +18,7 @@ The shared OpenCode layer for the `simpsonm09-org` organization.
 
 - Language and toolchain: TypeScript, Node, and `@opencode/plugin`.
 - `maxstack` composes this layer above the PStack base and below the personal layer.
-- Skills: `service-integrations`, `repo-tasks`, `repo-standard`, `local-services`, `review-session-history`.
+- Skills: `service-integrations`, `repo-tasks`, `repo-standard`, `local-services`, `review-session-history`, `machine-inventory`.
 - The README covers the contents, the layering, and the layer contract.
 
 ## Skills

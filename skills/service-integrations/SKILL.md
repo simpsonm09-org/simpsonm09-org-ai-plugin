@@ -1,6 +1,6 @@
 ---
 name: service-integrations
-description: Use when a task needs an external developer service in this workspace, such as library documentation, code search, GitHub, Postman, a browser, Jira, Kubernetes, Jenkins, Vault, or secrets. This is the general integration registry. It names the CLI that owns each job and defers accounts, boards, workspaces, and clusters to the personal layer.
+description: Use when a task needs an external developer service in this workspace, such as library documentation, code search, GitHub, Postman, a browser, Jira, Kubernetes, Jenkins, or secrets. This is the general integration registry. It names the CLI that owns each job and defers accounts, boards, workspaces, and clusters to the personal layer.
 ---
 
 # Service integrations
@@ -26,7 +26,6 @@ The registry is general and portable. It names the owner and the command. Accoun
 | Kubernetes packaging | `helm` | `helm upgrade --install`, `helm template` |
 | Kubernetes manifest rendering | `kustomize` | `kustomize build <dir>` |
 | Jenkins jobs, builds, and logs | the Jenkins CLI | `java -jar jenkins-cli.jar -s <url> build <job>` |
-| Secrets in Vault | `vault` | `vault kv get secret/<path>` |
 | Secrets, the workspace source of truth | `infisical` | `infisical login`, `infisical export` |
 | Repository tasks | `just` | `just <recipe>` |
 | Pinned tool versions | `mise` | `mise install`, `mise exec -- <tool>` |
@@ -42,7 +41,7 @@ The machine's container stack has a console and no CLI. Portainer CE, DbGate, an
 The general owner is here. The concrete value is not. The personal layer holds the account, board, workspace, cluster, and machine specifics, and the personal services that sit below the org boundary.
 
 - Accounts and sites: the GitHub account, the Jira site and board, the Postman workspace.
-- Infrastructure: the Kubernetes context, the Vault address and namespace, the Infisical project.
+- Infrastructure: the Kubernetes context, the Infisical project.
 - Personal services: email through `himalaya`, phone notifications through `ntfy`, texting through `smsgate`, and Discord through `discli`.
 
 See the personal layer skills `integrations-personal`, `discord`, and `dev-tools` in `simpsonm09-personal-opencode`.
@@ -53,7 +52,7 @@ See the personal layer skills `integrations-personal`, `discord`, and `dev-tools
 - Read a secret from the environment, as `$env:NAME` on Windows or `$NAME` in WSL. Never write the value into a file.
 - Prefer `--json` when a script consumes the result.
 - Prefer a CLI over an MCP server. Add an MCP server only when no CLI covers the job, and keep it off by default.
-- Verify the tool before blaming a command: `--version`, `gh auth status`, `vault status`, `kubectl config current-context`.
+- Verify the tool before blaming a command: `--version`, `gh auth status`, `kubectl config current-context`.
 - Never drive an interactive wizard from an agent. Configure the tool with individual commands and a config file.
 
 ## GitHub via `gh`
@@ -167,18 +166,6 @@ java -jar jenkins-cli.jar -s <url> -auth "$JENKINS_USER:$JENKINS_API_TOKEN" cons
 ```
 
 Never drive the Jenkins setup wizard from an agent.
-
-## Vault via `vault`
-
-`vault` reads and writes secrets in HashiCorp Vault. The address, namespace, and auth method are personal; see the personal layer.
-
-```bash
-vault status
-vault kv get secret/<path>
-vault kv put secret/<path> key=value
-```
-
-Prefer reading a value into the environment over passing it on a command line that lands in shell history.
 
 ## Secrets via `infisical`
 

@@ -22,7 +22,7 @@ The ports publish on the WSL2 NAT network, which is not routable from the LAN, s
 
 ## Docker
 
-The four services are `infisical-backend`, `infisical-db`, `infisical-redis`, `portainer`, and `dbgate`.
+The containers are `infisical-backend`, `infisical-db`, `infisical-redis`, `portainer`, and `dbgate`.
 
 | Need | Command |
 | --- | --- |

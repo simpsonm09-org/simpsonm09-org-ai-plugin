@@ -5,7 +5,7 @@ description: Use when a task touches the local container services on this machin
 
 # Local services
 
-The machine runs container-backed services on the Docker Engine inside Ubuntu WSL2. `dev-setup-starter` owns their Compose files and their documentation. The service list, ports, and volumes are this machine's; the personal layer records the machine-specific values. This skill keeps the general Docker and Compose practice.
+The machine runs container-backed services on the Docker Engine inside Ubuntu WSL2. `dev-setup-starter` owns their Compose files and their documentation. The container stack is the same on every machine, so its service list, addresses, and ports are general. This skill keeps the general Docker and Compose practice.
 
 | Service | Job | Address |
 | --- | --- | --- |
@@ -22,7 +22,7 @@ The ports publish on the WSL2 NAT network, which is not routable from the LAN, s
 
 ## Docker
 
-The four services are `infisical-backend`, `infisical-db`, `infisical-redis`, `portainer`, and `dbgate`.
+The containers are `infisical-backend`, `infisical-db`, `infisical-redis`, `portainer`, and `dbgate`.
 
 | Need | Command |
 | --- | --- |

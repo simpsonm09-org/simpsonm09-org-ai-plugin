@@ -1,6 +1,6 @@
 ---
 name: service-integrations
-description: Use when a task needs an external developer service in this workspace, such as library documentation, code search, GitHub, Postman, a browser, Jira, Kubernetes, Jenkins, or secrets. This is the general integration registry. It names the CLI that owns each job and defers accounts, boards, workspaces, and clusters to the personal layer.
+description: Use when a task needs an external developer service in this workspace, such as library documentation, code search, GitHub, Postman, a browser, Kubernetes, or secrets. This is the general integration registry. It names the CLI that owns each job and defers accounts, boards, workspaces, and clusters to the personal layer.
 ---
 
 # Service integrations
@@ -21,11 +21,9 @@ The registry is general and portable. It names the owner and the command. Accoun
 | Library, framework, SDK docs | `npx ctx7` | `npx ctx7 library <name> "<topic>"` |
 | Browser automation and capture | `@playwright/cli` | `playwright-cli open <url>`, `goto`, `click`, `screenshot`, `pdf`, `attach --extension` |
 | Chrome performance and debugging | `chrome-devtools` CLI | `chrome-devtools navigate_page`, `take_screenshot`, `lighthouse_audit` |
-| Jira and Atlassian issues, JQL search, comments, transitions | `acli` | `acli jira workitem view/search --jql`, `comment-create`, `workitem transition` |
 | Kubernetes objects | `kubectl` | `kubectl get`, `kubectl apply -f`, `kubectl logs` |
 | Kubernetes packaging | `helm` | `helm upgrade --install`, `helm template` |
 | Kubernetes manifest rendering | `kustomize` | `kustomize build <dir>` |
-| Jenkins jobs, builds, and logs | the Jenkins CLI | `java -jar jenkins-cli.jar -s <url> build <job>` |
 | Secrets, the workspace source of truth | `infisical` | `infisical login`, `infisical export` |
 | Repository tasks | `just` | `just <recipe>` |
 | Pinned tool versions | `mise` | `mise install`, `mise exec -- <tool>` |
@@ -40,7 +38,7 @@ The machine's container stack has a console and no CLI. Portainer CE, DbGate, an
 
 The general owner is here. The concrete value is not. The personal layer holds the account, board, workspace, cluster, and machine specifics, and the personal services that sit below the org boundary.
 
-- Accounts and sites: the GitHub account, the Jira site and board, the Postman workspace.
+- Accounts and sites: the GitHub account, the Postman workspace.
 - Infrastructure: the Kubernetes context, the Infisical project.
 - Personal services: email through `himalaya`, phone notifications through `ntfy`, texting through `smsgate`, and Discord through `discli`.
 
@@ -131,17 +129,6 @@ chrome-devtools take_screenshot
 chrome-devtools lighthouse_audit
 ```
 
-## Jira and Atlassian via `acli`
-
-`acli` is the official Atlassian CLI. It owns Jira issues, JQL search, comments, and transitions. The site and board are personal; see the personal layer.
-
-```bash
-acli jira workitem view <key>
-acli jira workitem search --jql "project = PROJ AND status != Done"
-acli jira workitem comment-create <key> --body "text"
-acli jira workitem transition <key> --status Done
-```
-
 ## Kubernetes via `kubectl`, `helm`, and `kustomize`
 
 `kubectl` reads and writes cluster objects. `helm` manages releases. `kustomize` renders overlays. The context and cluster are personal; see the personal layer.
@@ -154,18 +141,6 @@ kubectl logs <pod> --tail 100
 helm upgrade --install <release> <chart> -n <namespace>
 kustomize build overlays/dev
 ```
-
-## Jenkins via the Jenkins CLI
-
-The Jenkins CLI is a jar served by the controller. Fetch it from `<url>/jnlpJars/jenkins-cli.jar`, then authenticate with an API token from the environment rather than a password.
-
-```bash
-java -jar jenkins-cli.jar -s <url> -auth "$JENKINS_USER:$JENKINS_API_TOKEN" who-am-i
-java -jar jenkins-cli.jar -s <url> -auth "$JENKINS_USER:$JENKINS_API_TOKEN" build <job>
-java -jar jenkins-cli.jar -s <url> -auth "$JENKINS_USER:$JENKINS_API_TOKEN" console <build>
-```
-
-Never drive the Jenkins setup wizard from an agent.
 
 ## Secrets via `infisical`
 

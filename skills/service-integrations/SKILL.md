@@ -36,14 +36,14 @@ The machine's container stack has a console and no CLI. Portainer CE, DbGate, an
 
 ## Personal layer
 
-The general owner is here. The concrete value is not. The personal layer holds the account, board, workspace, cluster, and machine specifics, and the personal services that sit below the org boundary.
+The general owner is here. The concrete value is not. The personal layer holds the account, board, workspace, and cluster specifics, the machine identity, and the personal services that sit below the org boundary.
 
 - Accounts and sites: the GitHub account, the Postman workspace.
 - Infrastructure: the Kubernetes context, the Infisical project.
 - Vault: the human and agent vault identities and the bundle for each brokered tool.
 - Personal services: email through `himalaya`, phone notifications through `ntfy`, texting through `smsgate`, and Discord through `discli`.
 
-See the personal layer skills `integrations-personal`, `discord`, and `dev-tools` in `simpsonm09-personal-opencode-plugin`.
+See the personal layer skills `integrations-personal`, `agent-vault`, `discord`, and `dev-tools` in `simpsonm09-personal-opencode-plugin`.
 
 ## Best practices
 

@@ -40,6 +40,7 @@ The general owner is here. The concrete value is not. The personal layer holds t
 
 - Accounts and sites: the GitHub account, the Postman workspace.
 - Infrastructure: the Kubernetes context, the Infisical project.
+- Vault: the human and agent vault identities and the bundle for each brokered tool.
 - Personal services: email through `himalaya`, phone notifications through `ntfy`, texting through `smsgate`, and Discord through `discli`.
 
 See the personal layer skills `integrations-personal`, `discord`, and `dev-tools` in `simpsonm09-personal-opencode`.
@@ -150,6 +151,8 @@ The workspace loads its secrets from a self-hosted Infisical through the loaders
 infisical login --method=universal-auth --plain --silent
 infisical export --token "$TOKEN" --projectId "$INFISICAL_PROJECT_ID" --env dev --format json
 ```
+
+A brokered service is reached through a wrapper, not a raw tool. The agent runs `with-vault --role agent <tool> [args]`; the human runs `with-secrets <tool> [args]` or `with-vault --role human <tool> [args]`. The wrapper attaches the credential for that command only and keeps it out of the environment. Discord and Postman are brokered this way. The identities and the bundles are personal; see the personal layer.
 
 ## Code search
 

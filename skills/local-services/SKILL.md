@@ -67,6 +67,8 @@ The loaders do this for you. WSL loads the workspace `.envrc` through direnv; Wi
 
 Secrets are rotated in Infisical, then the loader is rerun and the runtime restarted. Never write a value into a repository.
 
+The stack also runs the Agent Vault, which brokers a service credential to a tool through a local proxy. The proxy runs as a systemd user service on port 17323 with `Restart=always` and linger enabled. Reach a brokered tool through the `with-secrets` or `with-vault` wrapper; see the `service-integrations` registry.
+
 ## DbGate
 
 `http://localhost:3000` views and edits databases. To inspect the Infisical PostgreSQL, attach DbGate to the Infisical network, then connect to host `db` on port `5432` with the credentials from `services/infisical/.env`.

@@ -1,26 +1,40 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { test } from "node:test";
+import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import plugin from "../index.ts";
 
-// index.ts derives the workspace from import.meta.url, so the resolver and
-// broker default to the repo-standard clone beside this repository. A caller
-// can point them elsewhere with options.scripts; the tests below use a fixture
-// so the setup wiring runs in any checkout, workspace or not.
+// index.ts takes its workspace from options.workspaceRoot (a test seam; in production the
+// workspace is three levels above the plugin) and its resolver and broker from
+// options.scripts. Every test here sets both to a temporary workspace and fixture scripts,
+// so the setup wiring runs in any checkout and never touches a real clone.
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoDir = resolve(here, "..");
-const workspaceRoot = resolve(repoDir, "..", "..", "..");
-const reposRoot = join(workspaceRoot, "projects", "repos");
+
+// Every test runs under a temporary workspace root that this file creates and removes. The
+// real workspace, its clones, and its sibling scripts are never read or written.
+let workspaceRoot = "";
+let reposRoot = "";
+let fleetCwd = "";
+
+before(() => {
+  workspaceRoot = mkdtempSync(join(tmpdir(), "org-index-ws-"));
+  reposRoot = join(workspaceRoot, "projects", "repos");
+  mkdirSync(reposRoot, { recursive: true });
+  fleetCwd = join(reposRoot, "demo-repo");
+});
+
+after(() => {
+  if (workspaceRoot) rmSync(workspaceRoot, { recursive: true, force: true });
+});
 
 // The cwd must resolve to a fleet clone, but the clone directory does not have
 // to exist for repoFromCwd, so a path under projects/repos works without a
 // workspace. The script paths come from the fixture, never the environment.
-const fleetCwd = join(reposRoot, "demo-repo");
 
 // A resolver module that reports a fixed level and allows commands whose
 // capability is in the allowed set. It mirrors the real scripts/agent-access.mjs
@@ -53,7 +67,7 @@ export function decide(level, command, remoteUrl) {
 `;
 }
 
-function tokenModuleSource(token = "ghs_fixture") {
+function tokenModuleSource(token = "fixture-token-not-real") {
   return `export async function mintForRepo(owner, repo) {
   return { token: ${JSON.stringify(token)}, expires_at: "2099-01-01T00:00:00Z" };
 }
@@ -83,6 +97,15 @@ function fixtureScripts({ access, token } = {}) {
   writeFileSync(accessPath, access ?? accessModuleSource());
   writeFileSync(tokenPath, token ?? tokenModuleSource());
   return { dir, access: accessPath, token: tokenPath };
+}
+
+// Scripts that do not exist: a test that does not pass its own scripts gets an unknown resolver,
+// never the sibling clone's.
+function absentScripts() {
+  return {
+    access: join(workspaceRoot, "absent-agent-access.mjs"),
+    token: join(workspaceRoot, "absent-agent-token.mjs"),
+  };
 }
 
 async function setupWithStubs({ location, scripts } = {}) {
@@ -121,7 +144,7 @@ async function setupWithStubs({ location, scripts } = {}) {
     shell,
     session,
     location: { directory: resolve(location ?? repoDir) },
-    ...(scripts ? { options: { scripts } } : {}),
+    options: { workspaceRoot, scripts: scripts ?? absentScripts() },
   });
 
   return {
@@ -264,7 +287,7 @@ test("the hook resolves a command through a module that has no CLI shim", async 
       await shellBefore(input);
 
       assert.equal(input.command, "gh pr list");
-      assert.equal(input.env.GH_TOKEN, "ghs_fixture");
+      assert.equal(input.env.GH_TOKEN, "fixture-token-not-real");
     },
     { access: CLI_ACCESS_SCRIPT },
   );
@@ -282,7 +305,7 @@ test("the shell create.before hook injects a token for an allowed gh command", a
 
     assert.equal(input.command, "gh pr list");
     assert.equal(typeof input.env.GH_TOKEN, "string");
-    assert.equal(input.env.GH_TOKEN, "ghs_fixture");
+    assert.equal(input.env.GH_TOKEN, "fixture-token-not-real");
   });
 });
 
@@ -377,5 +400,40 @@ test("an organization main push is denied through the live plugin wiring at a pr
     });
   } finally {
     clone.cleanup();
+  }
+});
+
+// A worktree directory is resolved through git. With git missing from PATH, the lookup cannot
+// run, and the gate must answer the way it answers a command the resolver cannot decide: a
+// write is denied, a read passes, and no context line is added. It must not throw.
+test("with git missing from PATH, a write in a worktree is denied, a read passes, and no context line is added", async () => {
+  const worktree = join(workspaceRoot, "projects", "worktrees", "wt-no-git");
+  mkdirSync(worktree, { recursive: true });
+  const emptyPath = mkdtempSync(join(tmpdir(), "org-empty-path-"));
+  const savedPath = process.env.PATH;
+  process.env.PATH = emptyPath;
+  try {
+    const { shellBefore, sessionContext } = await setupWithStubs({
+      location: worktree,
+    });
+
+    const write = { command: "git push origin main", cwd: worktree, env: {} };
+    await shellBefore(write);
+    assert.match(
+      write.command,
+      /agent-access: denied: the working directory could not be resolved/,
+    );
+    assert.match(write.command, /exit 1/);
+
+    const read = { command: "git status", cwd: worktree, env: {} };
+    await shellBefore(read);
+    assert.equal(read.command, "git status");
+
+    const event = { system: [] as unknown[] };
+    sessionContext(event);
+    assert.deepEqual(event.system, []);
+  } finally {
+    process.env.PATH = savedPath;
+    rmSync(emptyPath, { recursive: true, force: true });
   }
 });

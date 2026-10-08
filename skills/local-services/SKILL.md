@@ -16,7 +16,7 @@ The machine runs container-backed services on the Docker Engine inside Ubuntu WS
 
 ## Where commands run
 
-Docker is installed only in WSL. Windows has no `docker` command, so every `docker` command runs in the Ubuntu shell. The UIs open in a Windows browser through the WSL2 localhost forward.
+Docker is installed only in WSL. Windows has no `docker` command, so every `docker` command runs inside WSL. From Windows, prefix the command with `wsl --` (for example `wsl -- docker ps`) or open a WSL shell first. The shell tools differ: in Claude Code, the Bash tool on Windows is Git Bash, not WSL, and the PowerShell tool is Windows, so neither runs `docker` directly. In OpenCode, use the same `wsl --` prefix. The UIs open in a Windows browser through the WSL2 localhost forward.
 
 The ports publish on the WSL2 NAT network, which is not routable from the LAN, so the services stay local to this machine. Do not bind a published port to `127.0.0.1`, because the WSL2 localhost forward only reaches ports that listen on all interfaces.
 
@@ -79,7 +79,7 @@ docker network connect infisical_infisical dbgate
 
 ## Rules
 
-- Run `docker` in the Ubuntu shell, never in Windows `cmd` or PowerShell.
+- Run `docker` inside WSL (`wsl -- docker ...`), never as a bare command in Windows `cmd`, PowerShell, or Git Bash.
 - Reach the UIs through the Windows browser at `localhost`.
 - Read secrets from Infisical through the loaders. Never write a value into a repository.
 - Restart the runtime after a secret change so it inherits the new values.

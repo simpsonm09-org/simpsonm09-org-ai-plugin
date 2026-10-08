@@ -1,0 +1,9 @@
+{
+  "name": "simpsonm09-org-ai-plugin",
+  "version": "0.1.0",
+  "description": "The shared Claude Code plugin for the simpsonm09-org organization. Registers the organization skills, and applies the agent-access gate to shell commands in fleet repositories.",
+  "author": {
+    "name": "simpsonm09-org"
+  },
+  "license": "MIT"
+}

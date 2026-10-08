@@ -15,7 +15,7 @@ The registry is general and portable. It names the owner and the command. Accoun
 | --- | --- | --- |
 | GitHub issues, pull requests, Actions, releases | `gh` | `gh pr view`, `gh issue list`, `gh api` |
 | Public GitHub code search | `gh search code` | `gh search code "<pattern>" --language <lang>` |
-| Local code search | the `grep` tool | `grep` with a literal or a regex |
+| Local code search | the search tool: `Grep` in Claude Code, `grep` in OpenCode | a literal or a regex pattern |
 | Postman collections, environments, specs | `postman` | `postman collection get <id>`, `postman describe` |
 | Postman collection runs, local and CI | `newman` | `newman run <collection.json>` |
 | Library, framework, SDK docs | `npx ctx7` | `npx ctx7 library <name> "<topic>"` |
@@ -43,7 +43,7 @@ The general owner is here. The concrete value is not. The personal layer holds t
 - Vault: the human and agent vault identities and the bundle for each brokered tool.
 - Personal services: email through `himalaya`, phone notifications through `ntfy`, texting through `smsgate`, and Discord through `discli`.
 
-See the personal layer skills `integrations-personal`, `agent-vault`, `discord`, and `dev-tools` in `simpsonm09-personal-opencode-plugin`.
+See the personal layer skills `integrations-personal`, `agent-vault`, `discord`, and `dev-tools` in `simpsonm09-personal-ai-plugin`.
 
 ## Best practices
 
@@ -156,7 +156,7 @@ A brokered service is reached through a wrapper, not a raw tool. The agent runs 
 
 ## Code search
 
-Two owners, split by scope. Use the local `grep` tool for anything inside the repository. Use `gh search code "<pattern>"` for public GitHub, remembering its limits. There is no regex and only the default branch is searched.
+Two owners, split by scope. Use the search tool for anything inside the repository (`Grep` in Claude Code, `grep` in OpenCode). Use `gh search code "<pattern>"` for public GitHub, remembering its limits. There is no regex and only the default branch is searched.
 
 ## Repository tasks
 
@@ -190,4 +190,4 @@ No MCP server is installed by default. These three are the only jobs where an MC
 - Use an MCP server only when no CLI covers the job. Keep it off by default and turn it on for the task that needs it.
 - A secret comes from the environment, as `$env:NAME` on Windows or `$NAME` in WSL. Never write the value into a file.
 - Keep this registry general. Put the account, board, workspace, and cluster values, the identities and bundles, and the machine identity in the personal layer.
-- The workspace MCP servers are composed from the org and personal layers. The full list, prerequisites, and removal notes are in `maxstack/docs/mcp.md`.
+- In OpenCode, the workspace MCP servers are composed from the org and personal layers. The full list, prerequisites, and removal notes are in `maxstack/docs/mcp.md`. Claude Code keeps its MCP servers in its own settings, so check there before assuming one is available.

@@ -24,6 +24,6 @@
     "test": "node --test"
   },
   "dependencies": {
-    "@opencode/plugin": "2.0.18"
+    "@opencode/plugin": "2.0.23"
   }
 }

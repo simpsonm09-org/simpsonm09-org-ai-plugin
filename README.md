@@ -48,6 +48,15 @@ The layer is configuration and a plugin at the same time. `maxstack`'s `Install-
 
 To add a skill, create `skills/<id>/SKILL.md` with `name` and `description` frontmatter. The plugin picks it up on the next install and restart.
 
+## How it gets loaded
+
+This repository is not installed on its own. [`simpsonm09-maxstack`](https://github.com/simpsonm09-org/simpsonm09-maxstack)'s `scripts/Install-Workspace.ps1 -Apply` copies it to `<workspace>/.opencode/plugins/simpsonm09-org-ai-plugin` and links `<workspace>/.claude/plugins/simpsonm09-org-ai-plugin` to that copy.
+
+- OpenCode needs no setting. It finds the workspace `.opencode` folder by walking up from the repository or worktree.
+- Claude Code must be started with `--plugin-dir <workspace>/.claude/plugins`. In T3 Code that goes in the Claude provider instance's "Launch arguments". Without it a Claude Code session has neither the skills nor the access gate.
+
+maxstack's [`docs/t3-setup.md`](https://github.com/simpsonm09-org/simpsonm09-maxstack/blob/main/docs/t3-setup.md) is the full reference. A new session is needed after each install.
+
 ## Differences from the previous gate
 
 The gate resolves a working directory to its real path before it names the repository. Three cases differ from the previous gate on `main`. Each is intended and has a test. Every other committed cell gives the same decision as `main`: the OpenCode command text and environment match byte for byte, and the Claude hook gives the same action (`tests/parity.test.ts`).

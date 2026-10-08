@@ -27,10 +27,7 @@ test("repoFromCwd names the clone for a directory inside a repo", () => {
     "simpsonm09-org-ai-plugin",
   );
   assert.equal(
-    repoFromCwd(
-      join(reposRoot, "simpsonm09-org-ai-plugin", "src", "deep"),
-      ws,
-    ),
+    repoFromCwd(join(reposRoot, "simpsonm09-org-ai-plugin", "src", "deep"), ws),
     "simpsonm09-org-ai-plugin",
   );
 });

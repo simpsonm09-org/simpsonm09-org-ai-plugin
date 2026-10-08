@@ -367,3 +367,18 @@ test("readShellWord returns null for an unquoted $, backtick, or (", () => {
     assert.equal(readShellWord(text, 0, "powershell"), null, text);
   }
 });
+
+test("a long run of dots or spaces in the first word is read in linear time", () => {
+  const run = 200_000;
+  for (const command of [
+    `gh${".".repeat(run)}x pr merge 1`,
+    `"${" ".repeat(run)}x" pr view 1`,
+  ]) {
+    const started = performance.now();
+    assert.equal(canonicalCommand(command), command);
+    assert.ok(
+      performance.now() - started < 2000,
+      "canonicalCommand took too long on a long run",
+    );
+  }
+});

@@ -1,7 +1,18 @@
 {
-  "name": "simpsonm09-org-opencode",
+  "name": "simpsonm09-org-ai-plugin",
   "description": "Shared OpenCode layer for the simpsonm09-org organization.",
   "kind": "config",
   "config": "opencode.fragment.jsonc",
-  "files": ["index.ts", "gate.mjs", "package.json", "skills", "README.md"]
+  "files": [
+    "index.ts",
+    "access.mjs",
+    "gate.mjs",
+    "package.json",
+    "skills",
+    "README.md",
+    ".claude-plugin",
+    "hooks",
+    "bin",
+    "lib"
+  ]
 }

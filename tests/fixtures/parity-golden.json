@@ -1,0 +1,5604 @@
+{
+  "recordedFrom": "HEAD 05f22c14794e34d62c0fa861181c18e37aad4395",
+  "cells": [
+    {
+      "id": "demo-root|posix|none|git status",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git status",
+      "level": "none",
+      "head": {
+        "command": "git status",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|git diff",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git diff",
+      "level": "none",
+      "head": {
+        "command": "git diff",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|git log --oneline",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git log --oneline",
+      "level": "none",
+      "head": {
+        "command": "git log --oneline",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|git fetch origin",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git fetch origin",
+      "level": "none",
+      "head": {
+        "command": "git fetch origin",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|git pull",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git pull",
+      "level": "none",
+      "head": {
+        "command": "git pull",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|git commit -m x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git commit -m x",
+      "level": "none",
+      "head": {
+        "command": "git commit -m x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|git checkout -b feat/x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git checkout -b feat/x",
+      "level": "none",
+      "head": {
+        "command": "git checkout -b feat/x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|git push origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin main",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"none\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|git push origin feat/x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin feat/x",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"none\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|git push",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"none\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|git push --force origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push --force origin main",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"none\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|git push fork feat/x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push fork feat/x",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"none\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|git push --dry-run origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push --dry-run origin main",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"none\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|git push origin :main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin :main",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"none\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|git push upstream refs/heads/main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push upstream refs/heads/main",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"none\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|git push origin HEAD",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin HEAD",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"none\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|git tag v1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git tag v1",
+      "level": "none",
+      "head": {
+        "command": "git tag v1",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|git branch -D feat/x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git branch -D feat/x",
+      "level": "none",
+      "head": {
+        "command": "git branch -D feat/x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh pr view 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr view 1",
+      "level": "none",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh pr list",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr list",
+      "level": "none",
+      "head": {
+        "command": "gh pr list",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh pr create --title x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr create --title x",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"none\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh pr merge 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr merge 1",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"none\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh pr merge 1 --squash",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr merge 1 --squash",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"none\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh pr comment 1 --body x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr comment 1 --body x",
+      "level": "none",
+      "head": {
+        "command": "gh pr comment 1 --body x",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh api repos/o/r",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api repos/o/r",
+      "level": "none",
+      "head": {
+        "command": "gh api repos/o/r",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh api repos/o/r --method PATCH",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api repos/o/r --method PATCH",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"none\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh api -X POST repos/o/r",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api -X POST repos/o/r",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"none\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh api -X get repos/o/r",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api -X get repos/o/r",
+      "level": "none",
+      "head": {
+        "command": "gh api -X get repos/o/r",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh repo delete o/r --yes",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh repo delete o/r --yes",
+      "level": "none",
+      "head": {
+        "command": "gh repo delete o/r --yes",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh repo view",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh repo view",
+      "level": "none",
+      "head": {
+        "command": "gh repo view",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh release create v1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh release create v1",
+      "level": "none",
+      "head": {
+        "command": "gh release create v1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh release list",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh release list",
+      "level": "none",
+      "head": {
+        "command": "gh release list",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh workflow run ci.yml",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh workflow run ci.yml",
+      "level": "none",
+      "head": {
+        "command": "gh workflow run ci.yml",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh run list",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh run list",
+      "level": "none",
+      "head": {
+        "command": "gh run list",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh search prs x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh search prs x",
+      "level": "none",
+      "head": {
+        "command": "gh search prs x",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh status",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh status",
+      "level": "none",
+      "head": {
+        "command": "gh status",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh auth status",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh auth status",
+      "level": "none",
+      "head": {
+        "command": "gh auth status",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh pr list | jq .",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr list | jq .",
+      "level": "none",
+      "head": {
+        "command": "gh pr list | jq .",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh pr list; echo x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr list; echo x",
+      "level": "none",
+      "head": {
+        "command": "gh pr list; echo x",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|cd x && git push origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "cd x && git push origin main",
+      "level": "none",
+      "head": {
+        "command": "cd x && git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|FOO=1 git push origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "FOO=1 git push origin main",
+      "level": "none",
+      "head": {
+        "command": "FOO=1 git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|none| gh pr list",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": " gh pr list",
+      "level": "none",
+      "head": {
+        "command": " gh pr list",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|npm test",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "npm test",
+      "level": "none",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|node -e 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "node -e 1",
+      "level": "none",
+      "head": {
+        "command": "node -e 1",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|bash scripts/x.sh",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "bash scripts/x.sh",
+      "level": "none",
+      "head": {
+        "command": "bash scripts/x.sh",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|rm -rf build",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "rm -rf build",
+      "level": "none",
+      "head": {
+        "command": "rm -rf build",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|ls -la",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "ls -la",
+      "level": "none",
+      "head": {
+        "command": "ls -la",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|echo hi > out.txt",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "echo hi > out.txt",
+      "level": "none",
+      "head": {
+        "command": "echo hi > out.txt",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|git status",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git status",
+      "level": "read",
+      "head": {
+        "command": "git status",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|git diff",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git diff",
+      "level": "read",
+      "head": {
+        "command": "git diff",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|git log --oneline",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git log --oneline",
+      "level": "read",
+      "head": {
+        "command": "git log --oneline",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|git fetch origin",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git fetch origin",
+      "level": "read",
+      "head": {
+        "command": "git fetch origin",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|git pull",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git pull",
+      "level": "read",
+      "head": {
+        "command": "git pull",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|git commit -m x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git commit -m x",
+      "level": "read",
+      "head": {
+        "command": "git commit -m x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|git checkout -b feat/x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git checkout -b feat/x",
+      "level": "read",
+      "head": {
+        "command": "git checkout -b feat/x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|git push origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin main",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|git push origin feat/x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin feat/x",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|git push",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|git push --force origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push --force origin main",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|git push fork feat/x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push fork feat/x",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|git push --dry-run origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push --dry-run origin main",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|git push origin :main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin :main",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|git push upstream refs/heads/main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push upstream refs/heads/main",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|git push origin HEAD",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin HEAD",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|git tag v1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git tag v1",
+      "level": "read",
+      "head": {
+        "command": "git tag v1",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|git branch -D feat/x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git branch -D feat/x",
+      "level": "read",
+      "head": {
+        "command": "git branch -D feat/x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh pr view 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr view 1",
+      "level": "read",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh pr list",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr list",
+      "level": "read",
+      "head": {
+        "command": "gh pr list",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh pr create --title x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr create --title x",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh pr merge 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr merge 1",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh pr merge 1 --squash",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr merge 1 --squash",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh pr comment 1 --body x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr comment 1 --body x",
+      "level": "read",
+      "head": {
+        "command": "gh pr comment 1 --body x",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh api repos/o/r",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api repos/o/r",
+      "level": "read",
+      "head": {
+        "command": "gh api repos/o/r",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh api repos/o/r --method PATCH",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api repos/o/r --method PATCH",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh api -X POST repos/o/r",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api -X POST repos/o/r",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh api -X get repos/o/r",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api -X get repos/o/r",
+      "level": "read",
+      "head": {
+        "command": "gh api -X get repos/o/r",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh repo delete o/r --yes",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh repo delete o/r --yes",
+      "level": "read",
+      "head": {
+        "command": "gh repo delete o/r --yes",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh repo view",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh repo view",
+      "level": "read",
+      "head": {
+        "command": "gh repo view",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh release create v1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh release create v1",
+      "level": "read",
+      "head": {
+        "command": "gh release create v1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh release list",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh release list",
+      "level": "read",
+      "head": {
+        "command": "gh release list",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh workflow run ci.yml",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh workflow run ci.yml",
+      "level": "read",
+      "head": {
+        "command": "gh workflow run ci.yml",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh run list",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh run list",
+      "level": "read",
+      "head": {
+        "command": "gh run list",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh search prs x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh search prs x",
+      "level": "read",
+      "head": {
+        "command": "gh search prs x",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh status",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh status",
+      "level": "read",
+      "head": {
+        "command": "gh status",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh auth status",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh auth status",
+      "level": "read",
+      "head": {
+        "command": "gh auth status",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh pr list | jq .",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr list | jq .",
+      "level": "read",
+      "head": {
+        "command": "gh pr list | jq .",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh pr list; echo x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr list; echo x",
+      "level": "read",
+      "head": {
+        "command": "gh pr list; echo x",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|cd x && git push origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "cd x && git push origin main",
+      "level": "read",
+      "head": {
+        "command": "cd x && git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|FOO=1 git push origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "FOO=1 git push origin main",
+      "level": "read",
+      "head": {
+        "command": "FOO=1 git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|read| gh pr list",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": " gh pr list",
+      "level": "read",
+      "head": {
+        "command": " gh pr list",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|npm test",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "npm test",
+      "level": "read",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|node -e 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "node -e 1",
+      "level": "read",
+      "head": {
+        "command": "node -e 1",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|bash scripts/x.sh",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "bash scripts/x.sh",
+      "level": "read",
+      "head": {
+        "command": "bash scripts/x.sh",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|rm -rf build",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "rm -rf build",
+      "level": "read",
+      "head": {
+        "command": "rm -rf build",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|ls -la",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "ls -la",
+      "level": "read",
+      "head": {
+        "command": "ls -la",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|echo hi > out.txt",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "echo hi > out.txt",
+      "level": "read",
+      "head": {
+        "command": "echo hi > out.txt",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|git status",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git status",
+      "level": "propose",
+      "head": {
+        "command": "git status",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|git diff",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git diff",
+      "level": "propose",
+      "head": {
+        "command": "git diff",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|git log --oneline",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git log --oneline",
+      "level": "propose",
+      "head": {
+        "command": "git log --oneline",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|git fetch origin",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git fetch origin",
+      "level": "propose",
+      "head": {
+        "command": "git fetch origin",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|git pull",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git pull",
+      "level": "propose",
+      "head": {
+        "command": "git pull",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|git commit -m x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git commit -m x",
+      "level": "propose",
+      "head": {
+        "command": "git commit -m x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|git checkout -b feat/x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git checkout -b feat/x",
+      "level": "propose",
+      "head": {
+        "command": "git checkout -b feat/x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|git push origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin main",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"propose\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|git push origin feat/x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin feat/x",
+      "level": "propose",
+      "head": {
+        "command": "git push origin feat/x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|git push",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push",
+      "level": "propose",
+      "head": {
+        "command": "git push",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|git push --force origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push --force origin main",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"propose\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|git push fork feat/x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push fork feat/x",
+      "level": "propose",
+      "head": {
+        "command": "git push fork feat/x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|git push --dry-run origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push --dry-run origin main",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"propose\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|git push origin :main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin :main",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"propose\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|git push upstream refs/heads/main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push upstream refs/heads/main",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"propose\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|git push origin HEAD",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin HEAD",
+      "level": "propose",
+      "head": {
+        "command": "git push origin HEAD",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|git tag v1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git tag v1",
+      "level": "propose",
+      "head": {
+        "command": "git tag v1",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|git branch -D feat/x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git branch -D feat/x",
+      "level": "propose",
+      "head": {
+        "command": "git branch -D feat/x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh pr view 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr view 1",
+      "level": "propose",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh pr list",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr list",
+      "level": "propose",
+      "head": {
+        "command": "gh pr list",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh pr create --title x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr create --title x",
+      "level": "propose",
+      "head": {
+        "command": "gh pr create --title x",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh pr merge 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr merge 1",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"propose\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh pr merge 1 --squash",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr merge 1 --squash",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"propose\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh pr comment 1 --body x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr comment 1 --body x",
+      "level": "propose",
+      "head": {
+        "command": "gh pr comment 1 --body x",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh api repos/o/r",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api repos/o/r",
+      "level": "propose",
+      "head": {
+        "command": "gh api repos/o/r",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh api repos/o/r --method PATCH",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api repos/o/r --method PATCH",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"propose\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh api -X POST repos/o/r",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api -X POST repos/o/r",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"propose\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh api -X get repos/o/r",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api -X get repos/o/r",
+      "level": "propose",
+      "head": {
+        "command": "gh api -X get repos/o/r",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh repo delete o/r --yes",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh repo delete o/r --yes",
+      "level": "propose",
+      "head": {
+        "command": "gh repo delete o/r --yes",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh repo view",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh repo view",
+      "level": "propose",
+      "head": {
+        "command": "gh repo view",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh release create v1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh release create v1",
+      "level": "propose",
+      "head": {
+        "command": "gh release create v1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh release list",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh release list",
+      "level": "propose",
+      "head": {
+        "command": "gh release list",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh workflow run ci.yml",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh workflow run ci.yml",
+      "level": "propose",
+      "head": {
+        "command": "gh workflow run ci.yml",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh run list",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh run list",
+      "level": "propose",
+      "head": {
+        "command": "gh run list",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh search prs x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh search prs x",
+      "level": "propose",
+      "head": {
+        "command": "gh search prs x",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh status",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh status",
+      "level": "propose",
+      "head": {
+        "command": "gh status",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh auth status",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh auth status",
+      "level": "propose",
+      "head": {
+        "command": "gh auth status",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh pr list | jq .",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr list | jq .",
+      "level": "propose",
+      "head": {
+        "command": "gh pr list | jq .",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh pr list; echo x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr list; echo x",
+      "level": "propose",
+      "head": {
+        "command": "gh pr list; echo x",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|cd x && git push origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "cd x && git push origin main",
+      "level": "propose",
+      "head": {
+        "command": "cd x && git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|FOO=1 git push origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "FOO=1 git push origin main",
+      "level": "propose",
+      "head": {
+        "command": "FOO=1 git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose| gh pr list",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": " gh pr list",
+      "level": "propose",
+      "head": {
+        "command": " gh pr list",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|npm test",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "npm test",
+      "level": "propose",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|node -e 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "node -e 1",
+      "level": "propose",
+      "head": {
+        "command": "node -e 1",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|bash scripts/x.sh",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "bash scripts/x.sh",
+      "level": "propose",
+      "head": {
+        "command": "bash scripts/x.sh",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|rm -rf build",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "rm -rf build",
+      "level": "propose",
+      "head": {
+        "command": "rm -rf build",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|ls -la",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "ls -la",
+      "level": "propose",
+      "head": {
+        "command": "ls -la",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|echo hi > out.txt",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "echo hi > out.txt",
+      "level": "propose",
+      "head": {
+        "command": "echo hi > out.txt",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|git status",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git status",
+      "level": "merge",
+      "head": {
+        "command": "git status",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|git diff",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git diff",
+      "level": "merge",
+      "head": {
+        "command": "git diff",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|git log --oneline",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git log --oneline",
+      "level": "merge",
+      "head": {
+        "command": "git log --oneline",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|git fetch origin",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git fetch origin",
+      "level": "merge",
+      "head": {
+        "command": "git fetch origin",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|git pull",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git pull",
+      "level": "merge",
+      "head": {
+        "command": "git pull",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|git commit -m x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git commit -m x",
+      "level": "merge",
+      "head": {
+        "command": "git commit -m x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|git checkout -b feat/x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git checkout -b feat/x",
+      "level": "merge",
+      "head": {
+        "command": "git checkout -b feat/x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|git push origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin main",
+      "level": "merge",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"merge\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|git push origin feat/x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin feat/x",
+      "level": "merge",
+      "head": {
+        "command": "git push origin feat/x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|git push",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push",
+      "level": "merge",
+      "head": {
+        "command": "git push",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|git push --force origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push --force origin main",
+      "level": "merge",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"merge\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|git push fork feat/x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push fork feat/x",
+      "level": "merge",
+      "head": {
+        "command": "git push fork feat/x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|git push --dry-run origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push --dry-run origin main",
+      "level": "merge",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"merge\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|git push origin :main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin :main",
+      "level": "merge",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"merge\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|git push upstream refs/heads/main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push upstream refs/heads/main",
+      "level": "merge",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"merge\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|git push origin HEAD",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin HEAD",
+      "level": "merge",
+      "head": {
+        "command": "git push origin HEAD",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|git tag v1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git tag v1",
+      "level": "merge",
+      "head": {
+        "command": "git tag v1",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|git branch -D feat/x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git branch -D feat/x",
+      "level": "merge",
+      "head": {
+        "command": "git branch -D feat/x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh pr view 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr view 1",
+      "level": "merge",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh pr list",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr list",
+      "level": "merge",
+      "head": {
+        "command": "gh pr list",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh pr create --title x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr create --title x",
+      "level": "merge",
+      "head": {
+        "command": "gh pr create --title x",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh pr merge 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr merge 1",
+      "level": "merge",
+      "head": {
+        "command": "gh pr merge 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh pr merge 1 --squash",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr merge 1 --squash",
+      "level": "merge",
+      "head": {
+        "command": "gh pr merge 1 --squash",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh pr comment 1 --body x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr comment 1 --body x",
+      "level": "merge",
+      "head": {
+        "command": "gh pr comment 1 --body x",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh api repos/o/r",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api repos/o/r",
+      "level": "merge",
+      "head": {
+        "command": "gh api repos/o/r",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh api repos/o/r --method PATCH",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api repos/o/r --method PATCH",
+      "level": "merge",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"merge\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh api -X POST repos/o/r",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api -X POST repos/o/r",
+      "level": "merge",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"merge\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh api -X get repos/o/r",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api -X get repos/o/r",
+      "level": "merge",
+      "head": {
+        "command": "gh api -X get repos/o/r",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh repo delete o/r --yes",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh repo delete o/r --yes",
+      "level": "merge",
+      "head": {
+        "command": "gh repo delete o/r --yes",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh repo view",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh repo view",
+      "level": "merge",
+      "head": {
+        "command": "gh repo view",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh release create v1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh release create v1",
+      "level": "merge",
+      "head": {
+        "command": "gh release create v1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh release list",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh release list",
+      "level": "merge",
+      "head": {
+        "command": "gh release list",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh workflow run ci.yml",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh workflow run ci.yml",
+      "level": "merge",
+      "head": {
+        "command": "gh workflow run ci.yml",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh run list",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh run list",
+      "level": "merge",
+      "head": {
+        "command": "gh run list",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh search prs x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh search prs x",
+      "level": "merge",
+      "head": {
+        "command": "gh search prs x",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh status",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh status",
+      "level": "merge",
+      "head": {
+        "command": "gh status",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh auth status",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh auth status",
+      "level": "merge",
+      "head": {
+        "command": "gh auth status",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh pr list | jq .",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr list | jq .",
+      "level": "merge",
+      "head": {
+        "command": "gh pr list | jq .",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh pr list; echo x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr list; echo x",
+      "level": "merge",
+      "head": {
+        "command": "gh pr list; echo x",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|cd x && git push origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "cd x && git push origin main",
+      "level": "merge",
+      "head": {
+        "command": "cd x && git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|FOO=1 git push origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "FOO=1 git push origin main",
+      "level": "merge",
+      "head": {
+        "command": "FOO=1 git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge| gh pr list",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": " gh pr list",
+      "level": "merge",
+      "head": {
+        "command": " gh pr list",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|npm test",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "npm test",
+      "level": "merge",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|node -e 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "node -e 1",
+      "level": "merge",
+      "head": {
+        "command": "node -e 1",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|bash scripts/x.sh",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "bash scripts/x.sh",
+      "level": "merge",
+      "head": {
+        "command": "bash scripts/x.sh",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|rm -rf build",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "rm -rf build",
+      "level": "merge",
+      "head": {
+        "command": "rm -rf build",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|ls -la",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "ls -la",
+      "level": "merge",
+      "head": {
+        "command": "ls -la",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|echo hi > out.txt",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "echo hi > out.txt",
+      "level": "merge",
+      "head": {
+        "command": "echo hi > out.txt",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|git status",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git status",
+      "level": "full",
+      "head": {
+        "command": "git status",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|git diff",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git diff",
+      "level": "full",
+      "head": {
+        "command": "git diff",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|git log --oneline",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git log --oneline",
+      "level": "full",
+      "head": {
+        "command": "git log --oneline",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|git fetch origin",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git fetch origin",
+      "level": "full",
+      "head": {
+        "command": "git fetch origin",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|git pull",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git pull",
+      "level": "full",
+      "head": {
+        "command": "git pull",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|git commit -m x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git commit -m x",
+      "level": "full",
+      "head": {
+        "command": "git commit -m x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|git checkout -b feat/x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git checkout -b feat/x",
+      "level": "full",
+      "head": {
+        "command": "git checkout -b feat/x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|git push origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin main",
+      "level": "full",
+      "head": {
+        "command": "git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|git push origin feat/x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin feat/x",
+      "level": "full",
+      "head": {
+        "command": "git push origin feat/x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|git push",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push",
+      "level": "full",
+      "head": {
+        "command": "git push",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|git push --force origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push --force origin main",
+      "level": "full",
+      "head": {
+        "command": "git push --force origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|git push fork feat/x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push fork feat/x",
+      "level": "full",
+      "head": {
+        "command": "git push fork feat/x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|git push --dry-run origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push --dry-run origin main",
+      "level": "full",
+      "head": {
+        "command": "git push --dry-run origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|git push origin :main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin :main",
+      "level": "full",
+      "head": {
+        "command": "git push origin :main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|git push upstream refs/heads/main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push upstream refs/heads/main",
+      "level": "full",
+      "head": {
+        "command": "git push upstream refs/heads/main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|git push origin HEAD",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin HEAD",
+      "level": "full",
+      "head": {
+        "command": "git push origin HEAD",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|git tag v1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git tag v1",
+      "level": "full",
+      "head": {
+        "command": "git tag v1",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|git branch -D feat/x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git branch -D feat/x",
+      "level": "full",
+      "head": {
+        "command": "git branch -D feat/x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh pr view 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr view 1",
+      "level": "full",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh pr list",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr list",
+      "level": "full",
+      "head": {
+        "command": "gh pr list",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh pr create --title x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr create --title x",
+      "level": "full",
+      "head": {
+        "command": "gh pr create --title x",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh pr merge 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr merge 1",
+      "level": "full",
+      "head": {
+        "command": "gh pr merge 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh pr merge 1 --squash",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr merge 1 --squash",
+      "level": "full",
+      "head": {
+        "command": "gh pr merge 1 --squash",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh pr comment 1 --body x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr comment 1 --body x",
+      "level": "full",
+      "head": {
+        "command": "gh pr comment 1 --body x",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh api repos/o/r",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api repos/o/r",
+      "level": "full",
+      "head": {
+        "command": "gh api repos/o/r",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh api repos/o/r --method PATCH",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api repos/o/r --method PATCH",
+      "level": "full",
+      "head": {
+        "command": "gh api repos/o/r --method PATCH",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh api -X POST repos/o/r",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api -X POST repos/o/r",
+      "level": "full",
+      "head": {
+        "command": "gh api -X POST repos/o/r",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh api -X get repos/o/r",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api -X get repos/o/r",
+      "level": "full",
+      "head": {
+        "command": "gh api -X get repos/o/r",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh repo delete o/r --yes",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh repo delete o/r --yes",
+      "level": "full",
+      "head": {
+        "command": "gh repo delete o/r --yes",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh repo view",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh repo view",
+      "level": "full",
+      "head": {
+        "command": "gh repo view",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh release create v1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh release create v1",
+      "level": "full",
+      "head": {
+        "command": "gh release create v1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh release list",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh release list",
+      "level": "full",
+      "head": {
+        "command": "gh release list",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh workflow run ci.yml",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh workflow run ci.yml",
+      "level": "full",
+      "head": {
+        "command": "gh workflow run ci.yml",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh run list",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh run list",
+      "level": "full",
+      "head": {
+        "command": "gh run list",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh search prs x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh search prs x",
+      "level": "full",
+      "head": {
+        "command": "gh search prs x",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh status",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh status",
+      "level": "full",
+      "head": {
+        "command": "gh status",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh auth status",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh auth status",
+      "level": "full",
+      "head": {
+        "command": "gh auth status",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh pr list | jq .",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr list | jq .",
+      "level": "full",
+      "head": {
+        "command": "gh pr list | jq .",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh pr list; echo x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr list; echo x",
+      "level": "full",
+      "head": {
+        "command": "gh pr list; echo x",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|cd x && git push origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "cd x && git push origin main",
+      "level": "full",
+      "head": {
+        "command": "cd x && git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|FOO=1 git push origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "FOO=1 git push origin main",
+      "level": "full",
+      "head": {
+        "command": "FOO=1 git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full| gh pr list",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": " gh pr list",
+      "level": "full",
+      "head": {
+        "command": " gh pr list",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|npm test",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "npm test",
+      "level": "full",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|node -e 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "node -e 1",
+      "level": "full",
+      "head": {
+        "command": "node -e 1",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|bash scripts/x.sh",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "bash scripts/x.sh",
+      "level": "full",
+      "head": {
+        "command": "bash scripts/x.sh",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|rm -rf build",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "rm -rf build",
+      "level": "full",
+      "head": {
+        "command": "rm -rf build",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|ls -la",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "ls -la",
+      "level": "full",
+      "head": {
+        "command": "ls -la",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|echo hi > out.txt",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "echo hi > out.txt",
+      "level": "full",
+      "head": {
+        "command": "echo hi > out.txt",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-sub|posix|none|git push origin main",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "git push origin main",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"none\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-sub|posix|none|git push origin feat/x",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "git push origin feat/x",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"none\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-sub|posix|none|gh pr merge 1",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "gh pr merge 1",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"none\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-sub|posix|none|gh api -X POST repos/o/r",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "gh api -X POST repos/o/r",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"none\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-sub|posix|none|gh pr view 1",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "gh pr view 1",
+      "level": "none",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-sub|posix|none|npm test",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "npm test",
+      "level": "none",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-sub|posix|read|git push origin main",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "git push origin main",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-sub|posix|read|git push origin feat/x",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "git push origin feat/x",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-sub|posix|read|gh pr merge 1",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "gh pr merge 1",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-sub|posix|read|gh api -X POST repos/o/r",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "gh api -X POST repos/o/r",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-sub|posix|read|gh pr view 1",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "gh pr view 1",
+      "level": "read",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-sub|posix|read|npm test",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "npm test",
+      "level": "read",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-sub|posix|propose|git push origin main",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "git push origin main",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"propose\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-sub|posix|propose|git push origin feat/x",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "git push origin feat/x",
+      "level": "propose",
+      "head": {
+        "command": "git push origin feat/x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-sub|posix|propose|gh pr merge 1",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "gh pr merge 1",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"propose\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-sub|posix|propose|gh api -X POST repos/o/r",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "gh api -X POST repos/o/r",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"propose\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-sub|posix|propose|gh pr view 1",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "gh pr view 1",
+      "level": "propose",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-sub|posix|propose|npm test",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "npm test",
+      "level": "propose",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-sub|posix|merge|git push origin main",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "git push origin main",
+      "level": "merge",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"merge\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-sub|posix|merge|git push origin feat/x",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "git push origin feat/x",
+      "level": "merge",
+      "head": {
+        "command": "git push origin feat/x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-sub|posix|merge|gh pr merge 1",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "gh pr merge 1",
+      "level": "merge",
+      "head": {
+        "command": "gh pr merge 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-sub|posix|merge|gh api -X POST repos/o/r",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "gh api -X POST repos/o/r",
+      "level": "merge",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: demo-repo denies this command at level \"merge\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-sub|posix|merge|gh pr view 1",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "gh pr view 1",
+      "level": "merge",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-sub|posix|merge|npm test",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "npm test",
+      "level": "merge",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-sub|posix|full|git push origin main",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "git push origin main",
+      "level": "full",
+      "head": {
+        "command": "git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-sub|posix|full|git push origin feat/x",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "git push origin feat/x",
+      "level": "full",
+      "head": {
+        "command": "git push origin feat/x",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-sub|posix|full|gh pr merge 1",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "gh pr merge 1",
+      "level": "full",
+      "head": {
+        "command": "gh pr merge 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-sub|posix|full|gh api -X POST repos/o/r",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "gh api -X POST repos/o/r",
+      "level": "full",
+      "head": {
+        "command": "gh api -X POST repos/o/r",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-sub|posix|full|gh pr view 1",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "gh pr view 1",
+      "level": "full",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-sub|posix|full|npm test",
+      "cwd": "demo-sub",
+      "cwdPath": "projects/repos/demo-repo/src/deep",
+      "command": "npm test",
+      "level": "full",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "fork|posix|none|git push origin main",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "git push origin main",
+      "level": "none",
+      "head": {
+        "command": "git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "fork|posix|none|git push",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "git push",
+      "level": "none",
+      "head": {
+        "command": "git push",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "fork|posix|none|gh pr merge 1",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "gh pr merge 1",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: fork-repo denies this command at level \"none\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "fork|posix|none|gh pr view 1",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "gh pr view 1",
+      "level": "none",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "fork|posix|none|cd x && git push origin main",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "cd x && git push origin main",
+      "level": "none",
+      "head": {
+        "command": "cd x && git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "fork|posix|none|npm test",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "npm test",
+      "level": "none",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "fork|posix|read|git push origin main",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "git push origin main",
+      "level": "read",
+      "head": {
+        "command": "git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "fork|posix|read|git push",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "git push",
+      "level": "read",
+      "head": {
+        "command": "git push",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "fork|posix|read|gh pr merge 1",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "gh pr merge 1",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: fork-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "fork|posix|read|gh pr view 1",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "gh pr view 1",
+      "level": "read",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "fork|posix|read|cd x && git push origin main",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "cd x && git push origin main",
+      "level": "read",
+      "head": {
+        "command": "cd x && git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "fork|posix|read|npm test",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "npm test",
+      "level": "read",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "fork|posix|propose|git push origin main",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "git push origin main",
+      "level": "propose",
+      "head": {
+        "command": "git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "fork|posix|propose|git push",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "git push",
+      "level": "propose",
+      "head": {
+        "command": "git push",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "fork|posix|propose|gh pr merge 1",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "gh pr merge 1",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: fork-repo denies this command at level \"propose\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "fork|posix|propose|gh pr view 1",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "gh pr view 1",
+      "level": "propose",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "fork|posix|propose|cd x && git push origin main",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "cd x && git push origin main",
+      "level": "propose",
+      "head": {
+        "command": "cd x && git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "fork|posix|propose|npm test",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "npm test",
+      "level": "propose",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "fork|posix|merge|git push origin main",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "git push origin main",
+      "level": "merge",
+      "head": {
+        "command": "git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "fork|posix|merge|git push",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "git push",
+      "level": "merge",
+      "head": {
+        "command": "git push",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "fork|posix|merge|gh pr merge 1",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "gh pr merge 1",
+      "level": "merge",
+      "head": {
+        "command": "gh pr merge 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "fork|posix|merge|gh pr view 1",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "gh pr view 1",
+      "level": "merge",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "fork|posix|merge|cd x && git push origin main",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "cd x && git push origin main",
+      "level": "merge",
+      "head": {
+        "command": "cd x && git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "fork|posix|merge|npm test",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "npm test",
+      "level": "merge",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "fork|posix|full|git push origin main",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "git push origin main",
+      "level": "full",
+      "head": {
+        "command": "git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "fork|posix|full|git push",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "git push",
+      "level": "full",
+      "head": {
+        "command": "git push",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "fork|posix|full|gh pr merge 1",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "gh pr merge 1",
+      "level": "full",
+      "head": {
+        "command": "gh pr merge 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "fork|posix|full|gh pr view 1",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "gh pr view 1",
+      "level": "full",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "fork|posix|full|cd x && git push origin main",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "cd x && git push origin main",
+      "level": "full",
+      "head": {
+        "command": "cd x && git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "fork|posix|full|npm test",
+      "cwd": "fork",
+      "cwdPath": "projects/repos/fork-repo",
+      "command": "npm test",
+      "level": "full",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "nogit|posix|none|git push origin main",
+      "cwd": "nogit",
+      "cwdPath": "projects/repos/nogit-repo",
+      "command": "git push origin main",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: nogit-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "nogit|posix|none|gh pr merge 1",
+      "cwd": "nogit",
+      "cwdPath": "projects/repos/nogit-repo",
+      "command": "gh pr merge 1",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: nogit-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "nogit|posix|none|npm test",
+      "cwd": "nogit",
+      "cwdPath": "projects/repos/nogit-repo",
+      "command": "npm test",
+      "level": "none",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "nogit|posix|read|git push origin main",
+      "cwd": "nogit",
+      "cwdPath": "projects/repos/nogit-repo",
+      "command": "git push origin main",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: nogit-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "nogit|posix|read|gh pr merge 1",
+      "cwd": "nogit",
+      "cwdPath": "projects/repos/nogit-repo",
+      "command": "gh pr merge 1",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: nogit-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "nogit|posix|read|npm test",
+      "cwd": "nogit",
+      "cwdPath": "projects/repos/nogit-repo",
+      "command": "npm test",
+      "level": "read",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "nogit|posix|propose|git push origin main",
+      "cwd": "nogit",
+      "cwdPath": "projects/repos/nogit-repo",
+      "command": "git push origin main",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: nogit-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "nogit|posix|propose|gh pr merge 1",
+      "cwd": "nogit",
+      "cwdPath": "projects/repos/nogit-repo",
+      "command": "gh pr merge 1",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: nogit-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "nogit|posix|propose|npm test",
+      "cwd": "nogit",
+      "cwdPath": "projects/repos/nogit-repo",
+      "command": "npm test",
+      "level": "propose",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "nogit|posix|merge|git push origin main",
+      "cwd": "nogit",
+      "cwdPath": "projects/repos/nogit-repo",
+      "command": "git push origin main",
+      "level": "merge",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: nogit-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "nogit|posix|merge|gh pr merge 1",
+      "cwd": "nogit",
+      "cwdPath": "projects/repos/nogit-repo",
+      "command": "gh pr merge 1",
+      "level": "merge",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: nogit-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "nogit|posix|merge|npm test",
+      "cwd": "nogit",
+      "cwdPath": "projects/repos/nogit-repo",
+      "command": "npm test",
+      "level": "merge",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "nogit|posix|full|git push origin main",
+      "cwd": "nogit",
+      "cwdPath": "projects/repos/nogit-repo",
+      "command": "git push origin main",
+      "level": "full",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: nogit-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "nogit|posix|full|gh pr merge 1",
+      "cwd": "nogit",
+      "cwdPath": "projects/repos/nogit-repo",
+      "command": "gh pr merge 1",
+      "level": "full",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: nogit-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "nogit|posix|full|npm test",
+      "cwd": "nogit",
+      "cwdPath": "projects/repos/nogit-repo",
+      "command": "npm test",
+      "level": "full",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "unlisted|posix|none|git push origin main",
+      "cwd": "unlisted",
+      "cwdPath": "projects/repos/unlisted-repo",
+      "command": "git push origin main",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: unlisted-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "unlisted|posix|none|gh pr merge 1",
+      "cwd": "unlisted",
+      "cwdPath": "projects/repos/unlisted-repo",
+      "command": "gh pr merge 1",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: unlisted-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "unlisted|posix|none|npm test",
+      "cwd": "unlisted",
+      "cwdPath": "projects/repos/unlisted-repo",
+      "command": "npm test",
+      "level": "none",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "unlisted|posix|read|git push origin main",
+      "cwd": "unlisted",
+      "cwdPath": "projects/repos/unlisted-repo",
+      "command": "git push origin main",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: unlisted-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "unlisted|posix|read|gh pr merge 1",
+      "cwd": "unlisted",
+      "cwdPath": "projects/repos/unlisted-repo",
+      "command": "gh pr merge 1",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: unlisted-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "unlisted|posix|read|npm test",
+      "cwd": "unlisted",
+      "cwdPath": "projects/repos/unlisted-repo",
+      "command": "npm test",
+      "level": "read",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "unlisted|posix|propose|git push origin main",
+      "cwd": "unlisted",
+      "cwdPath": "projects/repos/unlisted-repo",
+      "command": "git push origin main",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: unlisted-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "unlisted|posix|propose|gh pr merge 1",
+      "cwd": "unlisted",
+      "cwdPath": "projects/repos/unlisted-repo",
+      "command": "gh pr merge 1",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: unlisted-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "unlisted|posix|propose|npm test",
+      "cwd": "unlisted",
+      "cwdPath": "projects/repos/unlisted-repo",
+      "command": "npm test",
+      "level": "propose",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "unlisted|posix|merge|git push origin main",
+      "cwd": "unlisted",
+      "cwdPath": "projects/repos/unlisted-repo",
+      "command": "git push origin main",
+      "level": "merge",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: unlisted-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "unlisted|posix|merge|gh pr merge 1",
+      "cwd": "unlisted",
+      "cwdPath": "projects/repos/unlisted-repo",
+      "command": "gh pr merge 1",
+      "level": "merge",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: unlisted-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "unlisted|posix|merge|npm test",
+      "cwd": "unlisted",
+      "cwdPath": "projects/repos/unlisted-repo",
+      "command": "npm test",
+      "level": "merge",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "unlisted|posix|full|git push origin main",
+      "cwd": "unlisted",
+      "cwdPath": "projects/repos/unlisted-repo",
+      "command": "git push origin main",
+      "level": "full",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: unlisted-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "unlisted|posix|full|gh pr merge 1",
+      "cwd": "unlisted",
+      "cwdPath": "projects/repos/unlisted-repo",
+      "command": "gh pr merge 1",
+      "level": "full",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: unlisted-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "unlisted|posix|full|npm test",
+      "cwd": "unlisted",
+      "cwdPath": "projects/repos/unlisted-repo",
+      "command": "npm test",
+      "level": "full",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|none|git push origin main",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "git push origin main",
+      "level": "none",
+      "head": {
+        "command": "git push origin main",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|none|gh pr view 1",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "gh pr view 1",
+      "level": "none",
+      "head": {
+        "command": "gh pr view 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|read|git push origin main",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "git push origin main",
+      "level": "read",
+      "head": {
+        "command": "git push origin main",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|read|gh pr view 1",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "gh pr view 1",
+      "level": "read",
+      "head": {
+        "command": "gh pr view 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|propose|git push origin main",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "git push origin main",
+      "level": "propose",
+      "head": {
+        "command": "git push origin main",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|propose|gh pr view 1",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "gh pr view 1",
+      "level": "propose",
+      "head": {
+        "command": "gh pr view 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|merge|git push origin main",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "git push origin main",
+      "level": "merge",
+      "head": {
+        "command": "git push origin main",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|merge|gh pr view 1",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "gh pr view 1",
+      "level": "merge",
+      "head": {
+        "command": "gh pr view 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|full|git push origin main",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "git push origin main",
+      "level": "full",
+      "head": {
+        "command": "git push origin main",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|full|gh pr view 1",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "gh pr view 1",
+      "level": "full",
+      "head": {
+        "command": "gh pr view 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|none|git push origin main",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "git push origin main",
+      "level": "none",
+      "head": {
+        "command": "git push origin main",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|none|git push origin feat/x",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "git push origin feat/x",
+      "level": "none",
+      "head": {
+        "command": "git push origin feat/x",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|none|gh pr merge 1",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "gh pr merge 1",
+      "level": "none",
+      "head": {
+        "command": "gh pr merge 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|none|gh pr view 1",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "gh pr view 1",
+      "level": "none",
+      "head": {
+        "command": "gh pr view 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|none|gh api -X POST repos/o/r",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "gh api -X POST repos/o/r",
+      "level": "none",
+      "head": {
+        "command": "gh api -X POST repos/o/r",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|none|npm test",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "npm test",
+      "level": "none",
+      "head": {
+        "command": "npm test",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|read|git push origin main",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "git push origin main",
+      "level": "read",
+      "head": {
+        "command": "git push origin main",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|read|git push origin feat/x",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "git push origin feat/x",
+      "level": "read",
+      "head": {
+        "command": "git push origin feat/x",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|read|gh pr merge 1",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "gh pr merge 1",
+      "level": "read",
+      "head": {
+        "command": "gh pr merge 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|read|gh pr view 1",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "gh pr view 1",
+      "level": "read",
+      "head": {
+        "command": "gh pr view 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|read|gh api -X POST repos/o/r",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "gh api -X POST repos/o/r",
+      "level": "read",
+      "head": {
+        "command": "gh api -X POST repos/o/r",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|read|npm test",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "npm test",
+      "level": "read",
+      "head": {
+        "command": "npm test",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|propose|git push origin main",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "git push origin main",
+      "level": "propose",
+      "head": {
+        "command": "git push origin main",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|propose|git push origin feat/x",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "git push origin feat/x",
+      "level": "propose",
+      "head": {
+        "command": "git push origin feat/x",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|propose|gh pr merge 1",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "gh pr merge 1",
+      "level": "propose",
+      "head": {
+        "command": "gh pr merge 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|propose|gh pr view 1",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "gh pr view 1",
+      "level": "propose",
+      "head": {
+        "command": "gh pr view 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|propose|gh api -X POST repos/o/r",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "gh api -X POST repos/o/r",
+      "level": "propose",
+      "head": {
+        "command": "gh api -X POST repos/o/r",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|propose|npm test",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "npm test",
+      "level": "propose",
+      "head": {
+        "command": "npm test",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|merge|git push origin main",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "git push origin main",
+      "level": "merge",
+      "head": {
+        "command": "git push origin main",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|merge|git push origin feat/x",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "git push origin feat/x",
+      "level": "merge",
+      "head": {
+        "command": "git push origin feat/x",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|merge|gh pr merge 1",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "gh pr merge 1",
+      "level": "merge",
+      "head": {
+        "command": "gh pr merge 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|merge|gh pr view 1",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "gh pr view 1",
+      "level": "merge",
+      "head": {
+        "command": "gh pr view 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|merge|gh api -X POST repos/o/r",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "gh api -X POST repos/o/r",
+      "level": "merge",
+      "head": {
+        "command": "gh api -X POST repos/o/r",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|merge|npm test",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "npm test",
+      "level": "merge",
+      "head": {
+        "command": "npm test",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|full|git push origin main",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "git push origin main",
+      "level": "full",
+      "head": {
+        "command": "git push origin main",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|full|git push origin feat/x",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "git push origin feat/x",
+      "level": "full",
+      "head": {
+        "command": "git push origin feat/x",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|full|gh pr merge 1",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "gh pr merge 1",
+      "level": "full",
+      "head": {
+        "command": "gh pr merge 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|full|gh pr view 1",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "gh pr view 1",
+      "level": "full",
+      "head": {
+        "command": "gh pr view 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|full|gh api -X POST repos/o/r",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "gh api -X POST repos/o/r",
+      "level": "full",
+      "head": {
+        "command": "gh api -X POST repos/o/r",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "worktree|posix|full|npm test",
+      "cwd": "worktree",
+      "cwdPath": "projects/worktrees/wt-demo",
+      "command": "npm test",
+      "level": "full",
+      "head": {
+        "command": "npm test",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "case-variant|posix|none|git push origin main",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "git push origin main",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: DEMO-REPO denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "case-variant|posix|none|git push origin feat/x",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "git push origin feat/x",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: DEMO-REPO denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "case-variant|posix|none|gh pr merge 1",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "gh pr merge 1",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: DEMO-REPO denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "case-variant|posix|none|gh pr view 1",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "gh pr view 1",
+      "level": "none",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "case-variant|posix|none|npm test",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "npm test",
+      "level": "none",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "case-variant|posix|read|git push origin main",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "git push origin main",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: DEMO-REPO denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "case-variant|posix|read|git push origin feat/x",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "git push origin feat/x",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: DEMO-REPO denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "case-variant|posix|read|gh pr merge 1",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "gh pr merge 1",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: DEMO-REPO denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "case-variant|posix|read|gh pr view 1",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "gh pr view 1",
+      "level": "read",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "case-variant|posix|read|npm test",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "npm test",
+      "level": "read",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "case-variant|posix|propose|git push origin main",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "git push origin main",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: DEMO-REPO denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "case-variant|posix|propose|git push origin feat/x",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "git push origin feat/x",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: DEMO-REPO denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "case-variant|posix|propose|gh pr merge 1",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "gh pr merge 1",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: DEMO-REPO denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "case-variant|posix|propose|gh pr view 1",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "gh pr view 1",
+      "level": "propose",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "case-variant|posix|propose|npm test",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "npm test",
+      "level": "propose",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "case-variant|posix|merge|git push origin main",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "git push origin main",
+      "level": "merge",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: DEMO-REPO denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "case-variant|posix|merge|git push origin feat/x",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "git push origin feat/x",
+      "level": "merge",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: DEMO-REPO denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "case-variant|posix|merge|gh pr merge 1",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "gh pr merge 1",
+      "level": "merge",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: DEMO-REPO denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "case-variant|posix|merge|gh pr view 1",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "gh pr view 1",
+      "level": "merge",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "case-variant|posix|merge|npm test",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "npm test",
+      "level": "merge",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "case-variant|posix|full|git push origin main",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "git push origin main",
+      "level": "full",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: DEMO-REPO denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "case-variant|posix|full|git push origin feat/x",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "git push origin feat/x",
+      "level": "full",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: DEMO-REPO denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "case-variant|posix|full|gh pr merge 1",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "gh pr merge 1",
+      "level": "full",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: DEMO-REPO denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "case-variant|posix|full|gh pr view 1",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "gh pr view 1",
+      "level": "full",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "case-variant|posix|full|npm test",
+      "cwd": "case-variant",
+      "cwdPath": "projects/REPOS/DEMO-REPO",
+      "command": "npm test",
+      "level": "full",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|none|git push origin main",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "git push origin main",
+      "level": "none",
+      "head": {
+        "command": "git push origin main",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|none|git push origin feat/x",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "git push origin feat/x",
+      "level": "none",
+      "head": {
+        "command": "git push origin feat/x",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|none|gh pr merge 1",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "gh pr merge 1",
+      "level": "none",
+      "head": {
+        "command": "gh pr merge 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|none|gh pr view 1",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "gh pr view 1",
+      "level": "none",
+      "head": {
+        "command": "gh pr view 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|none|npm test",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "npm test",
+      "level": "none",
+      "head": {
+        "command": "npm test",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|read|git push origin main",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "git push origin main",
+      "level": "read",
+      "head": {
+        "command": "git push origin main",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|read|git push origin feat/x",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "git push origin feat/x",
+      "level": "read",
+      "head": {
+        "command": "git push origin feat/x",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|read|gh pr merge 1",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "gh pr merge 1",
+      "level": "read",
+      "head": {
+        "command": "gh pr merge 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|read|gh pr view 1",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "gh pr view 1",
+      "level": "read",
+      "head": {
+        "command": "gh pr view 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|read|npm test",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "npm test",
+      "level": "read",
+      "head": {
+        "command": "npm test",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|propose|git push origin main",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "git push origin main",
+      "level": "propose",
+      "head": {
+        "command": "git push origin main",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|propose|git push origin feat/x",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "git push origin feat/x",
+      "level": "propose",
+      "head": {
+        "command": "git push origin feat/x",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|propose|gh pr merge 1",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "gh pr merge 1",
+      "level": "propose",
+      "head": {
+        "command": "gh pr merge 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|propose|gh pr view 1",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "gh pr view 1",
+      "level": "propose",
+      "head": {
+        "command": "gh pr view 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|propose|npm test",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "npm test",
+      "level": "propose",
+      "head": {
+        "command": "npm test",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|merge|git push origin main",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "git push origin main",
+      "level": "merge",
+      "head": {
+        "command": "git push origin main",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|merge|git push origin feat/x",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "git push origin feat/x",
+      "level": "merge",
+      "head": {
+        "command": "git push origin feat/x",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|merge|gh pr merge 1",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "gh pr merge 1",
+      "level": "merge",
+      "head": {
+        "command": "gh pr merge 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|merge|gh pr view 1",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "gh pr view 1",
+      "level": "merge",
+      "head": {
+        "command": "gh pr view 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|merge|npm test",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "npm test",
+      "level": "merge",
+      "head": {
+        "command": "npm test",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|full|git push origin main",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "git push origin main",
+      "level": "full",
+      "head": {
+        "command": "git push origin main",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|full|git push origin feat/x",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "git push origin feat/x",
+      "level": "full",
+      "head": {
+        "command": "git push origin feat/x",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|full|gh pr merge 1",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "gh pr merge 1",
+      "level": "full",
+      "head": {
+        "command": "gh pr merge 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|full|gh pr view 1",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "gh pr view 1",
+      "level": "full",
+      "head": {
+        "command": "gh pr view 1",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "junction|posix|full|npm test",
+      "cwd": "junction",
+      "cwdPath": "projects/other/link-demo",
+      "command": "npm test",
+      "level": "full",
+      "head": {
+        "command": "npm test",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|none|git push origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin main",
+      "level": "none",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "Write-Error 'agent-access: denied: demo-repo denies this command at level \"none\"'; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|none|gh pr merge 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr merge 1",
+      "level": "none",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "Write-Error 'agent-access: denied: demo-repo denies this command at level \"none\"'; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|none|gh pr view 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr view 1",
+      "level": "none",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|none|npm test",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "npm test",
+      "level": "none",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|none|gh api -X POST repos/o/r",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api -X POST repos/o/r",
+      "level": "none",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "Write-Error 'agent-access: denied: demo-repo denies this command at level \"none\"'; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|read|git push origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin main",
+      "level": "read",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "Write-Error 'agent-access: denied: demo-repo denies this command at level \"read\"'; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|read|gh pr merge 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr merge 1",
+      "level": "read",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "Write-Error 'agent-access: denied: demo-repo denies this command at level \"read\"'; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|read|gh pr view 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr view 1",
+      "level": "read",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|read|npm test",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "npm test",
+      "level": "read",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|read|gh api -X POST repos/o/r",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api -X POST repos/o/r",
+      "level": "read",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "Write-Error 'agent-access: denied: demo-repo denies this command at level \"read\"'; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|propose|git push origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin main",
+      "level": "propose",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "Write-Error 'agent-access: denied: demo-repo denies this command at level \"propose\"'; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|propose|gh pr merge 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr merge 1",
+      "level": "propose",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "Write-Error 'agent-access: denied: demo-repo denies this command at level \"propose\"'; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|propose|gh pr view 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr view 1",
+      "level": "propose",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|propose|npm test",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "npm test",
+      "level": "propose",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|propose|gh api -X POST repos/o/r",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api -X POST repos/o/r",
+      "level": "propose",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "Write-Error 'agent-access: denied: demo-repo denies this command at level \"propose\"'; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|merge|git push origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin main",
+      "level": "merge",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "Write-Error 'agent-access: denied: demo-repo denies this command at level \"merge\"'; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|merge|gh pr merge 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr merge 1",
+      "level": "merge",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "gh pr merge 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|merge|gh pr view 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr view 1",
+      "level": "merge",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|merge|npm test",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "npm test",
+      "level": "merge",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|merge|gh api -X POST repos/o/r",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api -X POST repos/o/r",
+      "level": "merge",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "Write-Error 'agent-access: denied: demo-repo denies this command at level \"merge\"'; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|full|git push origin main",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "git push origin main",
+      "level": "full",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "git push origin main",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|full|gh pr merge 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr merge 1",
+      "level": "full",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "gh pr merge 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|full|gh pr view 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr view 1",
+      "level": "full",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "gh pr view 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|full|npm test",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "npm test",
+      "level": "full",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "npm test",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|pwsh|full|gh api -X POST repos/o/r",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api -X POST repos/o/r",
+      "level": "full",
+      "shell": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "head": {
+        "command": "gh api -X POST repos/o/r",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    }
+  ]
+}

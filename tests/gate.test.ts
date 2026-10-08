@@ -23,15 +23,12 @@ const reposRoot = join(ws, "projects", "repos");
 
 test("repoFromCwd names the clone for a directory inside a repo", () => {
   assert.equal(
-    repoFromCwd(join(reposRoot, "simpsonm09-org-opencode-plugin"), ws),
-    "simpsonm09-org-opencode-plugin",
+    repoFromCwd(join(reposRoot, "simpsonm09-org-ai-plugin"), ws),
+    "simpsonm09-org-ai-plugin",
   );
   assert.equal(
-    repoFromCwd(
-      join(reposRoot, "simpsonm09-org-opencode-plugin", "src", "deep"),
-      ws,
-    ),
-    "simpsonm09-org-opencode-plugin",
+    repoFromCwd(join(reposRoot, "simpsonm09-org-ai-plugin", "src", "deep"), ws),
+    "simpsonm09-org-ai-plugin",
   );
 });
 
@@ -222,10 +219,10 @@ test("tokenUsable rejects an absent, malformed, or expiring cache", () => {
 
 test("contextLine names the repository and its level", () => {
   assert.match(
-    contextLine("simpsonm09-org-opencode-plugin", "read"),
-    /simpsonm09-org-opencode-plugin/,
+    contextLine("simpsonm09-org-ai-plugin", "read"),
+    /simpsonm09-org-ai-plugin/,
   );
-  assert.match(contextLine("simpsonm09-org-opencode-plugin", "read"), /"read"/);
+  assert.match(contextLine("simpsonm09-org-ai-plugin", "read"), /"read"/);
 });
 
 test("parseResolverOutput reads the level and capability from the resolver JSON", () => {

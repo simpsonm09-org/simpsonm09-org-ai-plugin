@@ -1,5 +1,5 @@
 {
-  "name": "simpsonm09-org-opencode",
+  "name": "simpsonm09-org-ai-plugin",
   "version": "0.1.0",
   "description": "The shared OpenCode plugin for the simpsonm09-org organization. Registers the skills every repository should have.",
   "license": "MIT",
@@ -10,10 +10,15 @@
   },
   "files": [
     "index.ts",
+    "access.mjs",
     "gate.mjs",
     "package.json",
     "skills",
-    "README.md"
+    "README.md",
+    ".claude-plugin",
+    "hooks",
+    "bin",
+    "lib"
   ],
   "scripts": {
     "test": "node --test"

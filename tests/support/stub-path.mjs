@@ -47,9 +47,12 @@ export function findOnPath(name, pathValue = process.env.PATH ?? "") {
 export function makeStubDir({ withGh = true, bash = findOnPath("bash") } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "gh-stub-"));
   if (withGh) {
-    const gh = join(dir, "gh");
-    writeFileSync(gh, FAKE_GH, { mode: 0o755 });
-    chmodSync(gh, 0o755);
+    // gh.exe is the same fake under the name Windows gives the program.
+    for (const name of ["gh", "gh.exe"]) {
+      const gh = join(dir, name);
+      writeFileSync(gh, FAKE_GH, { mode: 0o755 });
+      chmodSync(gh, 0o755);
+    }
   }
   if (process.platform !== "win32" && bash && existsSync(bash))
     symlinkSync(bash, join(dir, "bash"));

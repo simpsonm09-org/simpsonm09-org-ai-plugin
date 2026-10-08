@@ -17,6 +17,7 @@ import {
   shouldInject,
   tokenUsable,
 } from "../gate.mjs";
+import { canonicalCommand, programName } from "../lib/program.mjs";
 
 const ws = resolve("workspace");
 const reposRoot = join(ws, "projects", "repos");
@@ -459,4 +460,109 @@ test("gateShellEdit skips the remote lookup for a non-push command", async () =>
 
   assert.equal(decision.action, "inject");
   assert.equal(lookups, 0);
+});
+
+test("programName gives the plain program name for every executable spelling", () => {
+  for (const word of [
+    "gh",
+    "GH",
+    "gh.exe",
+    "Gh.EXE",
+    "gh.cmd",
+    "/usr/bin/gh",
+    "./gh",
+    ".\\gh.exe",
+    "C:\\Program Files\\GitHub CLI\\gh.exe",
+    '"C:\\Program Files\\GitHub CLI\\gh.exe"',
+  ]) {
+    assert.equal(programName(word), "gh", word);
+  }
+  assert.equal(programName("gh.exe.bak"), "gh.exe.bak");
+  assert.equal(programName("ghx"), "ghx");
+  assert.equal(programName("gh/"), "");
+  assert.equal(programName(""), "");
+});
+
+test("canonicalCommand changes only the first word, and only when it names gh or git", () => {
+  assert.equal(canonicalCommand("gh.exe pr view 1"), "gh pr view 1");
+  assert.equal(canonicalCommand("GH.EXE  pr   view 1"), "gh  pr   view 1");
+  assert.equal(
+    canonicalCommand('"C:\\Program Files\\GitHub CLI\\gh.exe" pr merge 1'),
+    "gh pr merge 1",
+  );
+  assert.equal(canonicalCommand("'gh' pr list"), "gh pr list");
+  assert.equal(
+    canonicalCommand("GIT.exe push origin main"),
+    "git push origin main",
+  );
+  assert.equal(canonicalCommand("gh.exe pr list | jq ."), "gh pr list | jq .");
+  assert.equal(
+    canonicalCommand("cd x && git.exe push"),
+    "cd x && git.exe push",
+  );
+  assert.equal(canonicalCommand("FOO=1 git.exe push"), "FOO=1 git.exe push");
+  assert.equal(canonicalCommand("npm.exe test"), "npm.exe test");
+  assert.equal(canonicalCommand(" gh.exe pr list"), " gh pr list");
+  assert.equal(canonicalCommand("gh pr list"), "gh pr list");
+  assert.equal(canonicalCommand(""), "");
+});
+
+test("shouldInject matches every executable spelling of gh, as the plain name", () => {
+  for (const spelling of [
+    "gh.exe",
+    "GH",
+    "Gh.EXE",
+    "/usr/bin/gh",
+    "./gh",
+    '"C:\\Program Files\\GitHub CLI\\gh.exe"',
+    "'C:/Program Files/GitHub CLI/gh.exe'",
+  ]) {
+    assert.equal(
+      shouldInject(`${spelling} pr create --title x`),
+      true,
+      spelling,
+    );
+  }
+  assert.equal(shouldInject("gh.exe.bak pr list"), false);
+  assert.equal(shouldInject("ghx pr list"), false);
+  assert.equal(shouldInject("npx gh.exe"), false);
+});
+
+test("pushRemote reads the remote of every executable spelling of git", () => {
+  assert.equal(pushRemote("git.exe push upstream main"), "upstream");
+  assert.equal(pushRemote("GIT push upstream main"), "upstream");
+  assert.equal(
+    pushRemote('"C:\\Program Files\\Git\\cmd\\git.exe" push'),
+    "origin",
+  );
+  assert.equal(pushRemote("git.exe fetch origin"), null);
+});
+
+test("isWriteCommand treats an executable spelling of gh as a gh write", () => {
+  assert.equal(isWriteCommand("gh.exe api -X POST /repos"), true);
+});
+
+test("gateShellEdit decides a gh.exe call as the plain gh call and keeps the typed command", async () => {
+  const seen: string[] = [];
+  const input = { command: "gh.exe pr create --fill" };
+  const env: Record<string, string | undefined> = {};
+  const decision = await gateShellEdit(input, env, {
+    ...stubDeps((_repo, command) => {
+      seen.push(command);
+      return { code: 0, stdout: jsonFor("propose") };
+    }),
+  });
+
+  assert.equal(decision.action, "inject");
+  assert.equal(env.GH_TOKEN, "ghs_stub_token");
+  assert.equal(
+    input.command,
+    "gh.exe pr create --fill",
+    "the command that runs keeps the spelling the caller typed",
+  );
+  assert.deepEqual(
+    seen,
+    ["gh pr create --fill"],
+    "the resolver is asked about the plain name",
+  );
 });

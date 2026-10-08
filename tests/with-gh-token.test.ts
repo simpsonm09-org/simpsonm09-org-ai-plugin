@@ -181,6 +181,34 @@ test("an allowed gh read runs in bash with the token only in the child environme
   );
 });
 
+test("an allowed gh.exe read runs in bash with the token, as the plain gh read does", async (t) => {
+  if (!bashPath) return t.skip("no Git Bash on this machine");
+  writeCatalog(ws, "read");
+  const code = await launch(
+    { workspace: ws, repo: "demo-repo", command: "gh.exe pr view 1" },
+    {
+      workspaceRoot: ws,
+      cwd: fleetCwd(ws),
+      env: {
+        ...process.env,
+        PATH: stubDir,
+        CLAUDE_CODE_GIT_BASH_PATH: bashPath,
+      },
+      log: () => {},
+    },
+  );
+  assert.equal(code, 0, "the fake gh.exe saw the fixture token");
+});
+
+test("the launcher refuses a gh.exe write the level denies, with the same reason as gh", async () => {
+  const result = await refused(
+    { workspace: ws, repo: "demo-repo", command: "gh.exe pr merge 1" },
+    { workspaceRoot: ws, cwd: fleetCwd(ws), env: {} },
+  );
+  assert.equal(result.code, 1);
+  assert.match(result.logs.join("\n"), /denies this command at level "read"/);
+});
+
 test("with no gh on the stub PATH the child fails loudly rather than finding a real binary", async (t) => {
   if (!bashPath) return t.skip("no Git Bash on this machine");
   writeCatalog(ws, "read");

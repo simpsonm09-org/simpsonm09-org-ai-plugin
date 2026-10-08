@@ -21,7 +21,7 @@ The shared OpenCode layer for the `simpsonm09-org` organization, and the Claude 
 
 - Language and toolchain: TypeScript, Node, and `@opencode/plugin`.
 - The decision: `gate.mjs` (`decideShell`, `gateShellEdit`). OpenCode applies it through `index.ts`; Claude Code through `hooks/lib/claude.mjs`; the launcher re-runs it in `bin/with-gh-token.mjs`.
-- Worktrees under `projects/worktrees` are fleet repositories in both harnesses. Three changes from HEAD are intended, and the README lists them under "Differences from the previous gate": a worktree is gated as its repository, a letter-case variant of a clone path resolves to the clone, and a junction into a clone is gated as that clone.
+- Worktrees under `projects/worktrees` are fleet repositories in both harnesses. Four changes from HEAD are intended, and the README lists them under "Differences from the previous gate": a worktree is gated as its repository, a letter-case variant of a clone path resolves to the clone, a junction into a clone is gated as that clone, and an executable spelling of gh or git (`gh.exe`, a full path) is gated as the plain name.
 - The resolver and broker are read from the repo-standard clone in the workspace, through `access.mjs`. The tests use a frozen copy at `tests/fixtures/installed-agent-access.mjs`.
 - The differential's golden file, `tests/fixtures/parity-golden.json`, records HEAD's gate outcomes. A scratch runner outside this repository recorded it, and it is not regenerated to match new behavior. A change to a golden entry is a decision change and needs an owner decision.
 - `maxstack` composes this layer above the PStack base and below the personal layer.

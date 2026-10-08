@@ -4,21 +4,13 @@
 // and how a command is shown in an ask prompt.
 
 import { tokenize } from "../../gate.mjs";
+import { programName } from "../../lib/program.mjs";
 
 // The longest command shown in an ask prompt, in characters.
 const SHOWN_COMMAND_MAX = 300;
 
 const LAUNCHER_FILE = /^with-gh-?token(\.mjs)?$/i;
-const NODE_RUNNER = /^(node|node\.exe|nodejs)$/i;
-
-// The file name of a program path, lower-cased, with a Windows separator accepted.
-/**
- * @param {string} word
- * @returns {string}
- */
-function programName(word) {
-  return (word.replace(/\\/g, "/").split("/").pop() ?? "").toLowerCase();
-}
+const NODE_RUNNER = /^(node|nodejs)$/;
 
 // Whether one simple command runs the launcher as its program, or runs node on it.
 // Leading NAME=value assignments are skipped.
@@ -81,7 +73,7 @@ const API_WRITE_FLAGS = [
 export function readOnlyGh(command) {
   if (/[;&|<>`$(){}\r\n]/.test(command)) return false;
   const words = tokenize(command);
-  if (words[0] !== "gh") return false;
+  if (programName(words[0] ?? "") !== "gh") return false;
   const group = words[1];
   if (group === "search" || group === "status") return true;
   if (group === "api") {

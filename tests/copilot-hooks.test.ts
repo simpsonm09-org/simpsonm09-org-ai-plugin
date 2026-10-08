@@ -18,6 +18,7 @@ import {
   handlePreToolUse,
   handleSessionStart,
   normalizeCall,
+  SESSION_NOTE,
 } from "../hooks/lib/copilot.mjs";
 import { runGuardedHook } from "../hooks/lib/entry.mjs";
 import { runtimeNamed } from "../hooks/lib/runtime.mjs";
@@ -448,7 +449,9 @@ test("the measured sessionStart payload gets additionalContext for a fleet repos
     await handleSessionStart(MEASURED.sessionStart(cwdOf(DEMO)), {
       workspaceRoot: ws,
     }),
-    { additionalContext: contextLine("demo-repo", "propose") },
+    {
+      additionalContext: `${contextLine("demo-repo", "propose")} ${SESSION_NOTE}`,
+    },
   );
   assert.equal(
     await handleSessionStart(MEASURED.sessionStart(cwdOf("projects/other/x")), {

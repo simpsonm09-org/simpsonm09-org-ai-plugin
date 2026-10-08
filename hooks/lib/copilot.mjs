@@ -23,6 +23,11 @@ import {
   handleSessionStart as claudeSessionStart,
 } from "./claude.mjs";
 
+// The Copilot-only sentence added to the session context of a fleet repository. The model has been
+// composing launcher lines by hand, so it is told to type the plain command and nothing else.
+export const SESSION_NOTE =
+  "Gh commands may appear in your history rewritten to run through a GitHub token launcher. Keep typing plain gh and git commands, and never write the launcher line yourself: the gate adds the token.";
+
 // Copilot's shell tools, by the tool name the native payload carries, and the dialect each one
 // reads its command in, as the Claude adapter names them.
 const SHELL_TOOLS = new Map([
@@ -120,7 +125,9 @@ export async function handlePreToolUse(input, options = {}) {
 export async function handleSessionStart(input, options = {}) {
   const claude = await claudeSessionStart(input, options);
   const text = claude?.hookSpecificOutput?.additionalContext;
-  return typeof text === "string" ? { additionalContext: text } : null;
+  return typeof text === "string"
+    ? { additionalContext: `${text} ${SESSION_NOTE}` }
+    : null;
 }
 
 // The call the budget rule reads, or undefined when the input cannot be read as a call. The

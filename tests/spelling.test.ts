@@ -8,8 +8,10 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { decodePayload } from "../bin/payload.mjs";
+import { shouldInject } from "../gate.mjs";
 import { handlePreToolUse } from "../hooks/lib/claude.mjs";
 import plugin from "../index.ts";
+import { canonicalCommand, readShellWord } from "../lib/program.mjs";
 import {
   buildWorkspace,
   removeDir,
@@ -39,6 +41,9 @@ const PLAIN = [
   "git status",
 ];
 
+// Each spelling replaces the program word of a plain command. Bash and PowerShell read the same
+// word differently (a backslash escapes in Bash and separates a path in PowerShell), so a few
+// spellings only name the program under one reading; both readings must reach the plain name.
 const SPELLINGS: Record<"gh" | "git", string[]> = {
   gh: [
     "gh.exe",
@@ -48,12 +53,32 @@ const SPELLINGS: Record<"gh" | "git", string[]> = {
     "./gh",
     '"C:\\Program Files\\GitHub CLI\\gh.exe"',
     '"C:/Program Files/GitHub CLI/gh.exe"',
+    '"gh".exe',
+    '"C:\\Program Files\\GitHub CLI\\gh".exe',
+    'g"h"',
+    'gh""',
+    '"g"h',
+    "'g'h",
+    "g\\h",
+    "gh\\.exe",
+    "C:/Program\\ Files/GitHub\\ CLI/gh.exe",
+    ".\\gh.exe",
+    "gh.exe.",
+    '"gh.exe "',
+    "GH.EXE",
+    "gh\\\n",
   ],
   git: [
     "git.exe",
     "GIT",
     "/usr/bin/git",
     '"C:\\Program Files\\Git\\cmd\\git.exe"',
+    '"git".exe',
+    'gi"t"',
+    "'g'it",
+    '"g"it',
+    "g\\it",
+    "C:/Program\\ Files/Git/cmd/git.exe",
   ],
 };
 
@@ -222,4 +247,123 @@ test("an allowed spelled call runs the spelling the caller typed, and the launch
   );
   assert.equal(gh.claudeBash.action, "inject");
   assert.equal(gh.claudeBash.runsTyped, true);
+});
+
+// A leading tab is one more whitespace before the program, so it must decide as the plain name
+// with the same tab. Each harness call spawns git, so one spelling of each kind stands for the rest.
+const LEADING_TAB_SPELLINGS: Record<"gh" | "git", string[]> = {
+  gh: ['"gh".exe', "gh.exe", "g\\h"],
+  git: ['"git".exe', 'gi"t"'],
+};
+
+test("a leading tab decides as the plain name with the same tab, for a spelling of each kind", async () => {
+  const mismatches: string[] = [];
+  for (const level of LEVELS) {
+    writeCatalog(workspace, level);
+    for (const plain of PLAIN) {
+      const typedPlain = `\t${plain}`;
+      const want = comparable(await outcomes(typedPlain), typedPlain);
+      for (const spelling of LEADING_TAB_SPELLINGS[programOf(plain)]) {
+        const command = `\t${spelled(plain, spelling)}`;
+        const got = comparable(await outcomes(command), command);
+        if (JSON.stringify(got) !== JSON.stringify(want))
+          mismatches.push(`${level} ${JSON.stringify(command)}`);
+      }
+    }
+  }
+  assert.deepEqual(mismatches, [], "a leading tab changes a decision");
+});
+
+test("a leading tab decides as a leading space does, for each plain name", async () => {
+  const mismatches: string[] = [];
+  for (const level of LEVELS) {
+    writeCatalog(workspace, level);
+    for (const plain of PLAIN) {
+      const tab = `\t${plain}`;
+      const space = ` ${plain}`;
+      const got = comparable(await outcomes(tab), tab);
+      const want = comparable(await outcomes(space), space);
+      if (JSON.stringify(got) !== JSON.stringify(want))
+        mismatches.push(`${level} ${JSON.stringify(tab)}`);
+    }
+  }
+  assert.deepEqual(mismatches, [], "a tab and a space decide differently");
+});
+
+test("a word that only contains gh or git is not a spelling of it, and passes at every level", async () => {
+  const words = [
+    "github",
+    "ghc",
+    "gitk",
+    "git-lfs",
+    "gh-dash",
+    '"gh-dash"',
+    "xgh",
+    "ghx.exe",
+    "mygit.exe",
+  ];
+  for (const word of words) {
+    const command = `${word} pr merge 1`;
+    assert.equal(canonicalCommand(command), command, word);
+    assert.equal(shouldInject(command), false, word);
+  }
+  writeCatalog(workspace, "none");
+  for (const word of words) {
+    const command = `${word} pr merge 1`;
+    const run = await outcomes(command);
+    assert.equal(run.openCodePosix.action, "pass", word);
+    assert.equal(run.claudeBash.action, "pass", word);
+  }
+});
+
+test("a first word with an unquoted $, a backtick, or ( is left exactly as typed", () => {
+  for (const command of [
+    "$gh pr merge 1",
+    "$(gh) pr merge 1",
+    "gh$x pr merge 1",
+    '"gh"$x pr merge 1',
+    "`gh` pr merge 1",
+    "(gh) pr merge 1",
+    '("gh".exe pr merge 1)',
+  ]) {
+    assert.equal(canonicalCommand(command), command, command);
+  }
+});
+
+test("readShellWord reads a quoted Windows path with spaces as one PowerShell word", () => {
+  const text = '"C:\\Program Files\\GitHub CLI\\gh".exe pr merge 1';
+  const read = readShellWord(text, 0, "powershell");
+  assert.equal(read?.word, "C:\\Program Files\\GitHub CLI\\gh.exe");
+  assert.equal(read?.end, text.indexOf(" pr"));
+});
+
+test("readShellWord reads an escaped-space Bash path as one Bash word, and PowerShell stops at the space", () => {
+  const text = "C:/Program\\ Files/GitHub\\ CLI/gh.exe pr merge 1";
+  assert.equal(
+    readShellWord(text, 0, "bash")?.word,
+    "C:/Program Files/GitHub CLI/gh.exe",
+  );
+  assert.equal(readShellWord(text, 0, "powershell")?.word, "C:/Program\\");
+});
+
+test("readShellWord joins adjacent quoted and unquoted pieces, and reads PowerShell's doubled quote", () => {
+  assert.equal(readShellWord('gi"t" push', 0, "bash")?.word, "git");
+  assert.equal(readShellWord("'g'it push", 0, "bash")?.word, "git");
+  assert.equal(readShellWord("g\\it push", 0, "bash")?.word, "git");
+  assert.equal(readShellWord("g\\it push", 0, "powershell")?.word, "g\\it");
+  assert.equal(readShellWord("'g''h' push", 0, "powershell")?.word, "g'h");
+  assert.equal(readShellWord("\u201cgh\u201d pr", 0, "powershell")?.word, "gh");
+});
+
+test("readShellWord reads from a start index, past leading whitespace", () => {
+  const text = "  gh.exe pr";
+  assert.equal(readShellWord(text, 2, "bash")?.word, "gh.exe");
+  assert.equal(readShellWord(text, 2, "bash")?.end, 8);
+});
+
+test("readShellWord returns null for an unquoted $, backtick, or (", () => {
+  for (const text of ["$gh pr", "$(gh) pr", "`gh` pr", "(gh) pr", "gh$x pr"]) {
+    assert.equal(readShellWord(text, 0, "bash"), null, text);
+    assert.equal(readShellWord(text, 0, "powershell"), null, text);
+  }
 });

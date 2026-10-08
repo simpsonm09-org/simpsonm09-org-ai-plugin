@@ -4,7 +4,7 @@
 // and how a command is shown in an ask prompt.
 
 import { tokenize } from "../../gate.mjs";
-import { programName } from "../../lib/program.mjs";
+import { canonicalCommand, programName } from "../../lib/program.mjs";
 
 // The longest command shown in an ask prompt, in characters.
 const SHOWN_COMMAND_MAX = 300;
@@ -71,8 +71,9 @@ const API_WRITE_FLAGS = [
  * @returns {boolean}
  */
 export function readOnlyGh(command) {
-  if (/[;&|<>`$(){}\r\n]/.test(command)) return false;
-  const words = tokenize(command);
+  const text = canonicalCommand(command);
+  if (/[;&|<>`$(){}\r\n]/.test(text)) return false;
+  const words = tokenize(text);
   if (programName(words[0] ?? "") !== "gh") return false;
   const group = words[1];
   if (group === "search" || group === "status") return true;

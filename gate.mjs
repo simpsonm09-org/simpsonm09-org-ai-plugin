@@ -72,7 +72,7 @@ export function repoFromCommonDir(commonDir, workspaceRoot) {
 }
 
 // A gh command is the only command the gate injects a token for. The test is on the first
-// word as written, so a leading space is not a gh command here, as before.
+// word after canonicalCommand, so a leading space or tab is not a gh command here, as before.
 /**
  * @param {string} command
  * @returns {boolean}

@@ -25,6 +25,7 @@ import {
   decideShell,
   denyMessage,
   isWriteCommand,
+  powerShellQuote,
   shellQuote,
 } from "../../gate.mjs";
 import { gitBashPath } from "../../lib/bash.mjs";
@@ -111,6 +112,28 @@ export function launcherCommand(payload, launcher = LAUNCHER) {
   return `${bashPathWord(process.execPath)} ${bashPathWord(launcher)} ${shellQuote(encodePayload(payload))}`;
 }
 
+// The same launch as a PowerShell line: the call operator, then each argument in PowerShell
+// single quotes with native Windows paths. The payload is base64, so it needs no other quoting.
+/**
+ * @param {{ workspace: string, repo: string, command: string, shell?: "bash" | "powershell" }} payload
+ * @param {string} [launcher]
+ * @returns {string}
+ */
+export function powershellLauncherCommand(payload, launcher = LAUNCHER) {
+  return `& ${powerShellQuote(process.execPath)} ${powerShellQuote(launcher)} ${powerShellQuote(encodePayload(payload))}`;
+}
+
+// The dialect a call's command is read in. Claude reads every command as Bash, as it always has.
+// On Copilot (options.toolShells) each shell tool reads its own dialect.
+/**
+ * @param {string} tool
+ * @param {{ toolShells?: boolean }} options
+ * @returns {"bash" | "powershell"}
+ */
+function dialectOf(tool, options) {
+  return options.toolShells && tool === "PowerShell" ? "powershell" : "bash";
+}
+
 // The trusted workspace of this plugin, from its own location. A call may inject a workspace
 // for tests (options.workspaceRoot); nothing else chooses it.
 /**
@@ -167,12 +190,13 @@ function parseCall(input) {
  * @param {string} command
  * @param {string} cwd
  * @param {string} workspaceRoot
+ * @param {"bash" | "powershell"} shell
  */
-async function decideCall(command, cwd, workspaceRoot) {
+async function decideCall(command, cwd, workspaceRoot, shell) {
   const scripts = defaultScripts(workspaceRoot);
   const api = await loadAccessApi(scripts.access);
   return decideShell(
-    { command },
+    { command, shell },
     {
       cwd,
       lookup: (dir) => fleetLookup(dir, workspaceRoot),
@@ -192,11 +216,28 @@ async function decideCall(command, cwd, workspaceRoot) {
  * @param {{ env?: Record<string, string | undefined> }} options
  */
 function gitHubCallOutput(call, decision, workspaceRoot, options) {
-  if (call.tool === "PowerShell") {
+  if (call.tool === "PowerShell" && !options.toolShells) {
     return denyOutput(
       denyMessage(
         `${decision.repo} runs gh through the Bash tool; run this gh command with Bash, not PowerShell`,
       ),
+    );
+  }
+  const shell = dialectOf(call.tool, options);
+  const payload = {
+    workspace: workspaceRoot,
+    repo: decision.repo ?? "",
+    command: call.command,
+    shell,
+  };
+  const permissionDecision = readOnlyGh(call.command, shell) ? "allow" : "ask";
+  const reason = gitHubCallReason(decision, call.command);
+  if (shell === "powershell") {
+    return rewriteOutput(
+      call.toolInput,
+      powershellLauncherCommand(payload),
+      reason,
+      permissionDecision,
     );
   }
   if (!gitBashPath(options.env ?? process.env)) {
@@ -208,13 +249,9 @@ function gitHubCallOutput(call, decision, workspaceRoot, options) {
   }
   return rewriteOutput(
     call.toolInput,
-    launcherCommand({
-      workspace: workspaceRoot,
-      repo: decision.repo ?? "",
-      command: call.command,
-    }),
-    gitHubCallReason(decision, call.command),
-    readOnlyGh(call.command) ? "allow" : "ask",
+    launcherCommand(payload),
+    reason,
+    permissionDecision,
   );
 }
 
@@ -229,7 +266,9 @@ function gitHubCallOutput(call, decision, workspaceRoot, options) {
 //   - Anything else passes untouched (null).
 /**
  * @param {any} input
- * @param {{ workspaceRoot?: string, env?: Record<string, string | undefined> }} [options]
+ * @param {{ workspaceRoot?: string, env?: Record<string, string | undefined>, toolShells?: boolean }} [options]
+ *   toolShells is set by the Copilot adapter: each shell tool reads its own dialect, and a
+ *   PowerShell gh call is rewritten through the launcher instead of denied.
  * @returns {Promise<object | null>}
  */
 export async function handlePreToolUse(input, options = {}) {
@@ -249,7 +288,12 @@ export async function handlePreToolUse(input, options = {}) {
     return denyOutput(denyMessage(reason));
   }
 
-  const decision = await decideCall(call.command, call.cwd, workspaceRoot);
+  const decision = await decideCall(
+    call.command,
+    call.cwd,
+    workspaceRoot,
+    dialectOf(call.tool, options),
+  );
   if (decision.action === "deny")
     return denyOutput(
       denyMessage(decision.reason ?? "the gate denied this command"),
@@ -304,23 +348,24 @@ const BUDGET_REASON =
 // stderr line is shown to the model. A run that runs out of budget gets budgetAnswer.
 /**
  * @param {(input: any) => Promise<object | null>} handler
- * @param {{ blockOnError?: boolean, budgetMs?: number, input?: string, write?: (text: string) => void }} [options] input and write are for tests
+ * @param {{ blockOnError?: boolean, budgetMs?: number, input?: string, write?: (text: string) => void, answer?: typeof budgetAnswer }} [options] input and write are for tests; answer is the runtime's budget rule (default: this module's)
  */
 export async function runHook(handler, options = {}) {
   const budgetMs = options.budgetMs ?? PRE_TOOL_USE_BUDGET.budgetMs;
   const write = options.write ?? ((text) => process.stdout.write(text));
+  const answer = options.answer ?? budgetAnswer;
   let input;
   try {
     startBudget(budgetMs);
     input = JSON.parse(options.input ?? (await readStdin()));
     const output = await withDeadline(handler(input), budgetMs, () =>
-      budgetAnswer(input, options),
+      answer(input, options),
     );
     emit(output, write);
     process.exitCode = 0;
   } catch (error) {
     if (error instanceof BudgetExhausted) {
-      emit(budgetAnswer(input, options), write);
+      emit(answer(input, options), write);
       process.exitCode = 0;
     } else {
       reportFailure(error, options);

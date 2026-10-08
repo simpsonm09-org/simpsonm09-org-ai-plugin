@@ -54,7 +54,7 @@ test("the worker is started with the kind and the input, and killed at the outer
   const { spawn, calls } = fakeSpawn({ status: 0, stdout: "" });
   const io = capture();
   assert.equal(runGuardedHook({ kind: "pre", input: READ, spawn, ...io }), 0);
-  assert.deepEqual(calls[0].args.slice(1), ["pre"]);
+  assert.deepEqual(calls[0].args.slice(1), ["pre", "claude"]);
   assert.equal(calls[0].options.input, READ);
   assert.equal(calls[0].options.timeout, PRE_TOOL_USE_BUDGET.killMs);
 });

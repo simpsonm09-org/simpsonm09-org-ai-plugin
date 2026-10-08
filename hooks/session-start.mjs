@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Claude Code SessionStart hook. When the session starts inside a fleet repository, it adds
-// the same agent-access line the OpenCode plugin adds to the system prompt. Outside a fleet
+// Claude Code and GitHub Copilot CLI SessionStart hook. The first argument names the runtime
+// (claude when there is none). When the session starts inside a fleet repository, it adds the
+// same agent-access line the OpenCode plugin adds to the system prompt. Outside a fleet
 // repository it prints nothing. It never blocks a session: an internal error is reported on
 // stderr only, and the worker is killed at its outer limit (hooks/lib/entry.mjs).
 
@@ -9,6 +10,7 @@ try {
   const input = await readHookInput();
   process.exitCode = runGuardedHook({
     kind: "session",
+    runtime: process.argv[2],
     input,
     stdout: (text) => process.stdout.write(text),
     stderr: (text) => process.stderr.write(text),

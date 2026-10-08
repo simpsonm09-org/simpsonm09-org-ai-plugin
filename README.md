@@ -15,6 +15,7 @@ It is CLI-first and contributes no MCP server. It contributes the shared skills 
 - `access.mjs` loads the repo-standard resolver and token broker, caches tokens per repository, and bounds each call with a timeout.
 - `lib/` holds the fleet lookup (`fleet.mjs`), the trusted-workspace rule (`location.mjs`), the Git Bash lookup (`bash.mjs`), the program-name rule that makes `gh.exe` and `GIT` the plain names (`program.mjs`), and the hook time budget (`budget.mjs`).
 - `.claude-plugin/plugin.json` and `hooks/` are the Claude Code plugin: a `PreToolUse` gate for the Bash and PowerShell tools, and a `SessionStart` line.
+- `.github/plugin/plugin.json` and `hooks/copilot-hooks.json` are the GitHub Copilot CLI build of the same plugin. `hooks/lib/copilot.mjs` is its adapter, and `hooks/lib/runtime.mjs` picks the Claude or Copilot adapter from the hook's first argument.
 - `bin/with-gh-token.mjs` is the launcher that runs an allowed `gh` command with a token. `bin/payload.mjs` is the payload it reads.
 - `skills/` holds the skills the plugin registers.
 
@@ -57,6 +58,26 @@ This repository is not installed on its own. [`simpsonm09-maxstack`](https://git
 
 maxstack's [`docs/t3-setup.md`](https://github.com/simpsonm09-org/simpsonm09-maxstack/blob/main/docs/t3-setup.md) is the full reference. A new session is needed after each install.
 
+## GitHub Copilot CLI build
+
+The same folder is a GitHub Copilot CLI plugin. Copilot reads `.github/plugin/plugin.json`, whose `"hooks"` key names `hooks/copilot-hooks.json`, so Copilot runs the Copilot hooks and not `hooks/hooks.json`. The name and version match `.claude-plugin/plugin.json`, and `tests/copilot-plugin.test.ts` checks that.
+
+Load it with the plugin folder, which is the directory that holds `.github/plugin/plugin.json`:
+
+```bash
+copilot --plugin-dir <workspace>/projects/worktrees/simpsonm09-org-ai-plugin-copilot plugin list
+copilot --plugin-dir <workspace>/projects/worktrees/simpsonm09-org-ai-plugin-copilot
+```
+
+The gate trusts only the layouts in `lib/location.mjs`, so load a checkout under `projects/repos` or `projects/worktrees`, or the installed `.opencode/plugins` copy. A copy in another directory trusts no workspace, so the gate denies every write it cannot check.
+
+- The `PreToolUse` hook runs for Copilot's `bash` tool and its `powershell` tool. The hook receives either Copilot's camelCase payload (`toolName`, `toolArgs`, `cwd`) or Claude's (`tool_name`, `tool_input`, `cwd`), and the adapter reads both. The decision is the shared one in `gate.mjs`.
+- The hook answers `{"permissionDecision": "allow" | "deny" | "ask", "permissionDecisionReason": "...", "modifiedArgs": {...}}`. A gh call is rewritten through the launcher in `modifiedArgs`, the same rewrite as on Claude. The PowerShell tool gets a PowerShell line (`& '<node>' '<launcher>' '<payload>'`) and the Bash tool gets the POSIX one. The launcher then runs the command in the shell the tool used.
+- A malformed call, an internal error, or a run that is killed exits 2, which Copilot denies. A call the gate does not govern prints nothing and takes Copilot's normal flow.
+- `SessionStart` prints `{"additionalContext": "..."}` for a fleet repository, and nothing elsewhere. It never exits non-zero.
+
+The Copilot limits are listed under Known limits.
+
 ## Differences from the previous gate
 
 The gate resolves a working directory to its real path before it names the repository. Four cases differ from the previous gate on `main`. Each is intended and has a test. Every other committed cell gives the same decision as `main`: the OpenCode command text and environment match byte for byte, and the Claude hook gives the same action (`tests/parity.test.ts`).
@@ -85,6 +106,12 @@ The gate resolves a working directory to its real path before it names the repos
 - **The Claude side mints nothing in the hook.** A token that cannot be minted is refused by the launcher at run time, not by the hook at decision time.
 - **The resolver and the broker are not ours.** The resolver's catalog read runs git without a timeout, and the broker's HTTP calls have none. The launcher bounds a token mint at 20 seconds and gives up on it, but cannot cancel the call underneath.
 - **Read-only `allow` is a prompt choice, not a control.** The gate decision is the same with `allow` or `ask`; only the prompt differs.
+- **Copilot: a hook timeout falls through, it is not a deny.** Copilot runs a `PreToolUse` call through its normal permission flow when the hook times out. The Copilot hook has a 60 second `timeoutSec`, and the plugin answers at its 45 second outer kill, so a write is denied before Copilot's timeout. A hook Copilot kills first is not denied.
+- **Copilot: rewrites depend on `modifiedArgs`.** The Copilot hook reference documents `modifiedArgs` as a replacement for the tool arguments. A live run on Copilot CLI 1.0.93 with only the Claude manifest honoured the rewrite that the Claude hooks file returns, which uses the same field. The Copilot hooks file itself has not been run in a live session by this change, because `copilot -p` is not run here. If a Copilot build ignores `modifiedArgs`, a gh call runs under the user's own login with no token; the gate does not detect that.
+- **Copilot: a PowerShell gh call runs under Windows PowerShell 5.1.** The launcher starts `powershell.exe` on Windows (`pwsh` elsewhere) with `-EncodedCommand`. A double quote inside a single-quoted argument to a native command is not passed intact by 5.1: `'say "hi"'` reaches `gh` as `say hi` when `gh` is a `.cmd` shim. Not verified against the real `gh.exe`.
+- **Copilot: the Git Bash lookup uses the Claude variable.** A Bash gh call on Windows still reads `CLAUDE_CODE_GIT_BASH_PATH` and then `git` on `PATH`. Copilot has no variable of its own here.
+- **Copilot: the matcher names both casings.** The `PreToolUse` matcher is `bash|powershell|Bash|PowerShell`, because the Copilot docs describe matchers in both forms. A hook that matches neither would silently not run.
+- **Copilot: a `ask` in a cloud agent run is a deny.** The Copilot hook reference says a cloud agent treats `ask` as `deny`.
 
 ## MCP servers
 

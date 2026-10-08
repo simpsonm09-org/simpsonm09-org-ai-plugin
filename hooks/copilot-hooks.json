@@ -1,0 +1,30 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "bash|powershell|Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${COPILOT_PLUGIN_ROOT}/hooks/pre-tool-use.mjs\" copilot",
+            "powershell": "node \"$env:COPILOT_PLUGIN_ROOT/hooks/pre-tool-use.mjs\" copilot",
+            "timeoutSec": 60
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|new",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${COPILOT_PLUGIN_ROOT}/hooks/session-start.mjs\" copilot",
+            "powershell": "node \"$env:COPILOT_PLUGIN_ROOT/hooks/session-start.mjs\" copilot",
+            "timeoutSec": 30
+          }
+        ]
+      }
+    ]
+  }
+}

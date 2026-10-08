@@ -1,11 +1,13 @@
 // The GitHub Copilot CLI hooks (hooks/lib/copilot.mjs, selected by the `copilot` argument of the
-// hook entry points). The decision is the shared one (gate.mjs) through the Claude adapter; these
-// tests cover the Copilot wire format: the two payload shapes, the output keys, the PowerShell
+// hook entry points). The decision is the shared one (gate.mjs) through the Claude adapter. These
+// tests cover the Copilot wire format as measured on Copilot CLI 1.0.93 on Windows: the native
+// camelCase payload, the refusal of the PascalCase payload, the output keys, the PowerShell
 // rewrite, the exit codes, and the fail-closed paths. Everything runs against the fixture
 // workspace and stubs; nothing reaches GitHub.
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -26,10 +28,71 @@ import {
   writeCatalog,
 } from "./support/fixture-workspace.mjs";
 
+// The payloads Copilot CLI 1.0.93 sends on Windows, as measured with a probe plugin. The
+// measurement elided some values with an ellipsis; those are filled with plausible literals here,
+// and every field name and shape is verbatim. `cwd` is the only value a test chooses.
+const SESSION_ID = "7c1f0e52-2a8d-4f0e-9b1a-3d2c5e6f7a81";
+const MEASURED = {
+  // A PowerShell tool call, native camelCase payload (the preToolUse event key).
+  powershellProbe: (cwd: string) => ({
+    sessionId: SESSION_ID,
+    timestamp: 1791497823504,
+    cwd,
+    toolName: "powershell",
+    toolArgs: {
+      command: 'Write-Output "probe one"',
+      description: "Run probe one",
+    },
+  }),
+  // The same, for the `gh api user --jq .login` call the rewrite must carry.
+  powershellGhLogin: (cwd: string) => ({
+    sessionId: SESSION_ID,
+    timestamp: 1791497823611,
+    cwd,
+    toolName: "powershell",
+    toolArgs: {
+      command: "gh api user --jq .login",
+      description: "Read the signed-in login",
+    },
+  }),
+  // A file-read tool call. It never reaches this hook under the powershell|bash matcher.
+  view: (cwd: string) => ({
+    sessionId: SESSION_ID,
+    timestamp: 1791497823702,
+    cwd,
+    toolName: "view",
+    toolArgs: {
+      path: join(cwd, "README.md"),
+      view_range: [1, 10],
+    },
+  }),
+  // The PascalCase payload Copilot sends under PascalCase event keys: the PowerShell tool is
+  // reported as Claude's Bash.
+  pascalProbe: (cwd: string) => ({
+    hook_event_name: "PreToolUse",
+    session_id: SESSION_ID,
+    timestamp: "2026-10-06T12:00:00.000Z",
+    cwd,
+    tool_name: "Bash",
+    tool_input: {
+      command: 'Write-Output "probe one"',
+      description: "Run probe one",
+    },
+  }),
+  // The sessionStart payload.
+  sessionStart: (cwd: string) => ({
+    sessionId: SESSION_ID,
+    timestamp: 1791497823800,
+    cwd,
+    source: "new",
+    initialPrompt: "",
+  }),
+};
+
 // A PreToolUse answer that rewrites the arguments.
 type Rewrite = {
   permissionDecision: string;
-  modifiedArgs: { command: string; description?: string };
+  modifiedArgs: Record<string, unknown> & { command: string };
 };
 
 const repoDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -50,23 +113,18 @@ after(() => {
   if (ws) removeDir(ws);
 });
 
-// The Copilot payload. `copilot` is the camelCase preToolUse shape (toolName, toolArgs, with the
-// lowercase Copilot tool names); `pascal` is the PascalCase shape (tool_name, tool_input, with
-// Claude's names). Both carry cwd.
-function payload(
+// The payload for a shell call in the native shape, with the command and the tool's description.
+function shellCall(
   tool: "bash" | "powershell",
   command: string,
   cwd: string | undefined,
-  shape: "copilot" | "pascal" = "copilot",
 ) {
-  const args = { command, description: "d" };
-  const base =
-    shape === "copilot"
-      ? { toolName: tool, toolArgs: args }
-      : {
-          tool_name: tool === "bash" ? "Bash" : "PowerShell",
-          tool_input: args,
-        };
+  const base = {
+    sessionId: SESSION_ID,
+    timestamp: 1791497823900,
+    toolName: tool,
+    toolArgs: { command, description: "d" },
+  };
   return cwd === undefined ? base : { ...base, cwd };
 }
 
@@ -93,39 +151,39 @@ function rewrittenPayload(command: string) {
   return decodePayload(match[1]);
 }
 
-const WRITE_COPILOT = JSON.stringify(
-  payload("bash", "git push origin main", undefined),
-);
-const READ_COPILOT = JSON.stringify(payload("bash", "ls", undefined));
+const pushMain = (cwd: string | undefined) =>
+  shellCall("powershell", "git push origin main", cwd);
 
-test("a push to the organization main is denied from the Copilot bash and PowerShell tools, in both payload shapes", async () => {
-  for (const tool of ["bash", "powershell"] as const) {
-    for (const shape of ["copilot", "pascal"] as const) {
-      const out = await decide(
-        payload(tool, "git push origin main", cwdOf(DEMO), shape),
-        "propose",
-      );
-      const reason = denied(out);
-      assert.match(
-        reason,
-        /agent-access: denied: demo-repo denies this command at level "propose"/,
-        `${tool} ${shape}`,
-      );
-    }
-  }
+test("a push to the organization main is denied from the measured PowerShell payload, and from the bash tool", async () => {
+  const reason = denied(await decide(pushMain(cwdOf(DEMO)), "propose"));
+  assert.match(
+    reason,
+    /agent-access: denied: demo-repo denies this command at level "propose"/,
+  );
+  const bash = denied(
+    await decide(
+      shellCall("bash", "git push origin main", cwdOf(DEMO)),
+      "propose",
+    ),
+  );
+  assert.match(bash, /denies this command at level "propose"/);
 });
 
 test("a push with a PowerShell-quoted remote, and a dry run of a push to the org main, are denied through PowerShell", async () => {
   denied(
     await decide(
-      payload("powershell", "git push 'origin' main", cwdOf(DEMO)),
+      shellCall("powershell", "git push 'origin' main", cwdOf(DEMO)),
       "propose",
     ),
   );
   // The fixture's origin is the organization URL, so a dry run of a push to it is still a push.
   denied(
     await decide(
-      payload("powershell", "git push --dry-run origin HEAD:main", cwdOf(DEMO)),
+      shellCall(
+        "powershell",
+        "git push --dry-run origin HEAD:main",
+        cwdOf(DEMO),
+      ),
       "propose",
     ),
   );
@@ -134,56 +192,91 @@ test("a push with a PowerShell-quoted remote, and a dry run of a push to the org
 test("a push to a branch on the organization remote that the level allows passes untouched", async () => {
   assert.equal(
     await decide(
-      payload("bash", "git push origin feat/x", cwdOf(DEMO)),
+      shellCall("powershell", "git push origin feat/x", cwdOf(DEMO)),
       "propose",
     ),
     null,
   );
   assert.equal(
     await decide(
-      payload("powershell", "git push origin feat/x", cwdOf(DEMO)),
+      shellCall("bash", "git push origin feat/x", cwdOf(DEMO)),
       "propose",
     ),
     null,
   );
 });
 
-test("a command outside the fleet passes untouched, even a push to main", async () => {
+test("a measured command outside the fleet passes untouched, even a push to main", async () => {
+  const outside = cwdOf("projects/other/x");
   assert.equal(
-    await decide(
-      payload("bash", "git push origin main", cwdOf("projects/other/x")),
-      "propose",
-    ),
+    await decide(MEASURED.powershellProbe(outside), "propose"),
     null,
   );
+  assert.equal(await decide(pushMain(outside), "propose"), null);
   assert.equal(
-    await decide(
-      payload("powershell", "git push origin main", cwdOf("projects/other/x")),
-      "propose",
-    ),
+    await decide(shellCall("bash", "git push origin main", outside), "propose"),
     null,
   );
 });
 
-test("a call to a tool the gate does not govern passes, and so does a command that is not a write", async () => {
+test("a command that is not a write passes, and so does a PowerShell command with no working directory", async () => {
+  assert.equal(await decide(shellCall("bash", "npm test", cwdOf(DEMO))), null);
   assert.equal(
+    await decide(shellCall("powershell", "npm test", cwdOf(DEMO))),
+    null,
+  );
+  assert.equal(
+    await decide(MEASURED.powershellProbe(undefined as unknown as string)),
+    null,
+  );
+});
+
+test("a write with no working directory is denied", async () => {
+  denied(await decide(pushMain(undefined)));
+});
+
+test("the measured PascalCase payload is denied on the Copilot path, for a write and for a read", async () => {
+  const write = denied(
+    await decide(MEASURED.pascalProbe(cwdOf(DEMO)), "propose"),
+  );
+  assert.match(write, /PascalCase payload/);
+  assert.match(write, /camelCase event keys/);
+  const read = denied(await decide(MEASURED.pascalProbe(cwdOf(DEMO))));
+  assert.match(read, /PascalCase payload/);
+});
+
+test("a PascalCase payload from the PowerShell tool is denied with the same reason", async () => {
+  const pascal = {
+    ...MEASURED.pascalProbe(cwdOf(DEMO)),
+    tool_name: "PowerShell",
+  };
+  assert.match(denied(await decide(pascal)), /PascalCase payload/);
+});
+
+test("the PreToolUse entry point answers the PascalCase refusal as JSON on stdout, with exit 0", () => {
+  const result = spawnSync(process.execPath, [PRE_ENTRY, "copilot"], {
+    input: JSON.stringify(MEASURED.pascalProbe(cwdOf(DEMO))),
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const out = JSON.parse(result.stdout);
+  assert.equal(out.permissionDecision, "deny");
+  assert.match(out.permissionDecisionReason, /PascalCase payload/);
+});
+
+test("a call that names a tool other than the two shell tools is denied, and the reason names it", async () => {
+  const reason = denied(await decide(MEASURED.view(cwdOf(DEMO))));
+  assert.match(reason, /gates only the bash and powershell tools/);
+  assert.match(reason, /"view"/);
+  denied(
     await decide({
-      toolName: "view",
-      toolArgs: { path: "x" },
+      sessionId: SESSION_ID,
+      timestamp: 1,
       cwd: cwdOf(DEMO),
+      toolName: "frobnicate",
+      toolArgs: {},
     }),
-    null,
   );
-  assert.equal(await decide(payload("bash", "npm test", cwdOf(DEMO))), null);
-  assert.equal(
-    await decide(payload("powershell", "npm test", cwdOf(DEMO))),
-    null,
-  );
-});
-
-test("a write with no working directory is denied, and a read with none passes", async () => {
-  denied(await decide(payload("bash", "git push origin main", undefined)));
-  assert.equal(await decide(payload("bash", "ls", undefined)), null);
 });
 
 test("a malformed payload is an error, never a pass", async () => {
@@ -192,7 +285,7 @@ test("a malformed payload is an error, never a pass", async () => {
     /not an object/,
   );
   await assert.rejects(
-    handlePreToolUse({}, { workspaceRoot: ws }),
+    handlePreToolUse({ sessionId: SESSION_ID }, { workspaceRoot: ws }),
     /names no tool/,
   );
   await assert.rejects(
@@ -215,7 +308,7 @@ test("a malformed payload is an error, never a pass", async () => {
   );
 });
 
-test("the PreToolUse entry point denies a malformed payload by exiting 2, with the reason on stderr", () => {
+test("the PreToolUse entry point exits 2 on a malformed payload, with the reason on stderr", () => {
   for (const input of [
     "{",
     "{}",
@@ -231,14 +324,12 @@ test("the PreToolUse entry point denies a malformed payload by exiting 2, with t
   }
 });
 
-test("the PreToolUse entry point answers a Copilot deny as JSON on stdout with exit 0", () => {
+test("the PreToolUse entry point answers a measured push to main as JSON on stdout, with exit 0", () => {
   const result = spawnSync(process.execPath, [PRE_ENTRY, "copilot"], {
-    input: JSON.stringify(
-      payload("powershell", "git push origin main", undefined),
-    ),
+    input: JSON.stringify(pushMain(undefined)),
     encoding: "utf8",
   });
-  assert.equal(result.status, 0);
+  assert.equal(result.status, 0, result.stderr);
   const out = JSON.parse(result.stdout);
   assert.equal(out.permissionDecision, "deny");
   assert.deepEqual(Object.keys(out).sort(), [
@@ -247,19 +338,27 @@ test("the PreToolUse entry point answers a Copilot deny as JSON on stdout with e
   ]);
 });
 
+test("the PreToolUse entry point passes a measured command outside the fleet with no output", () => {
+  const result = spawnSync(process.execPath, [PRE_ENTRY, "copilot"], {
+    input: JSON.stringify(MEASURED.powershellProbe(tmpdir())),
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, "");
+});
+
 test("a PreToolUse entry point started with an unknown runtime fails closed", () => {
   const result = spawnSync(process.execPath, [PRE_ENTRY, "nonsense"], {
-    input: READ_COPILOT,
+    input: JSON.stringify(MEASURED.powershellProbe(tmpdir())),
     encoding: "utf8",
   });
   assert.equal(result.status, 2);
   assert.match(result.stderr, /so the command is blocked/);
 });
 
-test("a PowerShell gh read is rewritten through the launcher in PowerShell form, with the command carried intact", async () => {
-  const command = "gh api user --jq .login";
+test("the measured PowerShell gh call is rewritten to the PowerShell form in modifiedArgs, with description preserved", async () => {
   const out = (await decide(
-    payload("powershell", command, cwdOf(DEMO)),
+    MEASURED.powershellGhLogin(cwdOf(DEMO)),
   )) as Rewrite;
   assert.equal(out.permissionDecision, "allow");
   assert.deepEqual(Object.keys(out).sort(), [
@@ -267,20 +366,18 @@ test("a PowerShell gh read is rewritten through the launcher in PowerShell form,
     "permissionDecision",
     "permissionDecisionReason",
   ]);
-  const line: string = out.modifiedArgs.command;
+  // modifiedArgs is the measured toolArgs with only `command` replaced.
+  assert.deepEqual(Object.keys(out.modifiedArgs), ["command", "description"]);
+  assert.equal(out.modifiedArgs.description, "Read the signed-in login");
+  const line = out.modifiedArgs.command;
   assert.match(
     line,
     /^& '[^']*node[^']*' '[^']*with-gh-token\.mjs' '[A-Za-z0-9+/=]+'$/,
   );
-  assert.equal(
-    out.modifiedArgs.description,
-    "d",
-    "every other argument is carried over",
-  );
   assert.deepEqual(rewrittenPayload(line), {
     workspace: ws,
     repo: "demo-repo",
-    command,
+    command: "gh api user --jq .login",
     shell: "powershell",
   });
 });
@@ -288,7 +385,7 @@ test("a PowerShell gh read is rewritten through the launcher in PowerShell form,
 test("a PowerShell gh read with quotes, spaces, and a doubled single quote keeps the typed command exactly", async () => {
   const command = `gh search prs 'it''s a "test"' --jq .items`;
   const out = (await decide(
-    payload("powershell", command, cwdOf(DEMO)),
+    shellCall("powershell", command, cwdOf(DEMO)),
   )) as Rewrite;
   assert.equal(out.permissionDecision, "allow");
   assert.equal(rewrittenPayload(out.modifiedArgs.command).command, command);
@@ -296,7 +393,7 @@ test("a PowerShell gh read with quotes, spaces, and a doubled single quote keeps
 
 test("a PowerShell gh write is asked for, through the launcher, at a level that allows it", async () => {
   const out = (await decide(
-    payload("powershell", "gh pr create --title x", cwdOf(DEMO)),
+    shellCall("powershell", "gh pr create --title x", cwdOf(DEMO)),
     "full",
   )) as Rewrite;
   assert.equal(out.permissionDecision, "ask");
@@ -305,13 +402,13 @@ test("a PowerShell gh write is asked for, through the launcher, at a level that 
 
 test("a PowerShell gh write is denied at a level that does not allow it", async () => {
   denied(
-    await decide(payload("powershell", "gh pr merge 1", cwdOf(DEMO)), "read"),
+    await decide(shellCall("powershell", "gh pr merge 1", cwdOf(DEMO)), "read"),
   );
 });
 
 test("a bash gh read from the Copilot bash tool is rewritten in POSIX form", async () => {
   const out = (await decide(
-    payload("bash", "gh api user --jq .login", cwdOf(DEMO)),
+    shellCall("bash", "gh api user --jq .login", cwdOf(DEMO)),
   )) as Rewrite;
   assert.equal(out.permissionDecision, "allow");
   assert.match(
@@ -345,20 +442,18 @@ test("the Claude adapter still denies a PowerShell gh call and says to use Bash"
   );
 });
 
-test("the SessionStart answer is additionalContext only, for a fleet repository, and nothing elsewhere", async () => {
+test("the measured sessionStart payload gets additionalContext for a fleet repository, and nothing elsewhere", async () => {
   writeCatalog(ws, "propose");
   assert.deepEqual(
-    await handleSessionStart(
-      { sessionId: "s", cwd: cwdOf(DEMO), source: "startup" },
-      { workspaceRoot: ws },
-    ),
+    await handleSessionStart(MEASURED.sessionStart(cwdOf(DEMO)), {
+      workspaceRoot: ws,
+    }),
     { additionalContext: contextLine("demo-repo", "propose") },
   );
   assert.equal(
-    await handleSessionStart(
-      { cwd: cwdOf("projects/other/x") },
-      { workspaceRoot: ws },
-    ),
+    await handleSessionStart(MEASURED.sessionStart(cwdOf("projects/other/x")), {
+      workspaceRoot: ws,
+    }),
     null,
   );
 });
@@ -391,7 +486,7 @@ test("a killed Copilot PreToolUse worker denies a write in Copilot's shape and p
     runGuardedHook({
       kind: "pre",
       runtime: "copilot",
-      input: WRITE_COPILOT,
+      input: JSON.stringify(pushMain(cwdOf(DEMO))),
       spawn,
       stdout: (t) => write.push(t),
       stderr: () => {},
@@ -409,7 +504,7 @@ test("a killed Copilot PreToolUse worker denies a write in Copilot's shape and p
   runGuardedHook({
     kind: "pre",
     runtime: "copilot",
-    input: READ_COPILOT,
+    input: JSON.stringify(shellCall("bash", "ls", undefined)),
     spawn,
     stdout: (t) => read.push(t),
     stderr: () => {},
@@ -424,8 +519,13 @@ test("a Copilot PreToolUse worker that cannot be read is a deny, and an unknown 
   >;
   assert.equal(budget.permissionDecision, "deny");
   assert.equal(
-    budgetAnswer({ toolName: "view" }, { blockOnError: false }),
+    budgetAnswer({ toolName: "powershell" }, { blockOnError: false }),
     null,
+  );
+  assert.equal(
+    budgetAnswer(MEASURED.pascalProbe(cwdOf(DEMO)), { blockOnError: true })
+      ?.permissionDecision,
+    "deny",
   );
   assert.throws(
     () => runtimeNamed("nonsense"),
@@ -436,7 +536,7 @@ test("a Copilot PreToolUse worker that cannot be read is a deny, and an unknown 
       runGuardedHook({
         kind: "pre",
         runtime: "nonsense",
-        input: READ_COPILOT,
+        input: JSON.stringify(shellCall("bash", "ls", undefined)),
         spawn: (() => {
           throw new Error("spawned");
         }) as never,
@@ -447,15 +547,18 @@ test("a Copilot PreToolUse worker that cannot be read is a deny, and an unknown 
   );
 });
 
-test("normalizeCall reads both payload shapes into the same call, and maps the tool names", () => {
-  assert.deepEqual(normalizeCall(payload("powershell", "x", "/w")), {
+test("normalizeCall maps the native tool name to the dialect, and refuses a payload with no toolName", () => {
+  assert.deepEqual(normalizeCall(MEASURED.powershellProbe("/w")), {
     tool_name: "PowerShell",
-    tool_input: { command: "x", description: "d" },
+    tool_input: {
+      command: 'Write-Output "probe one"',
+      description: "Run probe one",
+    },
     cwd: "/w",
   });
-  assert.deepEqual(
-    normalizeCall(payload("bash", "x", "/w", "pascal")).tool_name,
-    "Bash",
+  assert.equal(normalizeCall(shellCall("bash", "x", "/w")).tool_name, "Bash");
+  assert.throws(
+    () => normalizeCall(MEASURED.pascalProbe("/w")),
+    /names no tool/,
   );
-  assert.equal(normalizeCall({ toolName: "view" }).tool_name, "view");
 });

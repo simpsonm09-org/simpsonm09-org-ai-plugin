@@ -73,8 +73,15 @@ async function runFromCopilotPowerShell(command: string) {
     pathToFileURL(join(copy, "hooks", "lib", "copilot.mjs")).href
   );
   writeCatalog(ws, "read");
+  // The native camelCase payload Copilot CLI 1.0.93 sends for a PowerShell call (measured).
   const answer = (await handlePreToolUse(
-    { toolName: "powershell", toolArgs: { command }, cwd: demo },
+    {
+      sessionId: "7c1f0e52-2a8d-4f0e-9b1a-3d2c5e6f7a81",
+      timestamp: 1791497823611,
+      cwd: demo,
+      toolName: "powershell",
+      toolArgs: { command, description: "Run the gh call" },
+    },
     { workspaceRoot: ws, env: {} },
   )) as { permissionDecision: string; modifiedArgs: { command: string } };
   assert.equal(answer.permissionDecision, "allow");

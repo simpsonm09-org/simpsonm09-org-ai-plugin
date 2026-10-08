@@ -1,50 +1,83 @@
 // The GitHub Copilot CLI side of the agent-access gate. The decision is the Claude adapter's
-// (hooks/lib/claude.mjs), which is the shared one (gate.mjs). This module only maps the wire
-// format: it reads the Copilot payload into the call the Claude adapter reads, and it maps the
-// Claude answer onto Copilot's output, where a rewrite is `modifiedArgs` and a decision is
-// `permissionDecision` at the top level.
+// (hooks/lib/claude.mjs), which is the shared one (gate.mjs). This module maps the wire format
+// in both directions: it reads the native Copilot payload into the call the Claude adapter reads,
+// and it maps the Claude answer onto Copilot's output, where a rewrite is `modifiedArgs` and a
+// decision is `permissionDecision` at the top level.
 //
-// A Copilot hook receives one of two payloads, depending on its event key. The camelCase key
-// (preToolUse) gives `toolName` and `toolArgs`. The PascalCase key (PreToolUse) gives Claude's
-// `tool_name` and `tool_input`. This adapter reads both. A payload with neither is malformed,
-// and a malformed PreToolUse payload is an error, which the entry point turns into exit 2 (a deny).
+// The hooks file uses the camelCase event keys (preToolUse, sessionStart), so Copilot sends its
+// native payload, measured on Copilot CLI 1.0.93:
+//   {"sessionId":"…","timestamp":…,"cwd":"…","toolName":"powershell","toolArgs":{"command":"…","description":"…"}}
+// The shell's dialect is the tool name: `powershell` is PowerShell, `bash` is Bash. With the
+// PascalCase keys Copilot instead sends Claude's payload, where a PowerShell call is reported as
+// `"tool_name":"Bash"`. That shape cannot say which dialect runs the command, so this adapter
+// refuses it rather than guessing.
+//
+// Two kinds of answer are not an error. A refusal (PascalCase payload, or a tool other than the
+// two shell tools) is a deny with a reason. A payload that is not an object, or names no tool,
+// throws, and the entry point exits 2, which Copilot also denies.
 
+import { denyMessage } from "../../gate.mjs";
 import {
   budgetAnswer as claudeBudgetAnswer,
   handlePreToolUse as claudePreToolUse,
   handleSessionStart as claudeSessionStart,
 } from "./claude.mjs";
 
-// Copilot's tool names for the two shell tools, as the Claude adapter names them. Any other
-// tool passes through under its own name, and the Claude adapter ignores it.
-const CLAUDE_TOOL_NAMES = new Map([
+// Copilot's shell tools, by the tool name the native payload carries, and the dialect each one
+// reads its command in, as the Claude adapter names them.
+const SHELL_TOOLS = new Map([
   ["bash", "Bash"],
   ["powershell", "PowerShell"],
 ]);
 
+const PASCAL_CASE_REASON =
+  "this Copilot hook received Claude's PascalCase payload (tool_name), which does not say whether the command is PowerShell or Bash, so the gate cannot read it; the plugin's Copilot hooks file must use the camelCase event keys";
+
+// The deny for a call the adapter does not decide, or null when the call is one it can read.
 /**
- * The call in the shape the Claude adapter reads: tool_name, tool_input, and cwd.
+ * @param {any} input the parsed hook input
+ * @returns {{ permissionDecision: "deny", permissionDecisionReason: string } | null}
+ */
+function refusal(input) {
+  if (!input || typeof input !== "object") return null;
+  if (typeof input.toolName !== "string") {
+    return typeof input.tool_name === "string"
+      ? denyAnswer(PASCAL_CASE_REASON)
+      : null;
+  }
+  if (!SHELL_TOOLS.has(input.toolName))
+    return denyAnswer(
+      `this hook gates only the bash and powershell tools, and the call names "${input.toolName}"`,
+    );
+  return null;
+}
+
+/**
+ * @param {string} reason
+ */
+function denyAnswer(reason) {
+  return {
+    permissionDecision: "deny",
+    permissionDecisionReason: denyMessage(reason),
+  };
+}
+
+/**
+ * The call in the shape the Claude adapter reads: tool_name, tool_input, and cwd. The dialect is
+ * carried in tool_name: the native `powershell` becomes `PowerShell`, and `bash` becomes `Bash`.
  * @param {any} input the parsed hook input
  * @returns {{ tool_name: string, tool_input: unknown, cwd: unknown }}
  */
 export function normalizeCall(input) {
   if (!input || typeof input !== "object")
     throw new Error("the hook input is not an object");
-  if (typeof input.toolName === "string") {
-    return {
-      tool_name: CLAUDE_TOOL_NAMES.get(input.toolName) ?? input.toolName,
-      tool_input: input.toolArgs,
-      cwd: input.cwd,
-    };
-  }
-  if (typeof input.tool_name === "string") {
-    return {
-      tool_name: CLAUDE_TOOL_NAMES.get(input.tool_name) ?? input.tool_name,
-      tool_input: input.tool_input,
-      cwd: input.cwd,
-    };
-  }
-  throw new Error("the Copilot hook input names no tool");
+  if (typeof input.toolName !== "string")
+    throw new Error("the Copilot hook input names no tool");
+  return {
+    tool_name: SHELL_TOOLS.get(input.toolName) ?? input.toolName,
+    tool_input: input.toolArgs,
+    cwd: input.cwd,
+  };
 }
 
 // The Copilot output for one Claude PreToolUse answer, or null for no answer. A rewrite is
@@ -69,6 +102,8 @@ export function preToolUseOutput(claude) {
  * @returns {Promise<object | null>}
  */
 export async function handlePreToolUse(input, options = {}) {
+  const denied = refusal(input);
+  if (denied) return denied;
   const claude = await claudePreToolUse(normalizeCall(input), {
     ...options,
     toolShells: true,
@@ -103,12 +138,16 @@ function readableCall(input) {
 }
 
 /**
- * The answer when a run ran out of budget or was killed: the Claude rule, in Copilot's output.
+ * The answer when a run ran out of budget or was killed: the same refusals as a normal run, and
+ * otherwise the Claude rule, in Copilot's output.
  * @param {any} input the parsed hook input, or undefined when it could not be parsed
  * @param {{ blockOnError?: boolean }} options
  * @returns {object | null}
  */
 export function budgetAnswer(input, options) {
   if (!options.blockOnError) return null;
-  return preToolUseOutput(claudeBudgetAnswer(readableCall(input), options));
+  return (
+    refusal(input) ??
+    preToolUseOutput(claudeBudgetAnswer(readableCall(input), options))
+  );
 }

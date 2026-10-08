@@ -1,29 +1,21 @@
 {
+  "version": 1,
   "hooks": {
-    "PreToolUse": [
+    "sessionStart": [
       {
-        "matcher": "bash|powershell|Bash|PowerShell",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${COPILOT_PLUGIN_ROOT}/hooks/pre-tool-use.mjs\" copilot",
-            "powershell": "node \"$env:COPILOT_PLUGIN_ROOT/hooks/pre-tool-use.mjs\" copilot",
-            "timeoutSec": 60
-          }
-        ]
+        "type": "command",
+        "bash": "node \"${COPILOT_PLUGIN_ROOT}/hooks/session-start.mjs\" copilot",
+        "powershell": "node \"$env:COPILOT_PLUGIN_ROOT/hooks/session-start.mjs\" copilot",
+        "timeoutSec": 30
       }
     ],
-    "SessionStart": [
+    "preToolUse": [
       {
-        "matcher": "startup|resume|new",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${COPILOT_PLUGIN_ROOT}/hooks/session-start.mjs\" copilot",
-            "powershell": "node \"$env:COPILOT_PLUGIN_ROOT/hooks/session-start.mjs\" copilot",
-            "timeoutSec": 30
-          }
-        ]
+        "type": "command",
+        "matcher": "powershell|bash",
+        "bash": "node \"${COPILOT_PLUGIN_ROOT}/hooks/pre-tool-use.mjs\" copilot",
+        "powershell": "node \"$env:COPILOT_PLUGIN_ROOT/hooks/pre-tool-use.mjs\" copilot",
+        "timeoutSec": 60
       }
     ]
   }

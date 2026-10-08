@@ -19,7 +19,7 @@ import {
   loadAccessApi,
   resolveAccess,
 } from "../../access.mjs";
-import { encodePayload } from "../../bin/payload.mjs";
+import { decodePayload, encodePayload } from "../../bin/payload.mjs";
 import {
   contextLine,
   decideShell,
@@ -164,7 +164,7 @@ function gitHubCallReason(decision, command) {
 // without a command string, is malformed: the entry point turns that into exit 2.
 /**
  * @param {any} input
- * @returns {{ tool: string, command: string, toolInput: Record<string, unknown>, cwd: string | null, write: boolean } | null}
+ * @returns {{ tool: string, command: string, toolInput: Record<string, unknown>, cwd: string | null } | null}
  */
 function parseCall(input) {
   if (!input || typeof input !== "object")
@@ -181,7 +181,6 @@ function parseCall(input) {
     command,
     toolInput: input.tool_input,
     cwd,
-    write: isWriteCommand(command),
   };
 }
 
@@ -255,8 +254,13 @@ function gitHubCallOutput(call, decision, workspaceRoot, options) {
   );
 }
 
-// The PreToolUse decision for one Bash or PowerShell call.
-//   - A call that runs the launcher as its program is denied.
+// The denial for a command that runs the launcher as its program, except a Copilot second pass
+// over the hook's own rewrite (ownRewriteAnswer).
+const LAUNCHER_DENIAL = "the GitHub token launcher is not for direct use";
+
+// The PreToolUse answer for one command in this call's directory, dialect, and workspace. The
+// first pass uses it for the agent's command, and a second pass over the hook's own rewrite uses
+// it for the command the payload carries.
 //   - A call with no working directory is denied when it is a write, and passed when a read.
 //     A gh call is a write for this purpose (gate.mjs isWriteCommand), so it is denied too.
 //   - A call the plugin cannot find its workspace for is denied when it is a write.
@@ -265,23 +269,15 @@ function gitHubCallOutput(call, decision, workspaceRoot, options) {
 //     otherwise. A PowerShell gh call is denied instead, because the launcher runs under Git Bash.
 //   - Anything else passes untouched (null).
 /**
- * @param {any} input
- * @param {{ workspaceRoot?: string, env?: Record<string, string | undefined>, toolShells?: boolean }} [options]
- *   toolShells is set by the Copilot adapter: each shell tool reads its own dialect, and a
- *   PowerShell gh call is rewritten through the launcher instead of denied.
+ * @param {NonNullable<ReturnType<typeof parseCall>>} call
+ * @param {string} command the command to decide: the call's own, or a payload's on a second pass
+ * @param {{ workspaceRoot?: string, env?: Record<string, string | undefined>, toolShells?: boolean }} options
  * @returns {Promise<object | null>}
  */
-export async function handlePreToolUse(input, options = {}) {
-  const call = parseCall(input);
-  if (!call) return null;
-  if (runsLauncher(call.command))
-    return denyOutput(
-      denyMessage("the GitHub token launcher is not for direct use"),
-    );
-
+async function answerCall(call, command, options) {
   const workspaceRoot = trustedWorkspace(options);
   if (!call.cwd || !workspaceRoot) {
-    if (!call.write) return null;
+    if (!isWriteCommand(command)) return null;
     const reason = call.cwd
       ? "the plugin is not installed in a trusted workspace layout, so the gate cannot find the resolver for this write"
       : "the gate could not determine the working directory for this write";
@@ -289,7 +285,7 @@ export async function handlePreToolUse(input, options = {}) {
   }
 
   const decision = await decideCall(
-    call.command,
+    command,
     call.cwd,
     workspaceRoot,
     dialectOf(call.tool, options),
@@ -299,7 +295,89 @@ export async function handlePreToolUse(input, options = {}) {
       denyMessage(decision.reason ?? "the gate denied this command"),
     );
   if (decision.action !== "inject") return null;
-  return gitHubCallOutput(call, decision, workspaceRoot, options);
+  return gitHubCallOutput(
+    { ...call, command },
+    decision,
+    workspaceRoot,
+    options,
+  );
+}
+
+// The strict shape of this plugin's own launcher line, per dialect: a PowerShell call operator
+// (Bash has none), a node path, a launcher path, and one base64 argument. Each part is single-
+// quoted, and nothing comes before or after. The base64 is the one captured group that matters.
+const OWN_LINE = {
+  powershell: /^& '([^'\r\n]*)' '([^'\r\n]*)' '([A-Za-z0-9+/=]+)'$/,
+  bash: /^'([^'\r\n]*)' '([^'\r\n]*)' '([A-Za-z0-9+/=]+)'$/,
+};
+
+/**
+ * The base64 payload of a command with exactly the launcher line's shape for the dialect, or null
+ * for any other command.
+ * @param {string} command
+ * @param {"bash" | "powershell"} shell
+ * @returns {string | null}
+ */
+export function ownLinePayload(command, shell) {
+  return OWN_LINE[shell].exec(command)?.[3] ?? null;
+}
+
+// A launcher line that reaches the hook again. Copilot can run the hook on the command it already
+// rewrote, and then the line runs the launcher as its program. The line is allowed only when it is
+// byte-for-byte the rewrite this hook gives the payload's command in this call's directory: the
+// same shape, node and launcher paths, workspace, repo, level, and dialect. That is the agent
+// sending the payload's command, so it grants nothing. Any other line gets the launcher denial.
+/**
+ * @param {NonNullable<ReturnType<typeof parseCall>>} call
+ * @param {{ workspaceRoot?: string, env?: Record<string, string | undefined>, toolShells?: boolean }} options
+ * @returns {Promise<object | null>}
+ */
+async function ownRewriteAnswer(call, options) {
+  const denied = denyOutput(denyMessage(LAUNCHER_DENIAL));
+  const payloadText = ownLinePayload(
+    call.command,
+    dialectOf(call.tool, options),
+  );
+  if (payloadText === null) return denied;
+  let original;
+  try {
+    original = decodePayload(payloadText);
+  } catch {
+    return denied;
+  }
+  const answer = await answerCall(call, original.command, options);
+  const hook = answer?.hookSpecificOutput;
+  if (!hook || hook.updatedInput?.command !== call.command) return denied;
+  // The same decision as the first pass, with no rewrite: the line is already the rewrite.
+  return {
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: hook.permissionDecision,
+      permissionDecisionReason: hook.permissionDecisionReason,
+    },
+  };
+}
+
+// The PreToolUse decision for one Bash or PowerShell call.
+//   - A call that runs the launcher as its program is denied, unless it is a Copilot call that
+//     is exactly this plugin's own rewrite of its payload's command (ownRewriteAnswer).
+//   - Anything else is answered by answerCall.
+/**
+ * @param {any} input
+ * @param {{ workspaceRoot?: string, env?: Record<string, string | undefined>, toolShells?: boolean }} [options]
+ *   toolShells is set by the Copilot adapter: each shell tool reads its own dialect, a
+ *   PowerShell gh call is rewritten through the launcher instead of denied, and a second pass
+ *   over the hook's own rewrite is recognised.
+ * @returns {Promise<object | null>}
+ */
+export async function handlePreToolUse(input, options = {}) {
+  const call = parseCall(input);
+  if (!call) return null;
+  if (runsLauncher(call.command))
+    return options.toolShells
+      ? ownRewriteAnswer(call, options)
+      : denyOutput(denyMessage(LAUNCHER_DENIAL));
+  return answerCall(call, call.command, options);
 }
 
 // The agent-access line for a session that starts inside a fleet repository.

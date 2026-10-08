@@ -90,6 +90,23 @@ test("an allowed gh call is an inject, and an allowed non-gh call is a pass", ()
   );
 });
 
+test("the shared decision reads an executable spelling of gh and git as the plain name", () => {
+  assert.equal(
+    decideShell(
+      { command: '"C:\\Program Files\\GitHub CLI\\gh.exe" pr view 1' },
+      deps(ok).deps,
+    ).action,
+    "inject",
+  );
+  const spy = deps(ok);
+  decideShell({ command: "GIT.exe push origin main" }, spy.deps);
+  assert.deepEqual(
+    spy.calls.map((call) => call.command),
+    ["git push origin main"],
+    "the resolver is asked about the plain name",
+  );
+});
+
 test("a leading space keeps a gh call out of the injection, as HEAD did", () => {
   assert.equal(shouldInject(" gh pr view 1"), false);
   assert.equal(

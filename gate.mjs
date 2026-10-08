@@ -10,6 +10,7 @@
 // adapters do the I/O (access.mjs, lib/fleet.mjs); this module only sees their answers.
 
 import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
+import { canonicalCommand, programName } from "./lib/program.mjs";
 
 const FALLBACK_LEVEL = "read";
 
@@ -70,14 +71,14 @@ export function repoFromCommonDir(commonDir, workspaceRoot) {
   return parts[0];
 }
 
-// A gh command is the only command the gate injects a token for. The test is on the
-// raw command, so a leading space is not a gh command here, as before.
+// A gh command is the only command the gate injects a token for. The test is on the first
+// word after canonicalCommand, so a leading space or tab is not a gh command here, as before.
 /**
  * @param {string} command
  * @returns {boolean}
  */
 export function shouldInject(command) {
-  return /^gh(\s|$)/.test(command);
+  return /^gh(\s|$)/.test(canonicalCommand(command));
 }
 
 // Split a shell command on whitespace and quotes, the same light parse the resolver
@@ -102,7 +103,7 @@ export function tokenize(command) {
  */
 export function pushRemote(command) {
   const parts = tokenize(command);
-  if (parts[0] !== "git" || parts[1] !== "push") return null;
+  if (programName(parts[0] ?? "") !== "git" || parts[1] !== "push") return null;
   const tokens = parts.slice(2).filter((token) => !token.startsWith("-"));
   const first = tokens[0];
   if (!first || looksLikeRefspec(first)) return "origin";
@@ -336,11 +337,11 @@ export function decideShell(input, deps) {
   const found = deps.lookup
     ? deps.lookup(deps.cwd)
     : { repo: repoFromCwd(deps.cwd, deps.workspaceRoot ?? "") };
-  if (found.unresolved) return unresolvedAnswer(input.command);
+  const command = canonicalCommand(input.command);
+  if (found.unresolved) return unresolvedAnswer(command);
   const repo = found.repo;
   if (!repo) return { action: "pass", repo: null, level: FALLBACK_LEVEL };
 
-  const command = input.command;
   const remote = pushRemote(command);
   const remoteUrl = remote ? deps.remoteUrl(remote, deps.cwd) : null;
   const result = deps.resolve(repo, command, remoteUrl);

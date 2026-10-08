@@ -122,6 +122,32 @@ test("a read-only gh call is rewritten to the launcher and allowed, with the pay
   });
 });
 
+test("an executable spelling of gh is rewritten through the launcher, and the payload keeps the typed command", async () => {
+  const out = await bashPre("gh.exe pr view 1");
+  const hook = out?.hookSpecificOutput;
+  assert.equal(hook.permissionDecision, "allow");
+  const command = hook.updatedInput.command as string;
+  const payload = decodePayload(
+    /'([A-Za-z0-9+/=]+)'$/.exec(command)?.[1] ?? "",
+  );
+  assert.deepEqual(payload, {
+    workspace: ws,
+    repo: "demo-repo",
+    command: "gh.exe pr view 1",
+  });
+});
+
+test("an executable spelling of gh write is denied at a level that does not allow it", async () => {
+  const out = await bashPre(
+    '"C:\\Program Files\\GitHub CLI\\gh.exe" pr merge 1',
+  );
+  assert.equal(out?.hookSpecificOutput.permissionDecision, "deny");
+  assert.match(
+    out?.hookSpecificOutput.permissionDecisionReason,
+    /demo-repo denies this command at level "read"/,
+  );
+});
+
 test("a gh write is rewritten to the launcher and asks", async () => {
   const out = await bashPre(
     "gh pr create --title x",
@@ -253,6 +279,21 @@ test("readOnlyGh allows the listed read verbs and asks for everything else", () 
     "gh -R o/r pr view 1",
   ];
   for (const command of asks) assert.equal(readOnlyGh(command), false, command);
+});
+
+test("readOnlyGh reads an executable spelling of gh as the plain name", () => {
+  assert.equal(readOnlyGh("gh.exe pr view 1"), true);
+  assert.equal(
+    readOnlyGh('"C:\\Program Files\\GitHub CLI\\gh.exe" pr list'),
+    true,
+  );
+  assert.equal(readOnlyGh("GH.EXE pr merge 1"), false);
+});
+
+test("the launcher's program check reads the Windows spelling of node and the launcher", () => {
+  const launcher = join(repoDir, "bin", "with-gh-token.mjs");
+  assert.equal(runsLauncher(`NODE.EXE "${launcher}" abc`), true);
+  assert.equal(runsLauncher("NODE.EXE tool.mjs"), false);
 });
 
 test("a read with no working directory passes, and a write with none is denied", async () => {

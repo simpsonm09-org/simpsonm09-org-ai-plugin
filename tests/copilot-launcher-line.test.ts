@@ -27,8 +27,6 @@ const LAUNCHER_DENIAL =
   "agent-access: denied: the GitHub token launcher is not for direct use";
 const WRAPPED_DENIAL =
   'agent-access: denied: do not call the GitHub token launcher yourself; run the plain command (for example "gh pr list") and the gate adds the token';
-const UNWRAPPED_REASON =
-  "the token launcher wrapper is removed; the plain command is decided as sent";
 
 // The two payloads the model composed in the live run, verbatim. Their workspace and repo are
 // wrong for this checkout, and the hook must not use them.
@@ -152,30 +150,26 @@ test("a wrapped git push --dry-run to the organization remote is denied at propo
   ]);
 });
 
-test("a wrapped branch push is unwrapped to the plain command, asked, and never allowed", async () => {
-  const out = await answer(
-    "powershell",
-    wrappedPs(plainJson("git push origin feat/x")),
-    "propose",
+test("a wrapped branch push is denied, and the model is told to type the plain command", async () => {
+  assertDenied(
+    await answer(
+      "powershell",
+      wrappedPs(plainJson("git push origin feat/x")),
+      "propose",
+    ),
+    WRAPPED_DENIAL,
   );
-  assert.equal(out?.permissionDecision, "ask");
-  assert.equal(out?.permissionDecisionReason, UNWRAPPED_REASON);
-  assert.deepEqual(Object.keys(out?.modifiedArgs).sort(), [
-    "command",
-    "description",
-  ]);
-  assert.equal(out?.modifiedArgs.command, "git push origin feat/x");
-  assert.equal(out?.modifiedArgs.description, "d");
 });
 
-test("a wrapped Bash branch push is unwrapped the same way, and a wrapped Bash gh read is rewritten in POSIX form", async () => {
-  const push = await answer(
-    "bash",
-    wrappedBash(plainJson("git push origin feat/x")),
-    "propose",
+test("a wrapped Bash branch push is denied the same way, and a wrapped Bash gh read is rewritten in POSIX form", async () => {
+  assertDenied(
+    await answer(
+      "bash",
+      wrappedBash(plainJson("git push origin feat/x")),
+      "propose",
+    ),
+    WRAPPED_DENIAL,
   );
-  assert.equal(push?.permissionDecision, "ask");
-  assert.equal(push?.modifiedArgs.command, "git push origin feat/x");
 
   const read = await answer("bash", wrappedBash(LIVE_WRONG_REPO), "read");
   assert.equal(read?.permissionDecision, "allow");

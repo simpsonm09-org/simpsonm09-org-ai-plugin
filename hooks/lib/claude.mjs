@@ -316,10 +316,6 @@ const LAUNCHER_LINE = {
 const WRAPPED_DENIAL =
   'do not call the GitHub token launcher yourself; run the plain command (for example "gh pr list") and the gate adds the token';
 
-// The reason shown when a plain command the gate passes is run without its launcher wrapper.
-const UNWRAPPED_REASON =
-  "the token launcher wrapper is removed; the plain command is decided as sent";
-
 /**
  * The base64 argument of a command with exactly the launcher line's shape for the dialect, or null
  * for any other command.
@@ -352,10 +348,10 @@ function plainCommandOf(base64) {
 // Copilot's answer for a command that runs the launcher. The model has written these lines itself,
 // so nothing in the line is trusted except the plain command in its payload. That command is decided
 // from scratch, as if the agent had sent it plain, in this call's directory, dialect, and access
-// level. So this grants nothing the plain command would not get: a denied command is denied, a gh
-// command gets a rewrite built here with our own paths, and any other command the gate passes is
-// run plain with its wrapper removed. That last one is asked, not allowed, because a plain command
-// the gate passes is left to the normal permission flow, and a wrapped one must not skip it.
+// level. So this grants nothing the plain command would not get: a denied command is denied, and a
+// gh command gets a rewrite built here with our own paths. Any other command has no business in the
+// launcher, so it is denied and the model is told to type it plain. The plain command then goes
+// through the normal permission flow, which a wrapped one must not skip.
 /**
  * @param {NonNullable<ReturnType<typeof parseCall>>} call
  * @param {{ workspaceRoot?: string, env?: Record<string, string | undefined>, toolShells?: boolean }} options
@@ -371,8 +367,7 @@ async function launcherLineAnswer(call, options) {
   if (plain === null || runsLauncher(plain))
     return denyOutput(denyMessage(WRAPPED_DENIAL));
   const answer = await answerCall(call, plain, options);
-  if (answer !== null) return answer;
-  return rewriteOutput(call.toolInput, plain, UNWRAPPED_REASON, "ask");
+  return answer ?? denyOutput(denyMessage(WRAPPED_DENIAL));
 }
 
 // The PreToolUse decision for one Bash or PowerShell call.

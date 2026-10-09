@@ -125,7 +125,7 @@ test("with the switch set to allow, a push to the organization main is still den
   );
 });
 
-test("with the switch set to allow, an unwrapped non-gh launcher line is allowed with the plain command, and asked without it", async () => {
+test("a launcher line that wraps a non-gh command is denied with or without the switch", async () => {
   // A launcher line whose payload carries a plain branch push. The hook discards the node and
   // launcher paths, so they need only the line's shape.
   const payload = Buffer.from(
@@ -137,15 +137,12 @@ test("with the switch set to allow, an unwrapped non-gh launcher line is allowed
   const unset = await withSwitch(undefined, () =>
     answer("powershell", payloadLine, "propose"),
   );
-  assert.equal(unset?.permissionDecision, "ask");
-  assert.equal(unset?.modifiedArgs?.command, "git push origin feat/x");
-
   const allowed = await withSwitch("allow", () =>
     answer("powershell", payloadLine, "propose"),
   );
-  assert.equal(allowed?.permissionDecision, "allow");
-  assert.equal(allowed?.modifiedArgs?.command, "git push origin feat/x");
-  assert.deepEqual(allowed?.modifiedArgs, unset?.modifiedArgs);
+  assert.equal(unset?.permissionDecision, "deny");
+  assert.equal(unset?.modifiedArgs, undefined);
+  assert.deepEqual(allowed, unset);
 });
 
 test("a gh read is allowed with the switch unset and with it set, and its rewrite is the same", async () => {

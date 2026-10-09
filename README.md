@@ -93,7 +93,7 @@ With the PascalCase keys (`PreToolUse`) Copilot sends Claude's payload instead, 
 - The line must have exactly the shape of the rewrite for its dialect: a PowerShell call operator or none, a node path, a launcher path, and one base64 argument, each single-quoted, with nothing before or after. A line of any other shape is denied.
 - The node and launcher paths are discarded. They are not compared with this checkout's.
 - From the base64 payload the hook takes only `command`, which must be a non-empty string. Its `workspace`, `repo`, and `shell` fields are ignored. A payload that does not decode, or has no string `command`, is denied.
-- The plain command is decided from scratch, as if the agent had sent it plain, in the current call's directory, dialect, and access level. A denied command is denied with the gate's reason. A gh command gets a fresh rewrite built with this checkout's paths and payload. Any other command the gate passes is returned with its wrapper removed, as `ask`. It is asked, not allowed, so the wrapper cannot skip the prompt that the plain command would get.
+- The plain command is decided from scratch, as if the agent had sent it plain, in the current call's directory, dialect, and access level. A denied command is denied with the gate's reason. A gh command gets a fresh rewrite built with this checkout's paths and payload. Any other command is denied, with a message that says to type it plain. The plain command then gets the normal permission flow, which the wrapper cannot skip.
 - A line that fails any of these is denied with `do not call the GitHub token launcher yourself; run the plain command (for example "gh pr list") and the gate adds the token`.
 
 The answer grants nothing the plain command would not get. Claude is unchanged: any launcher line is denied with `the GitHub token launcher is not for direct use`.
@@ -103,8 +103,6 @@ On Copilot the SessionStart context adds one sentence: gh commands may appear re
 **The ask switch (`AGENT_ACCESS_COPILOT_ASK`).** The gate answers a gh write that the access level permits with `ask`, so Copilot prompts the user. A session where nobody can answer a prompt denies every such call. A session launched from T3 in ACP mode is one: at the `propose` level, no gh write works there. When the hook process is started with `AGENT_ACCESS_COPILOT_ASK=allow`, the Copilot adapter turns that `ask` into `allow`, with the same reason text and the same rewrite. Any other value, or no value, keeps the prompt. The workspace's generated Copilot launcher sets the variable for T3 sessions. A plain interactive `copilot` keeps the prompt.
 
 The switch changes only an `ask`. A denial stays a denial, and the access level still decides what is permitted. The agent cannot set the switch. The hook reads it from its own process environment, which a tool call does not control, and a tool argument with the same name is ignored. The Claude path ignores it.
-
-One case is wider than the rest. A launcher line that wraps a plain command the gate passes (for example a branch push) is unwrapped to that command, and under the switch it is `allow`, not `ask`. Without the switch it is `ask`. The access level does not decide such a command, so with the switch on, the wrapped form skips the prompt that the plain command would get. This is the one place where the switch grants more than the access level does.
 
 **Environment.** In the hook process both `COPILOT_PLUGIN_ROOT` and `CLAUDE_PLUGIN_ROOT` are set. The tool's own shell does not have them.
 

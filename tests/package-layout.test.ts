@@ -24,6 +24,7 @@ const readJson = (name: string) =>
 
 const PUBLISHED = [
   "index.ts",
+  "pi",
   "gate.mjs",
   "access.mjs",
   "package.json",

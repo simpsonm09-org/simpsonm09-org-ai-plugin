@@ -5,6 +5,7 @@
   "config": "opencode.fragment.jsonc",
   "files": [
     "index.ts",
+    "pi",
     "access.mjs",
     "gate.mjs",
     "package.json",

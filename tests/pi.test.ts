@@ -7,7 +7,7 @@
 // or git on the machine is never reached from here.
 
 import assert from "node:assert/strict";
-import { cpSync } from "node:fs";
+import { cpSync, existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { after, before, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -418,4 +418,10 @@ test("a copy of the extension outside a trusted layout denies a write it cannot 
   } finally {
     removeDir(copy);
   }
+});
+
+test("package.json names the Pi extension entry, and the entry exists", () => {
+  const pkg = JSON.parse(readFileSync(join(repoDir, "package.json"), "utf8"));
+  assert.deepEqual(pkg.pi, { extensions: ["./pi/index.ts"] });
+  assert.ok(existsSync(join(repoDir, "pi", "index.ts")));
 });

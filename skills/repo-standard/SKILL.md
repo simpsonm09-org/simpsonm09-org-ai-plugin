@@ -40,6 +40,16 @@ one.
 
 - `main` is protected. Work on a branch, open a same-repo pull request on the organization,
   and let the checks run before the merge. Never push directly to `main`.
+- Open a pull request, issue, or comment only on a repository owned by the owner of the
+  personal plugin or the owner of the org plugin: `simpsonm09` and `simpsonm09-org`. Never
+  open one automatically against any other owner, including the upstream a fork came from
+  (`michael-denyer/pstack-claude`, `cursor/plugins`, `pingdotgg/t3code`). A contribution to
+  a repository we do not own needs the user's explicit review first. `gh pr create` targets
+  a fork's parent by default, so always pass `-R <owner>/<repo>` naming an owned repository,
+  and push only to `origin`.
+- Respect branch protection. Use `gh pr merge --admin` only on an owned repository, only
+  when the user has granted it for the current thread, and only after every check on the
+  pull request's current head is green. Ask again in a new thread.
 - The pin to the standard is a commit SHA in `.github/workflows/ci.yml`. The `pin-update`
   workflow reports when it falls behind.
 - The task runner is `just`. Run `just lint`, `just test`, and `just verify` before pushing.

@@ -40,6 +40,7 @@ const PUBLISHED = [
 // worker they start, and the launcher. Everything else in the runtime must be reached from one of these.
 const ENTRIES = [
   "index.ts",
+  "pi/index.ts",
   "hooks/pre-tool-use.mjs",
   "hooks/session-start.mjs",
   "hooks/worker.mjs",

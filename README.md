@@ -103,7 +103,7 @@ On Copilot the SessionStart context adds one sentence: gh commands may appear re
 
 **The ask switch (`AGENT_ACCESS_COPILOT_ASK`).** The gate answers a gh write that the access level permits with `ask`, so Copilot prompts the user. A session where nobody can answer a prompt denies every such call. A session launched from T3 in ACP mode is one: at the `propose` level, no gh write works there. When the hook process is started with `AGENT_ACCESS_COPILOT_ASK=allow`, the Copilot adapter turns that `ask` into `allow`, with the same reason text and the same rewrite. Any other value, or no value, keeps the prompt. The workspace's generated Copilot launcher sets the variable for T3 sessions. A plain interactive `copilot` keeps the prompt.
 
-The switch changes only an `ask`. A denial stays a denial, and the access level still decides what is permitted. The agent cannot set the switch. The hook reads it from its own process environment, which a tool call does not control, and a tool argument with the same name is ignored. The Claude path ignores it.
+The switch changes only an `ask`. A denial stays a denial, and the access level still decides what is permitted. The agent cannot set the switch for its own session: the hook reads it from its own process environment, which a tool call does not control, and a tool argument with the same name is ignored. The agent's shell can start a child process with the variable in its command, but a child has no person at its prompt and denials still apply to it. The Claude path ignores it.
 
 **Environment.** In the hook process both `COPILOT_PLUGIN_ROOT` and `CLAUDE_PLUGIN_ROOT` are set. The tool's own shell does not have them.
 

@@ -15,6 +15,7 @@ It is CLI-first and contributes no MCP server. It contributes the shared skills 
 - `access.mjs` loads the repo-standard resolver and token broker, caches tokens per repository, and bounds each call with a timeout.
 - `lib/` holds the fleet lookup (`fleet.mjs`), the trusted-workspace rule (`location.mjs`), the Git Bash lookup (`bash.mjs`), the program-name rule that makes `gh.exe` and `GIT` the plain names (`program.mjs`), and the hook time budget (`budget.mjs`).
 - `.claude-plugin/plugin.json` and `hooks/` are the Claude Code plugin: a `PreToolUse` gate for the Bash and PowerShell tools, and a `SessionStart` line.
+- `pi/index.ts` is the Pi coding agent extension, declared in `package.json`'s `pi` manifest. `hooks/lib/pi.mjs` is its adapter over the Claude adapter.
 - `.github/plugin/plugin.json` and `hooks/copilot-hooks.json` are the GitHub Copilot CLI build of the same plugin. `hooks/lib/copilot.mjs` is its adapter, and `hooks/lib/runtime.mjs` picks the Claude or Copilot adapter from the hook's first argument.
 - `bin/with-gh-token.mjs` is the launcher that runs an allowed `gh` command with a token. `bin/payload.mjs` is the payload it reads.
 - `skills/` holds the skills the plugin registers.
@@ -102,13 +103,38 @@ On Copilot the SessionStart context adds one sentence: gh commands may appear re
 
 **The ask switch (`AGENT_ACCESS_COPILOT_ASK`).** The gate answers a gh write that the access level permits with `ask`, so Copilot prompts the user. A session where nobody can answer a prompt denies every such call. A session launched from T3 in ACP mode is one: at the `propose` level, no gh write works there. When the hook process is started with `AGENT_ACCESS_COPILOT_ASK=allow`, the Copilot adapter turns that `ask` into `allow`, with the same reason text and the same rewrite. Any other value, or no value, keeps the prompt. The workspace's generated Copilot launcher sets the variable for T3 sessions. A plain interactive `copilot` keeps the prompt.
 
-The switch changes only an `ask`. A denial stays a denial, and the access level still decides what is permitted. The agent cannot set the switch. The hook reads it from its own process environment, which a tool call does not control, and a tool argument with the same name is ignored. The Claude path ignores it.
+The switch changes only an `ask`. A denial stays a denial, and the access level still decides what is permitted. The agent cannot set the switch for its own session: the hook reads it from its own process environment, which a tool call does not control, and a tool argument with the same name is ignored. The agent's shell can start a child process with the variable in its command, but a child has no person at its prompt and denials still apply to it. The Claude path ignores it.
 
 **Environment.** In the hook process both `COPILOT_PLUGIN_ROOT` and `CLAUDE_PLUGIN_ROOT` are set. The tool's own shell does not have them.
 
 **Several plugins.** Hooks from several plugins run in sequence, and a later hook sees the command as an earlier one rewrote it. The gate decides on the command it receives, so a rewrite by another plugin is what it reads. Its own rewrite is not re-checked by a later hook.
 
 The Copilot limits are listed under Known limits.
+
+## Pi coding agent build
+
+`pi/index.ts` is a Pi extension. Pi loads it from the package's `pi` manifest, and it registers one handler, for `tool_call`. The handler is `hooks/lib/pi.mjs`, which reads a `bash` call as a Bash call in the directory Pi reports (`ctx.cwd`) and asks the Claude adapter (`hooks/lib/claude.mjs`) for the answer. The decision is still `decideShell` in `gate.mjs`.
+
+- A denial blocks the call with the gate's reason.
+- A read-only gh call is rewritten to run through the launcher, with no prompt.
+- Any other allowed gh call is an ask. A session with a prompt asks the person: yes runs it through the launcher, no blocks it. A session with no prompt blocks it.
+- With `AGENT_ACCESS_PI_ASK` set to exactly `allow`, an ask is rewritten through the launcher without a prompt in two cases: an rpc session (`ctx.mode` is `"rpc"`), and a session with no prompt (`ctx.hasUI` is not true, or `ctx.ui.confirm` is not a function). Every other session with a prompt still asks the person, including a TUI session and a session whose `ctx.mode` is missing or unknown. An unanswered prompt resolves false, so it blocks. The switch changes only an ask. It is read from the extension process's own environment.
+
+**rpc mode.** A live probe of `pi --mode rpc` (how T3 Code drives Pi) found that `ctx.hasUI` is true, `ctx.mode` is `"rpc"`, and `ctx.ui.confirm` exists. With nobody answering, Pi emits an `extension_ui_request` and resolves the confirm to `false` after 3000 ms. Without the switch, every ask in that session is therefore refused after a 3 s stall. With the switch, the ask is rewritten at once and no confirm is sent.
+
+**Child agents.** A child `pi --mode rpc` does not inherit a parent's `-e` extension. Install this package through Pi's saved settings `packages` list, so each child loads the gate too.
+- The workspace is the one this plugin is installed in, never `ctx.cwd` or the environment. A copy outside `.opencode/plugins` and `projects/repos` or `projects/worktrees` trusts no workspace, so it denies every gh call it cannot check.
+- An error in the gate blocks the call.
+
+**Known limits (Pi)**
+
+- **Child agents do not inherit a parent's `-e` extension.** A child `pi --mode rpc` is gated only when this package is in the saved settings `packages` list, not when the parent was started with `-e`.
+- **`pi -p` in bash passes.** The gate reads the first word, so `pi -p "..."` run through the bash tool is decided as a `pi` command, not by what the child agent runs.
+- **The ask switch reaches child processes.** The launcher wrapper sets `AGENT_ACCESS_PI_ASK` for the whole Pi process tree, and the agent cannot set it for its parent. The agent's bash can, however, start a child `pi` with the variable in its command. A child has no person at its prompt, so its asks are rewritten. Under the wrapper the variable is already set, so this adds nothing a wrapped session does not have, and denials still apply to a child. The same shape as the Copilot switch.
+- **The edit and write tools are not gated.** They can change this extension's files, and no gh call goes through them.
+- **Extensions run with full privileges.** The gate is a control on the agent's own tool calls. It is not a sandbox for code the agent can run.
+- **No time budget.** The gate runs in the Pi process, not in a worker, so the resolver's catalog read, which has no timeout (see the resolver limit under Known limits), is not bounded by a hook budget.
+- **Not measured.** That Pi runs the rewritten `event.input.command`, and that `ui.confirm(title, message)` has that signature, have not been checked against a live Pi session. The rpc findings above come from a probe; the tests use a fake ExtensionAPI and a stub context.
 
 ## Differences from the previous gate
 

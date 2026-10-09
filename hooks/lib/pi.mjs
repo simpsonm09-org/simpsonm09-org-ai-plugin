@@ -17,9 +17,10 @@ const GATED_TOOL = "bash";
 // The title of the approval prompt for an ask.
 const APPROVAL_TITLE = "agent-access: approve this gh command?";
 
-// The opt-in that lets an ask through in a session with no way to ask, such as Pi run in RPC mode.
-// The launcher wrapper sets it, and the agent cannot: it is read from this process's own
-// environment. It changes only an ask. A denial stays a denial.
+// The opt-in that lets an ask through when nobody is at the prompt: an rpc session (T3 drives Pi
+// that way), or a session with no prompt. A TUI session still asks the person. The launcher
+// wrapper sets it, and the agent cannot: it is read from this process's own environment. It
+// changes only an ask. A denial stays a denial.
 export const PI_ASK_VARIABLE = "AGENT_ACCESS_PI_ASK";
 
 /**
@@ -48,38 +49,54 @@ function rewrite(event, command) {
   event.input.command = command;
 }
 
-// Whether a person approves an ask. A session with a UI is asked, and the answer decides. A
-// session with no UI passes only with the ask switch. A failing prompt throws, and the caller
-// blocks the call.
+// The Pi modes in which a person is at the prompt. Any other mode, and a missing one, is not.
+const INTERACTIVE_MODES = new Set(["tui", "interactive"]);
+
+// Whether the session has a prompt at all: a UI with a confirm on it. An rpc session has one too.
 /**
- * @param {{ hasUI?: boolean, ui?: { confirm?: (title: string, message: string) => Promise<boolean> } } | undefined} ctx
- * @param {string} reason
- * @returns {Promise<boolean | null>} true or false from the person, or null when nobody can answer
+ * @param {{ hasUI?: boolean, ui?: { confirm?: unknown } } | undefined} ctx
+ * @returns {boolean}
  */
-async function askPerson(ctx, reason) {
-  if (ctx?.hasUI && typeof ctx.ui?.confirm === "function")
-    return (await ctx.ui.confirm(APPROVAL_TITLE, reason)) === true;
-  return null;
+function canPrompt(ctx) {
+  return ctx?.hasUI === true && typeof ctx.ui?.confirm === "function";
 }
 
-// The answer to a call the gate asked about. A read-only gh call is already an allow, so this
-// is only the other gh writes and any other ask: a person decides when there is one, and the
-// ask switch decides when there is not.
+// Whether a person is at the prompt. In rpc mode the prompt is shown to nobody: it resolves false
+// after 3 seconds, so an rpc session is not interactive, even though it can prompt.
+/**
+ * @param {{ hasUI?: boolean, mode?: unknown, ui?: { confirm?: unknown } } | undefined} ctx
+ * @returns {boolean}
+ */
+function isInteractive(ctx) {
+  return canPrompt(ctx) && INTERACTIVE_MODES.has(ctx.mode);
+}
+
+// The answer to a call the gate asked about. A read-only gh call is already an allow, so this is
+// only the other gh writes and any other ask. A session with a prompt asks the person, unless the
+// ask switch is set and nobody is at the prompt. With the switch, an ask is rewritten when nobody
+// can answer it. Without the switch, a session with no prompt blocks. A failing prompt throws,
+// and the caller blocks the call.
 /**
  * @param {{ input: Record<string, unknown> }} event
- * @param {object} ctx
+ * @param {{ hasUI?: boolean, mode?: unknown, ui?: { confirm?: (title: string, message: string) => Promise<boolean> } } | undefined} ctx
  * @param {{ permissionDecisionReason?: string, updatedInput: { command: string } }} hook
  * @returns {Promise<{ block: true, reason: string } | undefined>}
  */
 async function answerAsk(event, ctx, hook) {
   const reason = hook.permissionDecisionReason ?? "";
-  const approved = await askPerson(ctx, reason);
-  if (approved === true || (approved === null && askIsAllowed())) {
+  const switchOn = askIsAllowed();
+  if (canPrompt(ctx) && (!switchOn || isInteractive(ctx))) {
+    const approved = (await ctx.ui?.confirm?.(APPROVAL_TITLE, reason)) === true;
+    if (approved) {
+      rewrite(event, hook.updatedInput.command);
+      return undefined;
+    }
+    return block(`${reason}; the person did not approve it`);
+  }
+  if (switchOn) {
     rewrite(event, hook.updatedInput.command);
     return undefined;
   }
-  if (approved === false)
-    return block(`${reason}; the person did not approve it`);
   return block(
     `${reason}; this session cannot ask for approval, so the command is blocked`,
   );

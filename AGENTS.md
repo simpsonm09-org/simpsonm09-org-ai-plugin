@@ -37,8 +37,9 @@ The plugin registers the skills under `skills/`. General best practices come fro
 
 The Pi build gates the `bash` tool through the same decision. Its known limits, which the README also lists:
 
-- A Pi child started with `pi --mode rpc` loads only the extensions it is given.
+- A child `pi --mode rpc` does not inherit a parent's `-e` extension. The package must be in the saved settings `packages` list for a child to load the gate.
 - `pi -p` inside bash passes, because the gate reads the first word only.
 - The edit and write tools can change extension files, and they are not gated.
 - Extensions run with full privileges in the Pi process, and the gate has no time budget of its own.
-- Not measured against a live Pi: the rewrite of `event.input.command` taking effect, `ctx.hasUI` under `pi --mode rpc`, and the `ui.confirm` signature.
+- rpc mode: `ctx.hasUI` is true, `ctx.mode` is `"rpc"`, and `ui.confirm` exists, but nobody answers. The confirm resolves `false` after 3000 ms, so without `AGENT_ACCESS_PI_ASK=allow` every ask is refused after a 3 s stall.
+- Not measured against a live Pi: the rewrite of `event.input.command` taking effect, and the `ui.confirm` signature.

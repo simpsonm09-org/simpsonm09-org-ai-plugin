@@ -117,18 +117,23 @@ The Copilot limits are listed under Known limits.
 
 - A denial blocks the call with the gate's reason.
 - A read-only gh call is rewritten to run through the launcher, with no prompt.
-- Any other allowed gh call is an ask. In a session with a UI, the person decides: yes runs it through the launcher, no blocks it. In a session with no UI it is blocked, unless `AGENT_ACCESS_PI_ASK` is exactly `allow`. The switch changes only an ask, and the launcher wrapper sets it, not the agent. It is read from the extension process's own environment.
+- Any other allowed gh call is an ask. A session with a prompt asks the person: yes runs it through the launcher, no blocks it. A session with no prompt blocks it.
+- With `AGENT_ACCESS_PI_ASK` set to exactly `allow`, an ask is rewritten through the launcher when nobody is at the prompt: an rpc session, a session whose `ctx.mode` is missing or unknown, or a session with no `ctx.ui.confirm`. A TUI session (`ctx.mode` `"tui"` or `"interactive"`) still asks the person. The switch changes only an ask, and the launcher wrapper sets it, not the agent. It is read from the extension process's own environment.
+
+**rpc mode.** A live probe of `pi --mode rpc` (how T3 Code drives Pi) found that `ctx.hasUI` is true, `ctx.mode` is `"rpc"`, and `ctx.ui.confirm` exists. With nobody answering, Pi emits an `extension_ui_request` and resolves the confirm to `false` after 3000 ms. Without the switch, every ask in that session is therefore refused after a 3 s stall. With the switch, the ask is rewritten at once and no confirm is sent.
+
+**Child agents.** A child `pi --mode rpc` does not inherit a parent's `-e` extension. Install this package through Pi's saved settings `packages` list, so each child loads the gate too.
 - The workspace is the one this plugin is installed in, never `ctx.cwd` or the environment. A copy outside `.opencode/plugins` and `projects/repos` or `projects/worktrees` trusts no workspace, so it denies every gh call it cannot check.
 - An error in the gate blocks the call.
 
 **Known limits (Pi)**
 
-- **Child agents load only the extensions they are given.** A Pi child started with `pi --mode rpc` is gated only if it is given this extension.
+- **Child agents do not inherit a parent's `-e` extension.** A child `pi --mode rpc` is gated only when this package is in the saved settings `packages` list, not when the parent was started with `-e`.
 - **`pi -p` in bash passes.** The gate reads the first word, so `pi -p "..."` run through the bash tool is decided as a `pi` command, not by what the child agent runs.
 - **The edit and write tools are not gated.** They can change this extension's files, and no gh call goes through them.
 - **Extensions run with full privileges.** The gate is a control on the agent's own tool calls. It is not a sandbox for code the agent can run.
 - **No time budget.** The gate runs in the Pi process, not in a worker, so the resolver's catalog read, which has no timeout (see the resolver limit under Known limits), is not bounded by a hook budget.
-- **Not measured.** That Pi runs the rewritten `event.input.command`, that `ctx.hasUI` is set under `pi --mode rpc`, and that `ui.confirm(title, message)` has that signature have not been checked against a live Pi session. The tests use a fake ExtensionAPI and a stub context.
+- **Not measured.** That Pi runs the rewritten `event.input.command`, and that `ui.confirm(title, message)` has that signature, have not been checked against a live Pi session. The rpc findings above come from a probe; the tests use a fake ExtensionAPI and a stub context.
 
 ## Differences from the previous gate
 

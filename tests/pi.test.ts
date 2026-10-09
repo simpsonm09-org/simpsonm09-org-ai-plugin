@@ -87,10 +87,12 @@ type RunOptions = {
   level?: string;
   ui?: Ui | null;
   toolName?: string;
+  mode?: string;
 };
 
 // One tool_call through the adapter. cwd defaults to demo-repo, and an explicit undefined cwd
-// means Pi reported none. ui null is a session with no UI.
+// means Pi reported none. ui null is a session with no UI. mode is Pi's ctx.mode, left out when
+// not given.
 async function run(command: string, options: RunOptions = {}) {
   writeCatalog(ws, options.level ?? "read");
   const event = {
@@ -100,8 +102,13 @@ async function run(command: string, options: RunOptions = {}) {
   const cwd = "cwd" in options ? options.cwd : cwdOf(DEMO_CWD);
   const session =
     options.ui === undefined || options.ui === null
-      ? { cwd, hasUI: false }
-      : { cwd, hasUI: true, ui: { confirm: options.ui.confirm } };
+      ? { cwd, hasUI: false, mode: options.mode }
+      : {
+          cwd,
+          hasUI: true,
+          mode: options.mode,
+          ui: { confirm: options.ui.confirm },
+        };
   const result = await gateToolCall(event, session, { workspaceRoot: ws });
   return { result, event, command: event.input.command as string };
 }
@@ -207,6 +214,127 @@ test("the ask switch does not turn a denial into an allow", async () => {
     const { result } = await run("gh pr merge 1", { level: "read", ui: null });
     assert.equal(result?.block, true);
     assert.match(result?.reason, /denies this command/);
+  } finally {
+    delete process.env[PI_ASK_VARIABLE];
+  }
+});
+
+// rpc mode (how T3 drives Pi) has a prompt that nobody answers: it resolves false after 3 s. With
+// the switch, an ask there must be rewritten at once, and no confirm may be sent.
+test("rpc mode with the ask switch rewrites an ask without prompting", async () => {
+  process.env[PI_ASK_VARIABLE] = "allow";
+  try {
+    const session = ui(false);
+    const { result, command } = await run("gh pr merge 1", {
+      level: "merge",
+      mode: "rpc",
+      ui: session,
+    });
+    assert.equal(result, undefined);
+    assert.deepEqual(session.asked, [], "no confirm is sent in rpc mode");
+    assert.equal(payloadOf(command).command, "gh pr merge 1");
+  } finally {
+    delete process.env[PI_ASK_VARIABLE];
+  }
+});
+
+test("rpc mode without the ask switch asks, and a refusal blocks", async () => {
+  const approve = ui(true);
+  const approved = await run("gh pr merge 1", {
+    level: "merge",
+    mode: "rpc",
+    ui: approve,
+  });
+  assert.equal(approve.asked.length, 1);
+  assert.equal(approved.result, undefined);
+
+  const refuse = ui(false);
+  const refused = await run("gh pr merge 1", {
+    level: "merge",
+    mode: "rpc",
+    ui: refuse,
+  });
+  assert.equal(refuse.asked.length, 1);
+  assert.equal(refused.result?.block, true);
+  assert.match(refused.result?.reason, /the person did not approve it/);
+});
+
+test("a TUI session still prompts the person when the ask switch is set", async () => {
+  process.env[PI_ASK_VARIABLE] = "allow";
+  try {
+    const refuse = ui(false);
+    const refused = await run("gh pr merge 1", {
+      level: "merge",
+      mode: "tui",
+      ui: refuse,
+    });
+    assert.equal(refuse.asked.length, 1);
+    assert.equal(refused.result?.block, true);
+    assert.equal(refused.command, "gh pr merge 1");
+
+    const approve = ui(true);
+    const approved = await run("gh pr merge 1", {
+      level: "merge",
+      mode: "tui",
+      ui: approve,
+    });
+    assert.equal(approve.asked.length, 1);
+    assert.equal(approved.result, undefined);
+  } finally {
+    delete process.env[PI_ASK_VARIABLE];
+  }
+});
+
+test("a session with no mode, or an unknown one, is not interactive, so the switch rewrites its ask", async () => {
+  process.env[PI_ASK_VARIABLE] = "allow";
+  try {
+    for (const mode of [undefined, "some-future-mode"]) {
+      const session = ui(false);
+      const { result } = await run("gh pr merge 1", {
+        level: "merge",
+        mode,
+        ui: session,
+      });
+      assert.deepEqual(session.asked, [], `mode ${mode}`);
+      assert.equal(result, undefined, `mode ${mode}`);
+    }
+  } finally {
+    delete process.env[PI_ASK_VARIABLE];
+  }
+});
+
+test("a session with a UI but no confirm is not asked, and the switch rewrites its ask", async () => {
+  process.env[PI_ASK_VARIABLE] = "allow";
+  try {
+    writeCatalog(ws, "merge");
+    const event = { toolName: "bash", input: { command: "gh pr merge 1" } };
+    const result = await gateToolCall(
+      event,
+      { cwd: cwdOf(DEMO_CWD), hasUI: true, mode: "tui", ui: {} },
+      { workspaceRoot: ws },
+    );
+    assert.equal(result, undefined);
+    assert.equal(
+      payloadOf(event.input.command as string).command,
+      "gh pr merge 1",
+    );
+  } finally {
+    delete process.env[PI_ASK_VARIABLE];
+  }
+});
+
+test("rpc mode with the ask switch still blocks a denial", async () => {
+  process.env[PI_ASK_VARIABLE] = "allow";
+  try {
+    const session = ui(true);
+    const { result } = await run("gh pr merge 1", {
+      level: "read",
+      mode: "rpc",
+      ui: session,
+    });
+    assert.equal(result?.block, true);
+    assert.match(result?.reason, /denies this command/);
+    assert.deepEqual(session.asked, []);
   } finally {
     delete process.env[PI_ASK_VARIABLE];
   }

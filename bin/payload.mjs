@@ -12,7 +12,8 @@ export const REPO_NAME = /^(?!\.+$)[A-Za-z0-9._-]{1,100}$/;
 const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
 
 /**
- * @param {{ workspace: string, repo: string, command: string }} payload
+ * The shell is written only for PowerShell, so a Bash payload is the same bytes it always was.
+ * @param {{ workspace: string, repo: string, command: string, shell?: "bash" | "powershell" }} payload
  * @returns {string}
  */
 export function encodePayload(payload) {
@@ -21,6 +22,7 @@ export function encodePayload(payload) {
       workspace: payload.workspace,
       repo: payload.repo,
       command: payload.command,
+      ...(payload.shell === "powershell" ? { shell: "powershell" } : {}),
     }),
     "utf8",
   ).toString("base64");
@@ -28,9 +30,9 @@ export function encodePayload(payload) {
 
 /**
  * Decode and check a payload. Throws on anything that is not a well-formed payload,
- * so the launcher fails closed.
+ * so the launcher fails closed. A payload with no shell is a Bash payload.
  * @param {unknown} text
- * @returns {{ workspace: string, repo: string, command: string }}
+ * @returns {{ workspace: string, repo: string, command: string, shell?: "powershell" }}
  */
 export function decodePayload(text) {
   if (typeof text !== "string" || !BASE64.test(text)) {
@@ -45,9 +47,13 @@ export function decodePayload(text) {
   ) {
     throw new Error("payload has no valid workspace, repo, or command");
   }
+  if (parsed.shell !== undefined && parsed.shell !== "powershell") {
+    throw new Error("payload names an unknown shell");
+  }
   return {
     workspace: parsed.workspace,
     repo: parsed.repo,
     command: parsed.command,
+    ...(parsed.shell === "powershell" ? { shell: "powershell" } : {}),
   };
 }

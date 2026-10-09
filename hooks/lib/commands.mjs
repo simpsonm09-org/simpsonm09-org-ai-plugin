@@ -68,12 +68,13 @@ const API_WRITE_FLAGS = [
  * Whether a gh command is clearly read-only, so its prompt can be skipped. This chooses
  * between "allow" and "ask" only; it is not a gate decision. Anything unclear asks.
  * @param {string} command
+ * @param {"bash" | "powershell"} [shell] the dialect the command is read in
  * @returns {boolean}
  */
-export function readOnlyGh(command) {
+export function readOnlyGh(command, shell = "bash") {
   const text = canonicalCommand(command);
   if (/[;&|<>`$(){}\r\n]/.test(text)) return false;
-  const words = tokenize(text);
+  const words = tokenize(text, shell);
   if (programName(words[0] ?? "") !== "gh") return false;
   const group = words[1];
   if (group === "search" || group === "status") return true;

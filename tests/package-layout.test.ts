@@ -30,6 +30,7 @@ const PUBLISHED = [
   "skills",
   "README.md",
   ".claude-plugin",
+  ".github/plugin",
   "hooks",
   "bin",
   "lib",

@@ -78,7 +78,7 @@ function samePath(a, b) {
 // it with the token. Resolves to the child's exit code, or 1 when the launcher refuses.
 /**
  * @param {{ workspace: string, repo: string, command: string }} payload
- * @param {{ cwd?: string, env?: Record<string, string | undefined>, shell?: string, platform?: string, log?: (message: string) => void, workspaceRoot?: string }} [options]
+ * @param {{ cwd?: string, env?: Record<string, string | undefined>, shell?: string, powershell?: string, platform?: string, log?: (message: string) => void, workspaceRoot?: string }} [options]
  * @returns {Promise<number>}
  */
 export async function launch(payload, options = {}) {
@@ -104,10 +104,11 @@ export async function launch(payload, options = {}) {
     return 1;
   }
 
+  const shell = payload.shell === "powershell" ? "powershell" : "bash";
   const scripts = defaultScripts(workspace);
   const api = await loadAccessApi(scripts.access);
   const decision = decideShell(
-    { command: payload.command },
+    { command: payload.command, shell },
     {
       cwd,
       lookup: (dir) => fleetLookup(dir, workspace),
@@ -126,12 +127,13 @@ export async function launch(payload, options = {}) {
     return 1;
   }
 
-  const shell =
-    options.shell ?? gitBashPath(env, options.platform ?? process.platform);
-  if (!shell) {
+  const host = childHost(shell, env, options);
+  if (!host) {
     log(
       denyMessage(
-        "Git Bash was not found; set CLAUDE_CODE_GIT_BASH_PATH to its bash.exe",
+        shell === "powershell"
+          ? "PowerShell was not found"
+          : "Git Bash was not found; set CLAUDE_CODE_GIT_BASH_PATH to its bash.exe",
       ),
     );
     return 1;
@@ -145,22 +147,59 @@ export async function launch(payload, options = {}) {
     );
     return 1;
   }
-  return runChild(shell, payload.command, { ...env, GH_TOKEN: token }, log);
+  return runChild(
+    host.file,
+    host.args(payload.command),
+    { ...env, GH_TOKEN: token },
+    log,
+  );
 }
 
-// Run the command in bash with the token in its environment. The launcher's own
+// The program that runs a command, and the arguments that pass it to that program. A bash
+// command runs under Git Bash (or bash off Windows). A PowerShell command runs under
+// PowerShell as -EncodedCommand, so the command reaches PowerShell as UTF-16 and no quoting of
+// it is left to the Windows argument parser. The exit status is that of the last native
+// command, which the appended line returns. Null when the shell is not installed.
+/**
+ * @param {"bash" | "powershell"} shell
+ * @param {Record<string, string | undefined>} env
+ * @param {{ shell?: string, powershell?: string, platform?: string }} options
+ * @returns {{ file: string, args: (command: string) => string[] } | null}
+ */
+function childHost(shell, env, options) {
+  const platform = options.platform ?? process.platform;
+  if (shell === "powershell") {
+    const file =
+      options.powershell ?? (platform === "win32" ? "powershell.exe" : "pwsh");
+    return {
+      file,
+      args: (command) => [
+        "-NoProfile",
+        "-NonInteractive",
+        "-EncodedCommand",
+        Buffer.from(`${command}\nexit $LASTEXITCODE`, "utf16le").toString(
+          "base64",
+        ),
+      ],
+    };
+  }
+  const file = options.shell ?? gitBashPath(env, platform);
+  return file ? { file, args: (command) => ["-c", command] } : null;
+}
+
+// Run the program with its arguments and the token in its environment. The launcher's own
 // termination stops the child, so the command does not outlive its launcher where a
 // signal can be delivered. A forced kill cannot run this handler (see Known limits).
 /**
- * @param {string} shell
- * @param {string} command
+ * @param {string} file
+ * @param {string[]} args
  * @param {Record<string, string | undefined>} env
  * @param {(message: string) => void} log
  * @returns {Promise<number>}
  */
-function runChild(shell, command, env, log) {
+function runChild(file, args, env, log) {
   return new Promise((resolveExit) => {
-    const child = spawn(shell, ["-c", command], { stdio: "inherit", env });
+    const child = spawn(file, args, { stdio: "inherit", env });
     const stop = (signal) => {
       if (child.exitCode === null && child.signalCode === null)
         child.kill(signal);

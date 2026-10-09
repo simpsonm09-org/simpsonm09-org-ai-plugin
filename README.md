@@ -15,6 +15,7 @@ It is CLI-first and contributes no MCP server. It contributes the shared skills 
 - `access.mjs` loads the repo-standard resolver and token broker, caches tokens per repository, and bounds each call with a timeout.
 - `lib/` holds the fleet lookup (`fleet.mjs`), the trusted-workspace rule (`location.mjs`), the Git Bash lookup (`bash.mjs`), the program-name rule that makes `gh.exe` and `GIT` the plain names (`program.mjs`), and the hook time budget (`budget.mjs`).
 - `.claude-plugin/plugin.json` and `hooks/` are the Claude Code plugin: a `PreToolUse` gate for the Bash and PowerShell tools, and a `SessionStart` line.
+- `.github/plugin/plugin.json` and `hooks/copilot-hooks.json` are the GitHub Copilot CLI build of the same plugin. `hooks/lib/copilot.mjs` is its adapter, and `hooks/lib/runtime.mjs` picks the Claude or Copilot adapter from the hook's first argument.
 - `bin/with-gh-token.mjs` is the launcher that runs an allowed `gh` command with a token. `bin/payload.mjs` is the payload it reads.
 - `skills/` holds the skills the plugin registers.
 
@@ -57,6 +58,58 @@ This repository is not installed on its own. [`simpsonm09-maxstack`](https://git
 
 maxstack's [`docs/t3-setup.md`](https://github.com/simpsonm09-org/simpsonm09-maxstack/blob/main/docs/t3-setup.md) is the full reference. A new session is needed after each install.
 
+## GitHub Copilot CLI build
+
+The same folder is a GitHub Copilot CLI plugin. Copilot reads `.github/plugin/plugin.json`, whose `"hooks"` key names `hooks/copilot-hooks.json`, so Copilot runs the Copilot hooks and not `hooks/hooks.json`. The name and version match `.claude-plugin/plugin.json`, and `tests/copilot-plugin.test.ts` checks that.
+
+Load it with the plugin folder, which is the directory that holds `.github/plugin/plugin.json`:
+
+```bash
+copilot --plugin-dir <workspace>/projects/worktrees/simpsonm09-org-ai-plugin-copilot plugin list
+copilot --plugin-dir <workspace>/projects/worktrees/simpsonm09-org-ai-plugin-copilot
+```
+
+The gate trusts only the layouts in `lib/location.mjs`, so load a checkout under `projects/repos` or `projects/worktrees`, or the installed `.opencode/plugins` copy. A copy in another directory trusts no workspace, so the gate denies every write it cannot check.
+
+The hooks file (`hooks/copilot-hooks.json`) uses the camelCase event keys, flat entries, and `version: 1`. Each entry has `bash` and `powershell` command keys. The `preToolUse` entry has `"matcher": "powershell|bash"`, and the `sessionStart` entry has none. The contract below was measured on Copilot CLI 1.0.93 on Windows with a probe plugin, and the tests use those payloads verbatim (`tests/copilot-hooks.test.ts`).
+
+**Input.** The `preToolUse` payload is `{"sessionId", "timestamp", "cwd", "toolName", "toolArgs"}`. The shell's dialect is the tool name: `powershell` is read as PowerShell, and `bash` as Bash. The `sessionStart` payload is `{"sessionId", "timestamp", "cwd", "source", "initialPrompt"}`.
+
+With the PascalCase keys (`PreToolUse`) Copilot sends Claude's payload instead, where a PowerShell call is reported as `"tool_name":"Bash"`. The dialect cannot be known from that, so the Copilot adapter denies such a call with a reason that names the cause. The hooks file must keep the camelCase keys.
+
+**Output.** The hook answers with one JSON object on stdout, and exits 0.
+
+- `{"permissionDecision":"allow","modifiedArgs":{...toolArgs,"command":"<new>"}}` rewrites the call. `modifiedArgs` keeps every field of `toolArgs`, such as `description`, and replaces `command`. The rewritten command ran. Our allow answer also carries a `permissionDecisionReason`, which the measurement did not show.
+- `{"permissionDecision":"deny","permissionDecisionReason":"..."}` shows the agent `Denied by preToolUse hook: <reason>`.
+- A call the gate does not govern prints nothing.
+- Exit code 2 denies the call and shows `Denied by preToolUse hook from "<plugin>" (hook errored)`. A malformed payload exits 2.
+
+`sessionStart` prints `{"additionalContext":"..."}` for a fleet repository, and nothing elsewhere. Its stdout reached the model. It never exits non-zero.
+
+**Rewrites.** A gh call is rewritten through the launcher, as on Claude. The PowerShell tool gets a PowerShell line, `& '<node>' '<launcher>' '<payload>'`. The Bash tool gets the POSIX form. The launcher then runs the command in the shell the tool used, and the payload carries the original command in base64.
+
+**Launcher lines the model writes.** In a live run the model saw two of its gh calls shown in rewritten form, and then began composing launcher lines by hand, with payloads of its own. Those were denied. The measured fact is that the model imitates the rewritten form. Copilot did not run the hook a second time on a rewrite. The hook answers a launcher line this way:
+
+- The line must have exactly the shape of the rewrite for its dialect: a PowerShell call operator or none, a node path, a launcher path, and one base64 argument, each single-quoted, with nothing before or after. A line of any other shape is denied.
+- The node and launcher paths are discarded. They are not compared with this checkout's.
+- From the base64 payload the hook takes only `command`, which must be a non-empty string. Its `workspace`, `repo`, and `shell` fields are ignored. A payload that does not decode, or has no string `command`, is denied.
+- The plain command is decided from scratch, as if the agent had sent it plain, in the current call's directory, dialect, and access level. A denied command is denied with the gate's reason. A gh command gets a fresh rewrite built with this checkout's paths and payload. Any other command is denied, with a message that says to type it plain. The plain command then gets the normal permission flow, which the wrapper cannot skip.
+- A line that fails any of these is denied with `do not call the GitHub token launcher yourself; run the plain command (for example "gh pr list") and the gate adds the token`.
+
+The answer grants nothing the plain command would not get. Claude is unchanged: any launcher line is denied with `the GitHub token launcher is not for direct use`.
+
+On Copilot the SessionStart context adds one sentence: gh commands may appear rewritten through a token launcher, the agent should keep typing plain `gh` and `git` commands, and it must never write the launcher line itself. That sentence is an instruction to the model, not a control.
+
+**The ask switch (`AGENT_ACCESS_COPILOT_ASK`).** The gate answers a gh write that the access level permits with `ask`, so Copilot prompts the user. A session where nobody can answer a prompt denies every such call. A session launched from T3 in ACP mode is one: at the `propose` level, no gh write works there. When the hook process is started with `AGENT_ACCESS_COPILOT_ASK=allow`, the Copilot adapter turns that `ask` into `allow`, with the same reason text and the same rewrite. Any other value, or no value, keeps the prompt. The workspace's generated Copilot launcher sets the variable for T3 sessions. A plain interactive `copilot` keeps the prompt.
+
+The switch changes only an `ask`. A denial stays a denial, and the access level still decides what is permitted. The agent cannot set the switch. The hook reads it from its own process environment, which a tool call does not control, and a tool argument with the same name is ignored. The Claude path ignores it.
+
+**Environment.** In the hook process both `COPILOT_PLUGIN_ROOT` and `CLAUDE_PLUGIN_ROOT` are set. The tool's own shell does not have them.
+
+**Several plugins.** Hooks from several plugins run in sequence, and a later hook sees the command as an earlier one rewrote it. The gate decides on the command it receives, so a rewrite by another plugin is what it reads. Its own rewrite is not re-checked by a later hook.
+
+The Copilot limits are listed under Known limits.
+
 ## Differences from the previous gate
 
 The gate resolves a working directory to its real path before it names the repository. Four cases differ from the previous gate on `main`. Each is intended and has a test. Every other committed cell gives the same decision as `main`: the OpenCode command text and environment match byte for byte, and the Claude hook gives the same action (`tests/parity.test.ts`).
@@ -85,6 +138,13 @@ The gate resolves a working directory to its real path before it names the repos
 - **The Claude side mints nothing in the hook.** A token that cannot be minted is refused by the launcher at run time, not by the hook at decision time.
 - **The resolver and the broker are not ours.** The resolver's catalog read runs git without a timeout, and the broker's HTTP calls have none. The launcher bounds a token mint at 20 seconds and gives up on it, but cannot cancel the call underneath.
 - **Read-only `allow` is a prompt choice, not a control.** The gate decision is the same with `allow` or `ask`; only the prompt differs.
+- **Copilot: a hook timeout is not measured here.** The Copilot docs summary says a `PreToolUse` hook that times out falls through to Copilot's normal permission flow, not to a deny. The hook has a 60 second `timeoutSec`, and the plugin answers at its 45 second outer kill, so the plugin's own deny comes first. The timeout behaviour itself has not been measured.
+- **Copilot: the PowerShell rewrite is not yet measured live.** The `modifiedArgs` rewrite was measured with a POSIX-style command, and the new command ran. The PowerShell form of the rewrite is tested by running it through `powershell.exe` in `tests/copilot-powershell.test.ts`, not in a live Copilot session.
+- **Copilot: a PowerShell gh call runs under Windows PowerShell 5.1.** The launcher starts `powershell.exe` on Windows (`pwsh` elsewhere) with `-EncodedCommand`. A double quote inside a single-quoted argument to a native command is not passed intact by 5.1: `'say "hi"'` reaches `gh` as `say hi` when `gh` is a `.cmd` shim. Not verified against the real `gh.exe`.
+- **Copilot: the Git Bash lookup uses the Claude variable.** A Bash gh call on Windows still reads `CLAUDE_CODE_GIT_BASH_PATH` and then `git` on `PATH`. Copilot has no variable of its own here.
+- **Copilot: the model writes launcher lines.** Measured: after seeing its gh calls in rewritten form, the model composed launcher lines with payloads of its own. The hook answers them as described above, and denies any it cannot read. The session note asks the model not to write them. That is an instruction, not a control.
+- **Copilot: a later hook can rewrite the command after this one.** Hooks from several plugins run in sequence, and a later hook sees this hook's rewrite. The gate does not run again on what a later hook changes.
+- **Copilot: `ask` in a cloud agent run.** The Copilot docs summary says a cloud agent treats `ask` as `deny`. This is not measured here.
 
 ## MCP servers
 

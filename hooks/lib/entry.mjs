@@ -2,7 +2,7 @@
 // the resolver's catalog read is synchronous with no timeout of its own, so an in-process
 // timer cannot bound it. The hook process therefore runs the handler in a worker process
 // (hooks/worker.mjs) and kills it at the outer limit. A killed worker gets the same budget
-// rule the handler uses (budgetAnswer in claude.mjs): a write is denied and a read passes.
+// rule the handler uses (budgetAnswer of the runtime, hooks/lib/runtime.mjs): a write is denied and a read passes.
 // A worker that fails for any other reason fails closed for PreToolUse (exit 2).
 
 import { spawnSync as nodeSpawnSync } from "node:child_process";
@@ -12,7 +12,7 @@ import {
   PRE_TOOL_USE_BUDGET,
   SESSION_START_BUDGET,
 } from "../../lib/budget.mjs";
-import { budgetAnswer } from "./claude.mjs";
+import { runtimeNamed } from "./runtime.mjs";
 
 export const WORKER = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -32,20 +32,22 @@ export function budgetFor(kind) {
 }
 
 // The hook's own JSON answer for a worker that was killed: a deny for a write, nothing for a
-// read. The input may not parse, which the budget rule treats as a write.
+// read. The input may not parse, which the budget rule treats as a write. The answer is the
+// runtime's budget rule.
 /**
  * @param {string} input
  * @param {boolean} blockOnError
+ * @param {(input: any, options: { blockOnError: boolean }) => object | null} answer
  * @returns {string}
  */
-function killedAnswer(input, blockOnError) {
+function killedAnswer(input, blockOnError, answer) {
   let parsed;
   try {
     parsed = JSON.parse(input);
   } catch {
     parsed = undefined;
   }
-  const output = budgetAnswer(parsed, { blockOnError });
+  const output = answer(parsed, { blockOnError });
   return output ? `${JSON.stringify(output)}\n` : "";
 }
 
@@ -66,9 +68,10 @@ function wasKilled(result) {
  *   input: string,
  *   stdout: (text: string) => void,
  *   stderr: (text: string) => void,
+ *   runtime?: string,
  *   spawn?: typeof nodeSpawnSync,
  *   worker?: string,
- * }} run
+ * }} run runtime names the hook runtime (hooks/lib/runtime.mjs); it defaults to claude
  * @returns {number}
  */
 export function runGuardedHook({
@@ -76,11 +79,15 @@ export function runGuardedHook({
   input,
   stdout,
   stderr,
+  runtime = "claude",
   spawn = nodeSpawnSync,
   worker = WORKER,
 }) {
   const blockOnError = kind === "pre";
-  const result = spawn(process.execPath, [worker, kind], {
+  // Throws for an unknown runtime, before any worker starts. The entry point turns that into
+  // its own failure answer.
+  const { budgetAnswer } = runtimeNamed(runtime);
+  const result = spawn(process.execPath, [worker, kind, runtime], {
     input,
     encoding: "utf8",
     timeout: budgetFor(kind).killMs,
@@ -89,7 +96,7 @@ export function runGuardedHook({
   });
 
   if (wasKilled(result)) {
-    const answer = killedAnswer(input, blockOnError);
+    const answer = killedAnswer(input, blockOnError, budgetAnswer);
     if (answer) stdout(answer);
     return 0;
   }

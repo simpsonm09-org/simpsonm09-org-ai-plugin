@@ -10,7 +10,11 @@
 // adapters do the I/O (access.mjs, lib/fleet.mjs); this module only sees their answers.
 
 import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
-import { canonicalCommand, programName } from "./lib/program.mjs";
+import {
+  canonicalCommand,
+  programName,
+  readShellWord,
+} from "./lib/program.mjs";
 
 const FALLBACK_LEVEL = "read";
 
@@ -82,15 +86,42 @@ export function shouldInject(command) {
 }
 
 // Split a shell command on whitespace and quotes, the same light parse the resolver
-// uses. Only enough to reach the command and its git push remote.
+// uses. Only enough to reach the command and its git push remote. A PowerShell command is
+// split by the PowerShell reading of its words (lib/program.mjs), so a doubled quote and a
+// backtick mean what PowerShell makes of them.
+/**
+ * @param {string} command
+ * @param {"bash" | "powershell"} [shell]
+ * @returns {string[]}
+ */
+export function tokenize(command, shell = "bash") {
+  if (shell === "powershell") return tokenizePowerShell(command);
+  return (command.match(/"[^"]*"|'[^']*'|\S+/g) ?? [])
+    .map((token) => token.replace(/^["']|["']$/g, ""))
+    .filter(Boolean);
+}
+
+// The words of a PowerShell command. A word the reader does not take (an unquoted $, backtick,
+// or parenthesis) is kept as typed, so a push with a variable in it is still seen as a push.
 /**
  * @param {string} command
  * @returns {string[]}
  */
-export function tokenize(command) {
-  return (command.match(/"[^"]*"|'[^']*'|\S+/g) ?? [])
-    .map((token) => token.replace(/^["']|["']$/g, ""))
-    .filter(Boolean);
+function tokenizePowerShell(command) {
+  const words = [];
+  let i = 0;
+  while (i < command.length) {
+    if (/\s/.test(command[i])) {
+      i += 1;
+      continue;
+    }
+    const read = readShellWord(command, i, "powershell");
+    const end = read ? read.end : i + command.slice(i).match(/^\S+/)[0].length;
+    const word = read ? read.word : command.slice(i, end);
+    if (word) words.push(word);
+    i = end;
+  }
+  return words;
 }
 
 // The remote a git push targets: the first non-flag token after "git push", defaulting
@@ -99,10 +130,11 @@ export function tokenize(command) {
 // command that is not a git push, so the caller passes no URL.
 /**
  * @param {string} command
+ * @param {"bash" | "powershell"} [shell]
  * @returns {string | null}
  */
-export function pushRemote(command) {
-  const parts = tokenize(command);
+export function pushRemote(command, shell = "bash") {
+  const parts = tokenize(command, shell);
   if (programName(parts[0] ?? "") !== "git" || parts[1] !== "push") return null;
   const tokens = parts.slice(2).filter((token) => !token.startsWith("-"));
   const first = tokens[0];
@@ -323,7 +355,7 @@ function unresolvedAnswer(command) {
 // repos-only path rule answers. A cwd outside a fleet repository passes without a resolver
 // call.
 /**
- * @param {{ command: string }} input
+ * @param {{ command: string, shell?: "bash" | "powershell" }} input the dialect defaults to bash
  * @param {{
  *   cwd: string,
  *   workspaceRoot?: string,
@@ -342,7 +374,7 @@ export function decideShell(input, deps) {
   const repo = found.repo;
   if (!repo) return { action: "pass", repo: null, level: FALLBACK_LEVEL };
 
-  const remote = pushRemote(command);
+  const remote = pushRemote(command, input.shell);
   const remoteUrl = remote ? deps.remoteUrl(remote, deps.cwd) : null;
   const result = deps.resolve(repo, command, remoteUrl);
   const classification = classifyResolver(result);

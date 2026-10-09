@@ -39,6 +39,7 @@ The Pi build gates the `bash` tool through the same decision. Its known limits, 
 
 - A child `pi --mode rpc` does not inherit a parent's `-e` extension. The package must be in the saved settings `packages` list for a child to load the gate.
 - `pi -p` inside bash passes, because the gate reads the first word only.
+- The ask switch reaches child processes. The launcher wrapper sets `AGENT_ACCESS_PI_ASK` for the whole Pi process tree. The agent's bash can start a child `pi` with the variable in its command, and that child's asks are rewritten. Denials still apply to it.
 - The edit and write tools can change extension files, and they are not gated.
 - Extensions run with full privileges in the Pi process, and the gate has no time budget of its own.
 - rpc mode: `ctx.hasUI` is true, `ctx.mode` is `"rpc"`, and `ui.confirm` exists, but nobody answers. The confirm resolves `false` after 3000 ms, so without `AGENT_ACCESS_PI_ASK=allow` every ask is refused after a 3 s stall.

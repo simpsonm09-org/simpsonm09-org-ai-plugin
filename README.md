@@ -118,7 +118,7 @@ The Copilot limits are listed under Known limits.
 - A denial blocks the call with the gate's reason.
 - A read-only gh call is rewritten to run through the launcher, with no prompt.
 - Any other allowed gh call is an ask. A session with a prompt asks the person: yes runs it through the launcher, no blocks it. A session with no prompt blocks it.
-- With `AGENT_ACCESS_PI_ASK` set to exactly `allow`, an ask is rewritten through the launcher when nobody is at the prompt: an rpc session, a session whose `ctx.mode` is missing or unknown, or a session with no `ctx.ui.confirm`. A TUI session (`ctx.mode` `"tui"` or `"interactive"`) still asks the person. The switch changes only an ask, and the launcher wrapper sets it, not the agent. It is read from the extension process's own environment.
+- With `AGENT_ACCESS_PI_ASK` set to exactly `allow`, an ask is rewritten through the launcher without a prompt in two cases: an rpc session (`ctx.mode` is `"rpc"`), and a session with no prompt (`ctx.hasUI` is not true, or `ctx.ui.confirm` is not a function). Every other session with a prompt still asks the person, including a TUI session and a session whose `ctx.mode` is missing or unknown. An unanswered prompt resolves false, so it blocks. The switch changes only an ask. It is read from the extension process's own environment.
 
 **rpc mode.** A live probe of `pi --mode rpc` (how T3 Code drives Pi) found that `ctx.hasUI` is true, `ctx.mode` is `"rpc"`, and `ctx.ui.confirm` exists. With nobody answering, Pi emits an `extension_ui_request` and resolves the confirm to `false` after 3000 ms. Without the switch, every ask in that session is therefore refused after a 3 s stall. With the switch, the ask is rewritten at once and no confirm is sent.
 
@@ -130,6 +130,7 @@ The Copilot limits are listed under Known limits.
 
 - **Child agents do not inherit a parent's `-e` extension.** A child `pi --mode rpc` is gated only when this package is in the saved settings `packages` list, not when the parent was started with `-e`.
 - **`pi -p` in bash passes.** The gate reads the first word, so `pi -p "..."` run through the bash tool is decided as a `pi` command, not by what the child agent runs.
+- **The ask switch reaches child processes.** The launcher wrapper sets `AGENT_ACCESS_PI_ASK` for the whole Pi process tree, and the agent cannot set it for its parent. The agent's bash can, however, start a child `pi` with the variable in its command. A child has no person at its prompt, so its asks are rewritten. Under the wrapper the variable is already set, so this adds nothing a wrapped session does not have, and denials still apply to a child. The same shape as the Copilot switch.
 - **The edit and write tools are not gated.** They can change this extension's files, and no gh call goes through them.
 - **Extensions run with full privileges.** The gate is a control on the agent's own tool calls. It is not a sandbox for code the agent can run.
 - **No time budget.** The gate runs in the Pi process, not in a worker, so the resolver's catalog read, which has no timeout (see the resolver limit under Known limits), is not bounded by a hook budget.

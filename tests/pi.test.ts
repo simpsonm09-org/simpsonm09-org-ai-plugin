@@ -285,18 +285,29 @@ test("a TUI session still prompts the person when the ask switch is set", async 
   }
 });
 
-test("a session with no mode, or an unknown one, is not interactive, so the switch rewrites its ask", async () => {
+// Only rpc is rewritten under the switch. A missing or unknown mode with a prompt is asked, so an
+// unanswered prompt resolves false and the call is blocked (fail closed).
+test("a session with a prompt but no known mode is asked even with the switch, and a refusal blocks", async () => {
   process.env[PI_ASK_VARIABLE] = "allow";
   try {
     for (const mode of [undefined, "some-future-mode"]) {
-      const session = ui(false);
-      const { result } = await run("gh pr merge 1", {
+      const refuse = ui(false);
+      const refused = await run("gh pr merge 1", {
         level: "merge",
         mode,
-        ui: session,
+        ui: refuse,
       });
-      assert.deepEqual(session.asked, [], `mode ${mode}`);
-      assert.equal(result, undefined, `mode ${mode}`);
+      assert.equal(refuse.asked.length, 1, `mode ${mode}`);
+      assert.equal(refused.result?.block, true, `mode ${mode}`);
+
+      const approve = ui(true);
+      const approved = await run("gh pr merge 1", {
+        level: "merge",
+        mode,
+        ui: approve,
+      });
+      assert.equal(approve.asked.length, 1, `mode ${mode}`);
+      assert.equal(approved.result, undefined, `mode ${mode}`);
     }
   } finally {
     delete process.env[PI_ASK_VARIABLE];
@@ -367,6 +378,16 @@ test("a directory outside the fleet is not gated", async () => {
     level: "read",
   });
   assert.equal(result, undefined);
+  assert.equal(command, "gh pr merge 1");
+});
+
+test("the tool name is matched without regard to case, so Bash is gated too", async () => {
+  const { result, command } = await run("gh pr merge 1", {
+    toolName: "Bash",
+    level: "read",
+  });
+  assert.equal(result?.block, true);
+  assert.match(result?.reason, /denies this command at level "read"/);
   assert.equal(command, "gh pr merge 1");
 });
 

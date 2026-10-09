@@ -35,6 +35,8 @@ let outFile = "";
 let demo = "";
 
 before(() => {
+  // The tests below assume the switch is unset, whatever the terminal that started them exports.
+  delete process.env.AGENT_ACCESS_COPILOT_ASK;
   if (!WINDOWS) return;
   ws = tempDir("copilot-ps-");
   buildWorkspace(ws, { level: "read" });

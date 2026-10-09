@@ -101,6 +101,21 @@ export function preToolUseOutput(claude) {
   return output;
 }
 
+// The opt-in that turns the gate's `ask` into `allow` on Copilot, for sessions where no one can
+// answer a prompt (the T3 launcher sets it). It is read from the hook process's environment and
+// nothing else: the agent's tool call cannot set it. It changes only an `ask`. A denial stays a
+// denial, and the access level still decides what is permitted.
+export const ASK_VARIABLE = "AGENT_ACCESS_COPILOT_ASK";
+
+/**
+ * Whether the hook process was started with the ask switch set to exactly "allow".
+ * @param {Record<string, string | undefined>} [env]
+ * @returns {boolean}
+ */
+export function askIsAllowed(env = process.env) {
+  return env[ASK_VARIABLE] === "allow";
+}
+
 /**
  * @param {any} input
  * @param {{ workspaceRoot?: string, env?: Record<string, string | undefined> }} [options]
@@ -113,7 +128,10 @@ export async function handlePreToolUse(input, options = {}) {
     ...options,
     toolShells: true,
   });
-  return preToolUseOutput(claude);
+  const output = preToolUseOutput(claude);
+  if (output?.permissionDecision === "ask" && askIsAllowed())
+    return { ...output, permissionDecision: "allow" };
+  return output;
 }
 
 /**

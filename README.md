@@ -100,6 +100,12 @@ The answer grants nothing the plain command would not get. Claude is unchanged: 
 
 On Copilot the SessionStart context adds one sentence: gh commands may appear rewritten through a token launcher, the agent should keep typing plain `gh` and `git` commands, and it must never write the launcher line itself. That sentence is an instruction to the model, not a control.
 
+**The ask switch (`AGENT_ACCESS_COPILOT_ASK`).** The gate answers a gh write that the access level permits with `ask`, so Copilot prompts the user. A session where nobody can answer a prompt denies every such call. A session launched from T3 in ACP mode is one: at the `propose` level, no gh write works there. When the hook process is started with `AGENT_ACCESS_COPILOT_ASK=allow`, the Copilot adapter turns that `ask` into `allow`, with the same reason text and the same rewrite. Any other value, or no value, keeps the prompt. The workspace's generated Copilot launcher sets the variable for T3 sessions. A plain interactive `copilot` keeps the prompt.
+
+The switch changes only an `ask`. A denial stays a denial, and the access level still decides what is permitted. The agent cannot set the switch. The hook reads it from its own process environment, which a tool call does not control, and a tool argument with the same name is ignored. The Claude path ignores it.
+
+One case is wider than the rest. A launcher line that wraps a plain command the gate passes (for example a branch push) is unwrapped to that command, and under the switch it is `allow`, not `ask`. Without the switch it is `ask`. The access level does not decide such a command, so with the switch on, the wrapped form skips the prompt that the plain command would get. This is the one place where the switch grants more than the access level does.
+
 **Environment.** In the hook process both `COPILOT_PLUGIN_ROOT` and `CLAUDE_PLUGIN_ROOT` are set. The tool's own shell does not have them.
 
 **Several plugins.** Hooks from several plugins run in sequence, and a later hook sees the command as an earlier one rewrote it. The gate decides on the command it receives, so a rewrite by another plugin is what it reads. Its own rewrite is not re-checked by a later hook.

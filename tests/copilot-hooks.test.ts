@@ -106,6 +106,8 @@ const cwdOf = (rel: string) => join(ws, ...rel.split("/"));
 const DEMO = "projects/repos/demo-repo";
 
 before(() => {
+  // The tests below assume the switch is unset, whatever the terminal that started them exports.
+  delete process.env.AGENT_ACCESS_COPILOT_ASK;
   ws = tempDir("copilot-hooks-");
   buildWorkspace(ws, { level: "read" });
 });

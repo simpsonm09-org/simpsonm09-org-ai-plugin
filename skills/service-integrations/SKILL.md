@@ -145,14 +145,14 @@ kustomize build overlays/dev
 
 ## Secrets via `infisical`
 
-The workspace loads its secrets from a self-hosted Infisical through the loaders, not by calling `infisical` directly. WSL loads the workspace `.envrc` through direnv; Windows runs `just import-secrets -Apply` in `simpsonm09-dev-setup`. The project is personal; see the personal layer.
+The workspace reads its secrets from a self-hosted Infisical through `with-secrets` (a human, one command) or `with-vault` (brokered), not by calling `infisical` directly. No shell loads them, and `.envrc` no longer does; see `simpsonm09-dev-setup/docs/secrets.md`. The project is personal; see the personal layer. The steps below are the CLI's own, for reference. `with-secrets` runs the store steps itself.
 
 ```bash
 infisical login --method=universal-auth --plain --silent
 infisical export --token "$TOKEN" --projectId "$INFISICAL_PROJECT_ID" --env dev --format json
 ```
 
-A brokered service is reached through a wrapper, not a raw tool. The agent runs `with-vault --role agent <tool> [args]`; the human runs `with-secrets <tool> [args]` or `with-vault --role human <tool> [args]`. `with-vault` attaches the credential at the proxy and keeps it out of the environment; `with-secrets` loads the values into that one command's environment. Discord and Postman are brokered this way. The identities and the bundles are personal; see the personal layer.
+A brokered service is reached through a wrapper, not a raw tool. The agent runs `with-vault --role agent <tool> [args]`; the human runs `with-secrets --require <names> <tool> [args]` or `with-vault --role human <tool> [args]`. `with-vault` attaches the credential at the proxy and keeps it out of the environment; `with-secrets` loads the values into that one command's environment. Discord and Postman are brokered this way. The identities and the bundles are personal; see the personal layer.
 
 ## Code search
 

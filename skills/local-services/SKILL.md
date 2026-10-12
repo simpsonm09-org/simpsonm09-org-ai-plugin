@@ -63,11 +63,11 @@ infisical login --method=universal-auth --plain --silent
 infisical export --token "$TOKEN" --projectId "$INFISICAL_PROJECT_ID" --env dev --format json
 ```
 
-The loaders do this for you. WSL loads the workspace `.envrc` through direnv; Windows runs `just import-secrets -Apply` in `simpsonm09-dev-setup`. See `simpsonm09-dev-setup/docs/secrets.md`.
+A human runs a command that needs these values through `with-secrets --require <names> <tool>`. It logs in, exports the store, and puts the values into that one command's environment; no shell holds them. There is no `.envrc` loader any more; see `simpsonm09-dev-setup/docs/secrets.md`.
 
-Secrets are rotated in Infisical, then the loader is rerun and the runtime restarted. Never write a value into a repository.
+Secrets are rotated in Infisical. A foreground process started through `with-secrets` keeps its values until it restarts, so restart it after a rotation. Never write a value into a repository.
 
-The stack also runs the Agent Vault, which brokers a service credential to a tool through a local proxy. The proxy runs as a systemd user service on port 17323 with `Restart=always` and linger enabled. Reach a brokered tool through the `with-secrets` or `with-vault` wrapper; see the `service-integrations` registry.
+The stack also runs the Agent Vault, which brokers a service credential to a tool through a local proxy. The proxy runs as a systemd user service on port 17323 with `Restart=always` and linger enabled. The agent reaches a brokered tool through `with-vault --role agent <tool>`; a human uses `with-vault --role human <tool>` or `with-secrets`. See the `service-integrations` registry.
 
 ## DbGate
 
@@ -81,5 +81,5 @@ docker network connect infisical_infisical dbgate
 
 - Run `docker` inside WSL (`wsl -- docker ...`), never as a bare command in Windows `cmd`, PowerShell, or Git Bash.
 - Reach the UIs through the Windows browser at `localhost`.
-- Read secrets from Infisical through the loaders. Never write a value into a repository.
-- Restart the runtime after a secret change so it inherits the new values.
+- Read secrets through `with-secrets --require <names>` for a human or `with-vault` for the agent. Never write a value into a repository.
+- Restart a process started through `with-secrets` after a secret change so it inherits the new values.

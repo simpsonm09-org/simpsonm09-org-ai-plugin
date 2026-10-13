@@ -18,6 +18,7 @@ try {
       blockOnError: true,
       budgetMs: PRE_TOOL_USE_BUDGET.budgetMs,
       answer: runtime.budgetAnswer,
+      write: runtime.writeStdout,
     });
   } else {
     await runHook(runtime.handleSessionStart, {

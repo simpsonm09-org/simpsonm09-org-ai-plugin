@@ -161,6 +161,21 @@ test("a gh call from a directory the lookup cannot resolve is a denied write", (
   assert.equal(decision.action, "deny");
 });
 
+test("a repository missing from the catalog gets an actionable write denial", () => {
+  const decision = decideShell(
+    { command: "git push origin main" },
+    {
+      ...deps(unknown).deps,
+      resolve: () => ({ ...unknown, catalogMissing: true }),
+    },
+  );
+  assert.equal(decision.action, "deny");
+  assert.match(
+    decision.reason ?? "",
+    /demo-repo is not in the fleet catalog \(simpsonm09-org\/simpsonm09-repo-catalog, repo-catalog\/repos\.json\); add it there before agents can write to it/,
+  );
+});
+
 test("PowerShell is recognized from a Windows-style path on any platform", () => {
   assert.equal(
     isPowerShell("C:\\Program Files\\PowerShell\\7\\pwsh.exe"),
@@ -298,8 +313,40 @@ test("a resolver module that throws is an unknown answer, not a crash", () => {
   };
   assert.deepEqual(
     resolveAccess(api, "unused", "demo-repo", "git push origin main", null),
-    { code: 2, stdout: "" },
+    { code: 2, stdout: "", catalogMissing: false },
   );
+});
+
+test("an unknown answer says catalog missing only after a readable catalog confirms it", () => {
+  const catalogMissing = resolveAccess(
+    {
+      loadCatalog: () => ({ repos: [] }),
+      resolveLevel: () => ({ level: "read", source: "unknown" }),
+      decide: () => {
+        throw new Error("resolver unavailable");
+      },
+    },
+    undefined,
+    "demo-repo",
+    "git push origin main",
+    null,
+  );
+  assert.equal(catalogMissing.catalogMissing, true);
+
+  const unreadable = resolveAccess(
+    {
+      loadCatalog: () => {
+        throw new Error("catalog parse error");
+      },
+      resolveLevel: () => ({ level: "read", source: "unknown" }),
+      decide: () => ({ capability: null, allowed: false }),
+    },
+    undefined,
+    "demo-repo",
+    "git push origin main",
+    null,
+  );
+  assert.equal(unreadable.catalogMissing, false);
 });
 
 test("a missing resolver script is an unknown answer, and the level falls back to read", () => {

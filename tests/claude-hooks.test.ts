@@ -206,6 +206,36 @@ test("a denied PowerShell write is denied, and an ungoverned PowerShell command 
   );
 });
 
+test("Claude's PowerShell tool denies a call-operator git push like the plain form", async () => {
+  const denied = await pre(
+    "PowerShell",
+    "& 'git' push no-such-remote main",
+    cwdOf("projects/repos/demo-repo"),
+  );
+  assert.equal(denied?.hookSpecificOutput.permissionDecision, "deny");
+  assert.equal(
+    await pre(
+      "PowerShell",
+      "$x = git rev-parse HEAD; Write-Output $x",
+      cwdOf("projects/repos/demo-repo"),
+    ),
+    null,
+  );
+});
+
+test("Claude denies a write with a relative cwd instead of resolving it from the hook process", async () => {
+  const answer = await pre(
+    "Bash",
+    "git push no-such-remote main",
+    "projects/repos/demo-repo",
+  );
+  assert.equal(answer?.hookSpecificOutput.permissionDecision, "deny");
+  assert.match(
+    answer?.hookSpecificOutput.permissionDecisionReason,
+    /working directory is relative/i,
+  );
+});
+
 test("a call to the launcher as a program is denied, in any simple command", () => {
   const launcher = join(repoDir, "bin", "with-gh-token.mjs");
   for (const command of [

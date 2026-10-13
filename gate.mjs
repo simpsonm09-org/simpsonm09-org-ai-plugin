@@ -19,7 +19,7 @@ import {
 const FALLBACK_LEVEL = "read";
 
 /**
- * @typedef {{ code: number, stdout: string }} CliResult
+ * @typedef {{ code: number, stdout: string, catalogMissing?: boolean }} CliResult
  * @typedef {(repo: string, command: string, remoteUrl: string | null) => CliResult} Resolver
  * @typedef {(remote: string, cwd: string) => string | null} RemoteUrlLookup
  * @typedef {"allow" | "deny" | "unknown"} Classification
@@ -369,7 +369,7 @@ export function decideShell(input, deps) {
   const found = deps.lookup
     ? deps.lookup(deps.cwd)
     : { repo: repoFromCwd(deps.cwd, deps.workspaceRoot ?? "") };
-  const command = canonicalCommand(input.command);
+  const command = canonicalCommand(programCommand(input.command, input.shell));
   if (found.unresolved) return unresolvedAnswer(command);
   const repo = found.repo;
   if (!repo) return { action: "pass", repo: null, level: FALLBACK_LEVEL };
@@ -395,7 +395,9 @@ export function decideShell(input, deps) {
         action: "deny",
         repo,
         level,
-        reason: `${repo} could not be resolved for a write`,
+        reason: result.catalogMissing
+          ? `${repo} is not in the fleet catalog (simpsonm09-org/simpsonm09-repo-catalog, repo-catalog/repos.json); add it there before agents can write to it`
+          : `the access resolver could not answer for ${repo}; check that the catalog and resolver are available before running this write`,
       };
     }
     return { action: "pass", repo, level };
@@ -403,6 +405,21 @@ export function decideShell(input, deps) {
 
   if (shouldInject(command)) return { action: "inject", repo, level };
   return { action: "pass", repo, level };
+}
+
+// In PowerShell `&` is the call operator: it runs the word after it as a program, so that
+// word is the program word. Drop a leading `&` before the program is read, and the
+// executable-spelling handling in canonicalCommand reads the word itself (`& 'git' push` is
+// decided as `git push`). Only a `&` that is a token of its own counts. Nothing else is read:
+// a separator, a pipeline, or an assignment is decided by its first command, as in Bash.
+/**
+ * @param {string} command
+ * @param {"bash" | "powershell"} [shell]
+ * @returns {string}
+ */
+function programCommand(command, shell) {
+  if (shell !== "powershell") return command;
+  return command.replace(/^(\s*)&(?=\s)\s*/, "$1");
 }
 
 // The OpenCode side of the decision. It applies the decision to the command holder and

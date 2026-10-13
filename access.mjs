@@ -119,10 +119,20 @@ function catalogFor(api) {
  * @returns {CliResult}
  */
 function accessFromApi(api, repo, command, remoteUrl) {
-  const resolved = api.resolveLevel(catalogFor(api), repo);
+  const catalog = catalogFor(api);
+  const resolved = api.resolveLevel(catalog, repo);
   const level =
     typeof resolved.level === "string" ? resolved.level : fallbackLevel();
-  const decision = api.decide(level, command, remoteUrl);
+  let decision;
+  try {
+    decision = api.decide(level, command, remoteUrl);
+  } catch {
+    return {
+      code: 2,
+      stdout: "",
+      catalogMissing: resolved.source === "unknown",
+    };
+  }
   return {
     code: decision.allowed ? 0 : 1,
     stdout: JSON.stringify({
@@ -130,6 +140,7 @@ function accessFromApi(api, repo, command, remoteUrl) {
       capability: decision.capability,
       allowed: decision.allowed,
     }),
+    ...(resolved.source === "unknown" ? { catalogMissing: true } : {}),
   };
 }
 
@@ -179,7 +190,7 @@ export function resolveAccess(api, script, repo, command, remoteUrl) {
     try {
       return accessFromApi(api, repo, command, remoteUrl);
     } catch {
-      return { code: 2, stdout: "" };
+      return { code: 2, stdout: "", catalogMissing: false };
     }
   }
   if (!script || !existsSync(script)) return { code: 2, stdout: "" };

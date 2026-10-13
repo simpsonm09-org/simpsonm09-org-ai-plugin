@@ -51,6 +51,21 @@ function killedAnswer(input, blockOnError, answer) {
   return output ? `${JSON.stringify(output)}\n` : "";
 }
 
+/**
+ * A runtime may define a protocol-specific fatal answer. Other runtimes keep their established
+ * budget/error behavior and output unchanged.
+ * @param {string} runtimeName
+ * @param {string} input
+ * @param {string} failureClass
+ * @returns {object | null}
+ */
+function runtimeFailureAnswer(runtimeName, input, failureClass) {
+  const runtime = runtimeNamed(runtimeName);
+  return typeof runtime.failureAnswer === "function"
+    ? runtime.failureAnswer(input, failureClass)
+    : null;
+}
+
 // Whether a failed worker run was the outer limit (a kill at timeout) rather than a failure to
 // start or a crash.
 /**
@@ -96,11 +111,28 @@ export function runGuardedHook({
   });
 
   if (wasKilled(result)) {
-    const answer = killedAnswer(input, blockOnError, budgetAnswer);
-    if (answer) stdout(answer);
+    const answer = runtimeFailureAnswer(
+      runtime,
+      input,
+      "time budget exceeded",
+    );
+    if (answer) stdout(`${JSON.stringify(answer)}\n`);
+    else {
+      const budget = killedAnswer(input, blockOnError, budgetAnswer);
+      if (budget) stdout(budget);
+    }
     return 0;
   }
   if (result.error || result.status === null) {
+    const answer = runtimeFailureAnswer(
+      runtime,
+      input,
+      "worker could not start",
+    );
+    if (answer) {
+      stdout(`${JSON.stringify(answer)}\n`);
+      return 0;
+    }
     stderr(
       `simpsonm09-org-ai-plugin hook could not run its worker (${result.error?.message ?? "no exit status"}).\n`,
     );
@@ -108,6 +140,11 @@ export function runGuardedHook({
   }
   if (result.status === 0) {
     if (result.stdout) stdout(result.stdout);
+    return 0;
+  }
+  const answer = runtimeFailureAnswer(runtime, input, "gate or worker failure");
+  if (answer) {
+    stdout(`${JSON.stringify(answer)}\n`);
     return 0;
   }
   if (result.stderr) stderr(result.stderr);

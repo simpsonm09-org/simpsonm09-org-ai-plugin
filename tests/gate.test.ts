@@ -337,6 +337,10 @@ test("gateShellEdit fails closed on an unknown resolver for a write", async () =
   );
 
   assert.equal(decision.action, "deny");
+  assert.match(
+    decision.reason ?? "",
+    /access resolver could not answer for demo-repo; check that the catalog and resolver are available before running this write/,
+  );
   assert.match(input.command, /exit 1/);
 });
 

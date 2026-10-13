@@ -6,10 +6,12 @@
 
 import * as claude from "./claude.mjs";
 import * as copilot from "./copilot.mjs";
+import * as codex from "./codex.mjs";
 
 const RUNTIMES = new Map([
   ["claude", claude],
   ["copilot", copilot],
+  ["codex", codex],
 ]);
 
 /**

@@ -10,7 +10,7 @@
 // for a read or "ask" for anything else. A call the hook cannot evaluate is a deny for a
 // write and a pass for a read, and a malformed call is an error (exit 2) in the entry point.
 
-import { dirname, resolve } from "node:path";
+import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   defaultScripts,
@@ -123,15 +123,20 @@ export function powershellLauncherCommand(payload, launcher = LAUNCHER) {
   return `& ${powerShellQuote(process.execPath)} ${powerShellQuote(launcher)} ${powerShellQuote(encodePayload(payload))}`;
 }
 
-// The dialect a call's command is read in. Claude reads every command as Bash, as it always has.
-// On Copilot (options.toolShells) each shell tool reads its own dialect.
+// The dialect a call's command is read in. Claude reads every command as Bash, as it always
+// has. On Copilot (options.toolShells) each shell tool reads its own dialect. A PowerShell
+// call operator with a literal program name is an executable spelling, so it is read as
+// PowerShell even without toolShells.
 /**
  * @param {string} tool
  * @param {{ toolShells?: boolean }} options
+ * @param {string} command
  * @returns {"bash" | "powershell"}
  */
-function dialectOf(tool, options) {
-  return options.toolShells && tool === "PowerShell" ? "powershell" : "bash";
+function dialectOf(tool, options, command) {
+  if (tool !== "PowerShell") return "bash";
+  if (options.toolShells) return "powershell";
+  return /^\s*&\s/.test(command) ? "powershell" : "bash";
 }
 
 // The trusted workspace of this plugin, from its own location. A call may inject a workspace
@@ -222,7 +227,7 @@ function gitHubCallOutput(call, decision, workspaceRoot, options) {
       ),
     );
   }
-  const shell = dialectOf(call.tool, options);
+  const shell = dialectOf(call.tool, options, call.command);
   const payload = {
     workspace: workspaceRoot,
     repo: decision.repo ?? "",
@@ -275,6 +280,13 @@ const LAUNCHER_DENIAL = "the GitHub token launcher is not for direct use";
  */
 async function answerCall(call, command, options) {
   const workspaceRoot = trustedWorkspace(options);
+  if (call.cwd && !isAbsolute(call.cwd) && isWriteCommand(command)) {
+    return denyOutput(
+      denyMessage(
+        "the working directory is relative and cannot be checked safely; retry with an absolute cwd",
+      ),
+    );
+  }
   if (!call.cwd || !workspaceRoot) {
     if (!isWriteCommand(command)) return null;
     const reason = call.cwd
@@ -287,7 +299,7 @@ async function answerCall(call, command, options) {
     command,
     call.cwd,
     workspaceRoot,
-    dialectOf(call.tool, options),
+    dialectOf(call.tool, options, call.command),
   );
   if (decision.action === "deny")
     return denyOutput(
@@ -360,7 +372,7 @@ function plainCommandOf(base64) {
 async function launcherLineAnswer(call, options) {
   const base64 = launcherLinePayload(
     call.command,
-    dialectOf(call.tool, options),
+    dialectOf(call.tool, options, call.command),
   );
   const plain = base64 === null ? null : plainCommandOf(base64);
   // A plain command that runs the launcher is denied here, not decided again.

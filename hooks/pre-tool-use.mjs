@@ -9,16 +9,33 @@
 // the call on exit 2 and on any other non-zero exit.
 
 try {
-  const { readHookInput, runGuardedHook } = await import("./lib/entry.mjs");
+  const [{ readHookInput, runGuardedHook }, { runtimeNamed }] =
+    await Promise.all([
+      import("./lib/entry.mjs"),
+      import("./lib/runtime.mjs"),
+    ]);
+  const runtime = runtimeNamed(process.argv[2]);
+  runtime.installLastResortHandlers?.(runtime.writeStdout);
   const input = await readHookInput();
   process.exitCode = runGuardedHook({
     kind: "pre",
     runtime: process.argv[2],
     input,
-    stdout: (text) => process.stdout.write(text),
+    stdout: runtime.writeStdout ?? ((text) => process.stdout.write(text)),
     stderr: (text) => process.stderr.write(text),
   });
 } catch (error) {
+  try {
+    const { runtimeNamed } = await import("./lib/runtime.mjs");
+    const runtime = runtimeNamed(process.argv[2]);
+    if (typeof runtime.failureAnswer === "function") {
+      runtime.writeStdout(`${JSON.stringify(runtime.failureAnswer('{"hook_event_name":"PreToolUse"}', "hook could not start"))}\n`);
+      process.exitCode = 0;
+      process.exit(0);
+    }
+  } catch {
+    // Preserve the existing startup failure response for unknown runtimes.
+  }
   const message = error instanceof Error ? error.message : String(error);
   process.stderr.write(
     `simpsonm09-org-ai-plugin hook could not start (${message}), so the command is blocked.\n`,

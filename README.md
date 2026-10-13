@@ -19,6 +19,7 @@ It is CLI-first and contributes no MCP server. It contributes the shared skills 
 - `.github/plugin/plugin.json` and `hooks/copilot-hooks.json` are the GitHub Copilot CLI build of the same plugin. `hooks/lib/copilot.mjs` is its adapter, and `hooks/lib/runtime.mjs` picks the adapter from the hook's first argument.
 - `bin/with-gh-token.mjs` is the launcher that runs an allowed `gh` command with a token. `bin/payload.mjs` is the payload it reads.
 - `skills/` holds the skills the plugin registers.
+- `workspace-instructions.md` contains the layer's always-on working agreements. Every session pays for this text, so detailed procedures belong in skills.
 
 ## The agent access gate
 

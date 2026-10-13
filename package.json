@@ -25,7 +25,8 @@
     ".github/plugin",
     "hooks",
     "bin",
-    "lib"
+    "lib",
+    "workspace-instructions.md"
   ],
   "scripts": {
     "test": "node --test"

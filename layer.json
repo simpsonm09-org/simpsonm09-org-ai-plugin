@@ -3,6 +3,7 @@
   "description": "Shared OpenCode layer for the simpsonm09-org organization.",
   "kind": "config",
   "config": "opencode.fragment.jsonc",
+  "workspaceInstructions": "workspace-instructions.md",
   "files": [
     "index.ts",
     "pi",
@@ -15,6 +16,7 @@
     ".github/plugin",
     "hooks",
     "bin",
-    "lib"
+    "lib",
+    "workspace-instructions.md"
   ]
 }

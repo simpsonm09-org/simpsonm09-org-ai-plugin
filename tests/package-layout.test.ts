@@ -35,6 +35,7 @@ const PUBLISHED = [
   "hooks",
   "bin",
   "lib",
+  "workspace-instructions.md",
 ];
 
 // The files the runtime loads on its own: the OpenCode entry, the two hook scripts, the hook

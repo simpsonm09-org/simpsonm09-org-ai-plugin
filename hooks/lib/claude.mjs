@@ -195,12 +195,13 @@ function parseCall(input) {
  * @param {string} cwd
  * @param {string} workspaceRoot
  * @param {"bash" | "powershell"} shell
+ * @param {"codex"} [runtime]
  */
-async function decideCall(command, cwd, workspaceRoot, shell) {
+async function decideCall(command, cwd, workspaceRoot, shell, runtime) {
   const scripts = defaultScripts(workspaceRoot);
   const api = await loadAccessApi(scripts.access);
   return decideShell(
-    { command, shell },
+    { command, shell, runtime },
     {
       cwd,
       lookup: (dir) => fleetLookup(dir, workspaceRoot),
@@ -275,7 +276,7 @@ const LAUNCHER_DENIAL = "the GitHub token launcher is not for direct use";
 /**
  * @param {NonNullable<ReturnType<typeof parseCall>>} call
  * @param {string} command the command to decide: the call's own, or a launcher line's plain command
- * @param {{ workspaceRoot?: string, env?: Record<string, string | undefined>, toolShells?: boolean }} options
+ * @param {{ workspaceRoot?: string, env?: Record<string, string | undefined>, toolShells?: boolean, runtime?: "codex" }} options
  * @returns {Promise<object | null>}
  */
 async function answerCall(call, command, options) {
@@ -300,6 +301,7 @@ async function answerCall(call, command, options) {
     call.cwd,
     workspaceRoot,
     dialectOf(call.tool, options, call.command),
+    options.runtime,
   );
   if (decision.action === "deny")
     return denyOutput(
@@ -366,7 +368,7 @@ function plainCommandOf(base64) {
 // through the normal permission flow, which a wrapped one must not skip.
 /**
  * @param {NonNullable<ReturnType<typeof parseCall>>} call
- * @param {{ workspaceRoot?: string, env?: Record<string, string | undefined>, toolShells?: boolean }} options
+ * @param {{ workspaceRoot?: string, env?: Record<string, string | undefined>, toolShells?: boolean, runtime?: "codex" }} options
  * @returns {Promise<object | null>}
  */
 async function launcherLineAnswer(call, options) {
@@ -388,7 +390,7 @@ async function launcherLineAnswer(call, options) {
 //   - Anything else is answered by answerCall.
 /**
  * @param {any} input
- * @param {{ workspaceRoot?: string, env?: Record<string, string | undefined>, toolShells?: boolean }} [options]
+ * @param {{ workspaceRoot?: string, env?: Record<string, string | undefined>, toolShells?: boolean, runtime?: "codex" }} [options]
  *   toolShells is set by the Copilot adapter: each shell tool reads its own dialect, a
  *   PowerShell gh call is rewritten through the launcher instead of denied, and a launcher line
  *   is answered by the plain command it carries.

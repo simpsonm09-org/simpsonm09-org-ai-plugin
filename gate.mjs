@@ -355,7 +355,7 @@ function unresolvedAnswer(command) {
 // repos-only path rule answers. A cwd outside a fleet repository passes without a resolver
 // call.
 /**
- * @param {{ command: string, shell?: "bash" | "powershell" }} input the dialect defaults to bash
+ * @param {{ command: string, shell?: "bash" | "powershell", runtime?: "codex" }} input the dialect defaults to bash
  * @param {{
  *   cwd: string,
  *   workspaceRoot?: string,
@@ -366,19 +366,37 @@ function unresolvedAnswer(command) {
  * @returns {Decision}
  */
 export function decideShell(input, deps) {
+  const command = canonicalCommand(programCommand(input.command, input.shell));
   const found = deps.lookup
     ? deps.lookup(deps.cwd)
     : { repo: repoFromCwd(deps.cwd, deps.workspaceRoot ?? "") };
-  const command = canonicalCommand(programCommand(input.command, input.shell));
-  if (found.unresolved) return unresolvedAnswer(command);
+  if (found.unresolved) {
+    if (input.runtime === "codex" && isWriteCommand(command))
+      return codexWriteDenial();
+    return unresolvedAnswer(command);
+  }
   const repo = found.repo;
-  if (!repo) return { action: "pass", repo: null, level: FALLBACK_LEVEL };
+  if (!repo) {
+    if (input.runtime === "codex" && isWriteCommand(command))
+      return codexWriteDenial();
+    return { action: "pass", repo: null, level: FALLBACK_LEVEL };
+  }
 
   const remote = pushRemote(command, input.shell);
   const remoteUrl = remote ? deps.remoteUrl(remote, deps.cwd) : null;
   const result = deps.resolve(repo, command, remoteUrl);
   const classification = classifyResolver(result);
-  const level = parseResolverOutput(result.stdout)?.level ?? FALLBACK_LEVEL;
+  const resolved = parseResolverOutput(result.stdout);
+  const level = resolved?.level ?? FALLBACK_LEVEL;
+
+  // The resolver's capability is the existing command classification for a GitHub write.
+  // For an unknown resolver result, preserve the gate's established conservative fallback.
+  if (
+    input.runtime === "codex" &&
+    (resolved?.capability !== null && resolved?.capability !== undefined ||
+      (classification === "unknown" && isWriteCommand(command)))
+  )
+    return codexWriteDenial(repo, level);
 
   if (classification === "deny") {
     return {
@@ -405,6 +423,16 @@ export function decideShell(input, deps) {
 
   if (shouldInject(command)) return { action: "inject", repo, level };
   return { action: "pass", repo, level };
+}
+
+function codexWriteDenial(repo = null, level = FALLBACK_LEVEL) {
+  return {
+    action: "deny",
+    repo,
+    level,
+    reason:
+      "Codex does not report which folder a command runs in, so GitHub writes from Codex are blocked in every repository. Push or open the pull request from Claude, OpenCode or Copilot.",
+  };
 }
 
 // In PowerShell `&` is the call operator: it runs the word after it as a program, so that

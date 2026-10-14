@@ -8,6 +8,7 @@ import { dirname, join, resolve } from "node:path";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { tokenize } from "../gate.mjs";
+import { handlePreToolUse as handleClaudePreToolUse } from "../hooks/lib/claude.mjs";
 import { handlePreToolUse, normalizeCall } from "../hooks/lib/codex.mjs";
 import { runGuardedHook } from "../hooks/lib/entry.mjs";
 import { runtimeNamed } from "../hooks/lib/runtime.mjs";
@@ -97,8 +98,63 @@ test("the measured Codex payload allows an ordinary command and denies a blocked
   assert.deepEqual(
     answer,
     jsonDeny(
-      'agent-access: denied: demo-repo denies this command at level "read"',
+      "agent-access: denied: Codex does not report which folder a command runs in, so GitHub writes from Codex are blocked in every repository. Push or open the pull request from Claude, OpenCode or Copilot.",
     ),
+  );
+});
+
+test("Codex blocks classified GitHub writes regardless of cwd and access level", async () => {
+  writeCatalog(ws, "full");
+  const reason =
+    "agent-access: denied: Codex does not report which folder a command runs in, so GitHub writes from Codex are blocked in every repository. Push or open the pull request from Claude, OpenCode or Copilot.";
+  const fullRepo = cwdOf("projects/repos/demo-repo");
+  const outsideRepo = cwdOf("projects/other/x");
+
+  assert.deepEqual(
+    await handlePreToolUse(measured(fullRepo, "git push origin main"), {
+      workspaceRoot: ws,
+      env: TOKEN_ENV,
+    }),
+    jsonDeny(reason),
+  );
+  for (const command of [
+    "git push origin main",
+    `git -C "${fullRepo}" push origin main`,
+    "gh pr create --title test",
+  ]) {
+    assert.deepEqual(
+      await handlePreToolUse(measured(outsideRepo, command), {
+        workspaceRoot: ws,
+        env: TOKEN_ENV,
+      }),
+      jsonDeny(reason),
+    );
+  }
+});
+
+test("Codex still allows reads and Claude still allows full-access GitHub writes", async () => {
+  writeCatalog(ws, "full");
+  const repo = cwdOf("projects/repos/demo-repo");
+  for (const command of ["git status --short", "git log"]) {
+    assert.equal(
+      await handlePreToolUse(measured(repo, command), {
+        workspaceRoot: ws,
+        env: TOKEN_ENV,
+      }),
+      null,
+    );
+  }
+
+  assert.equal(
+    await handleClaudePreToolUse(
+      {
+        tool_name: "Bash",
+        tool_input: { command: "git push origin main" },
+        cwd: repo,
+      },
+      { workspaceRoot: ws, env: TOKEN_ENV },
+    ),
+    null,
   );
 });
 
@@ -123,7 +179,7 @@ test("Bash maps to PowerShell on win32 and Bash elsewhere", () => {
   });
 });
 
-test("a gate ask becomes a deny explaining that Codex cannot request human approval", async () => {
+test("Codex denies GitHub writes before they can become gate asks", async () => {
   const answer = await decide(
     measured(cwdOf("projects/repos/demo-repo"), "gh pr create --title test"),
     "full",
@@ -131,7 +187,7 @@ test("a gate ask becomes a deny explaining that Codex cannot request human appro
   assert.equal(answer?.hookSpecificOutput.permissionDecision, "deny");
   assert.match(
     answer?.hookSpecificOutput.permissionDecisionReason,
-    /needs human approval.*Codex PreToolUse cannot request.*ask a human to approve/i,
+    /Codex does not report which folder.*blocked in every repository/i,
   );
 });
 

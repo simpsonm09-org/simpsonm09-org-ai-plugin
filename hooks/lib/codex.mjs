@@ -63,6 +63,7 @@ export async function handlePreToolUse(input, options = {}) {
     workspaceRoot: options.workspaceRoot,
     env: options.env,
     toolShells: true,
+    runtime: "codex",
   });
   const hook = answer?.hookSpecificOutput;
   if (hook?.permissionDecision === "ask") {

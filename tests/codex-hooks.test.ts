@@ -194,7 +194,7 @@ test("Codex uses conservative GitHub write text evidence", async () => {
 
   assert.deepEqual(
     await handlePreToolUse(
-      measured("C:/unresolved", "sudo env X=1 git push origin main"),
+      measured(join(ws, "unresolved"), "sudo env X=1 git push origin main"),
       {
         workspaceRoot: ws,
         env: TOKEN_ENV,
@@ -216,7 +216,7 @@ test("Codex uses conservative GitHub write text evidence", async () => {
     `node -e "console.log('git push origin main')"`,
   ]) {
     assert.deepEqual(
-      await handlePreToolUse(measured("C:/unresolved", command), {
+      await handlePreToolUse(measured(join(ws, "unresolved"), command), {
         workspaceRoot: ws,
         env: TOKEN_ENV,
       }),

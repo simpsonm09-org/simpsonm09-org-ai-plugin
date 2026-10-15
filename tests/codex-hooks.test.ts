@@ -181,9 +181,7 @@ test("Codex uses conservative GitHub write text evidence", async () => {
 
   const reason =
     "agent-access: denied: Codex does not report which folder a command runs in, so GitHub writes from Codex are blocked in every repository. Push or open the pull request from Claude, OpenCode or Copilot.";
-  for (const command of [
-    "git push origin main",
-  ]) {
+  for (const command of ["git push origin main"]) {
     assert.deepEqual(
       await handlePreToolUse(measured(repo, command), {
         workspaceRoot: ws,
@@ -195,10 +193,13 @@ test("Codex uses conservative GitHub write text evidence", async () => {
   }
 
   assert.deepEqual(
-    await handlePreToolUse(measured("C:/unresolved", "sudo env X=1 git push origin main"), {
-      workspaceRoot: ws,
-      env: TOKEN_ENV,
-    }),
+    await handlePreToolUse(
+      measured("C:/unresolved", "sudo env X=1 git push origin main"),
+      {
+        workspaceRoot: ws,
+        env: TOKEN_ENV,
+      },
+    ),
     jsonDeny(reason),
     "recognizable write text remains denied when the directory is unresolved",
   );

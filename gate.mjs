@@ -3,11 +3,12 @@
 // rewrites a denied command and injects GH_TOKEN; the Claude Code hook calls decideShell
 // and maps its action onto a PreToolUse answer. The rules live here and nowhere else:
 // which fleet repository a directory belongs to, what the resolver decides for a
-// command, and when a gh command gets a token.
+// command, when Codex's conservative GitHub-write rule applies, and when gh gets a token.
 //
-// The decision is the resolver's, made from the first command only (see README "Known
-// limits"). This module adds no segment analysis, verb table, or token-name rule. The
-// adapters do the I/O (access.mjs, lib/fleet.mjs); this module only sees their answers.
+// The resolver decision is made from the first command only (see README "Known limits"). The
+// separate fail-closed classifier recognizes actual gh and git push command positions for
+// Codex and unresolved decisions; it does not scan arbitrary arguments. The adapters do the
+// I/O (access.mjs, lib/fleet.mjs); this module only sees their answers.
 
 import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
 import {
@@ -292,10 +293,69 @@ export function parseResolverOutput(stdout) {
  * @returns {boolean}
  */
 export function isWriteCommand(command) {
-  if (shouldInject(command)) return true;
-  return /(^|\s)(push|merge|delete|remove|create|close|reopen|tag|release|transfer|archive)(\s|$)/.test(
-    command,
-  );
+  return shellCommandSegments(command).some((segment) => {
+    const parts = tokenize(segment);
+    let program = 0;
+    if (parts[program] === "&") program += 1;
+    while (
+      ["command", "env", "sudo"].includes(programName(parts[program] ?? ""))
+    )
+      program += 1;
+    const name = programName(parts[program] ?? "");
+    if (["bash", "sh", "dash", "zsh"].includes(name)) {
+      const commandFlag = parts.findIndex(
+        (part) => part === "-c" || part === "--command",
+      );
+      return commandFlag >= 0 && isWriteCommand(parts[commandFlag + 1] ?? "");
+    }
+    if (["pwsh", "powershell"].includes(name)) {
+      const commandFlag = parts.findIndex(
+        (part) => part === "-command" || part === "-c",
+      );
+      return commandFlag >= 0 && isWriteCommand(parts[commandFlag + 1] ?? "");
+    }
+    if (name === "gh") return true;
+    if (name !== "git") return false;
+    let subcommandIndex = program + 1;
+    while (parts[subcommandIndex]?.startsWith("-") && subcommandIndex < parts.length) {
+      const option = parts[subcommandIndex++];
+      if (["-C", "-c", "--git-dir", "--work-tree"].includes(option)) subcommandIndex += 1;
+    }
+    const subcommand = parts[subcommandIndex];
+    return subcommand === "push";
+  });
+}
+
+// Find simple shell command boundaries without interpreting their arguments. This lets the
+// fail-closed classifier notice a governed command after a chain operator while leaving words
+// in quoted file contents and command arguments inert. It intentionally does not expand shell
+// syntax or try to parse substitutions.
+function shellCommandSegments(command) {
+  const segments = [];
+  let start = 0;
+  let quote = "";
+  for (let i = 0; i < command.length; i += 1) {
+    const char = command[i];
+    if (quote) {
+      if (char === quote && (quote !== "'" || command[i - 1] !== "\\")) quote = "";
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      quote = char;
+      continue;
+    }
+    if (char === "\\") {
+      i += 1;
+      continue;
+    }
+    if (char === ";" || char === "|" || char === "&" || char === "\n") {
+      segments.push(command.slice(start, i));
+      if ((char === "|" || char === "&") && command[i + 1] === char) i += 1;
+      start = i + 1;
+    }
+  }
+  segments.push(command.slice(start));
+  return segments;
 }
 
 // Refresh a cached installation token five minutes before it expires.
@@ -381,6 +441,9 @@ export function decideShell(input, deps) {
       return codexWriteDenial();
     return { action: "pass", repo: null, level: FALLBACK_LEVEL };
   }
+
+  if (input.runtime === "codex" && isWriteCommand(command))
+    return codexWriteDenial(repo);
 
   const remote = pushRemote(command, input.shell);
   const remoteUrl = remote ? deps.remoteUrl(remote, deps.cwd) : null;

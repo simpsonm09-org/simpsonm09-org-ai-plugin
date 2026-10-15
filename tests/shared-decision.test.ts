@@ -305,7 +305,7 @@ test("a broker script that only ships a CLI mints its token in a Node child proc
 
 test("a resolver module that throws is an unknown answer, not a crash", () => {
   const api = {
-    loadCatalog: () => {
+    loadCommittedCatalog: () => {
       throw new Error("no catalog");
     },
     resolveLevel: () => ({}),
@@ -320,7 +320,7 @@ test("a resolver module that throws is an unknown answer, not a crash", () => {
 test("an unknown answer says catalog missing only after a readable catalog confirms it", () => {
   const catalogMissing = resolveAccess(
     {
-      loadCatalog: () => ({ repos: [] }),
+      loadCommittedCatalog: () => ({ repos: [] }),
       resolveLevel: () => ({ level: "read", source: "unknown" }),
       decide: () => {
         throw new Error("resolver unavailable");
@@ -335,7 +335,7 @@ test("an unknown answer says catalog missing only after a readable catalog confi
 
   const unreadable = resolveAccess(
     {
-      loadCatalog: () => {
+      loadCommittedCatalog: () => {
         throw new Error("catalog parse error");
       },
       resolveLevel: () => ({ level: "read", source: "unknown" }),

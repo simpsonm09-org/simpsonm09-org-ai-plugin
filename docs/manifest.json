@@ -1,3 +1,4 @@
 {
-  "readme": true
+  "readme": true,
+  "features": ["docs/features/pinned-gate-resolver.md"]
 }

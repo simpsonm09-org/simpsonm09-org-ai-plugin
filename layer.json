@@ -17,6 +17,7 @@
     "hooks",
     "bin",
     "lib",
+    "runtime",
     "workspace-instructions.md"
   ]
 }

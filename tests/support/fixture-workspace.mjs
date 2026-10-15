@@ -1,31 +1,20 @@
 // A throwaway workspace for the gate tests. It has the layout the plugin trusts
-// (projects/repos, projects/worktrees), the frozen copy of the installed resolver where the
-// plugin expects it, a catalog that sets one level, real local git clones with the remotes
+// (projects/repos, projects/worktrees), a committed catalog, real local git clones with the remotes
 // the cells use, and a real worktree. Nothing here reaches the network: remotes are only
 // names in .git/config, and the token broker is a literal stub.
 
 import { execFileSync } from "node:child_process";
 import {
-  copyFileSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-
-const here = dirname(fileURLToPath(import.meta.url));
-
-// The frozen copy of scripts/agent-access.mjs from the installed repo-standard clone.
-export const FROZEN_RESOLVER = resolve(
-  here,
-  "..",
-  "fixtures",
-  "installed-agent-access.mjs",
-);
+import { join, resolve } from "node:path";
 
 // The token the stub broker mints. A literal, never a credential.
 export const FIXTURE_TOKEN = "fixture-token-not-real";
@@ -45,7 +34,7 @@ export const CLONES = [
 ];
 
 /**
- * Write the catalog the frozen resolver reads: demo-repo and fork-repo at the given level.
+ * Write the catalog working tree: demo-repo and fork-repo at the given level.
  * @param {string} workspace
  * @param {string} level
  */
@@ -59,10 +48,15 @@ export function writeCatalog(workspace, level) {
       { name: "fork-repo", tier: "standard", agentAccess: level },
     ],
   };
-  writeFileSync(
-    join(dir, "repos.json"),
-    `${JSON.stringify(catalog, null, 2)}\n`,
-  );
+  const path = join(dir, "repos.json");
+  const content = `${JSON.stringify(catalog, null, 2)}\n`;
+  if (existsSync(path) && readFileSync(path, "utf8") === content) return;
+  writeFileSync(path, content);
+  if (existsSync(join(dir, ".git"))) {
+    git(dir, ["add", "repos.json"]);
+    git(dir, ["commit", "--quiet", "--no-verify", "-m", "fixture catalog update"]);
+    git(dir, ["update-ref", "refs/remotes/upstream/main", "HEAD"]);
+  }
 }
 
 /**
@@ -101,12 +95,22 @@ export function buildWorkspace(dir, { level = "read" } = {}) {
     "scripts",
   );
   mkdirSync(standard, { recursive: true });
-  copyFileSync(FROZEN_RESOLVER, join(standard, "agent-access.mjs"));
   writeFileSync(
     join(standard, "agent-token.mjs"),
     `export async function mintForRepo() {\n  return { token: ${JSON.stringify(FIXTURE_TOKEN)}, expires_at: "2099-01-01T00:00:00Z" };\n}\n`,
   );
   writeCatalog(workspace, level);
+  const catalog = join(
+    workspace,
+    "projects",
+    "repos",
+    "simpsonm09-repo-catalog",
+  );
+  git(catalog, ["init", "--quiet", "-b", "main"]);
+  git(catalog, ["add", "repos.json"]);
+  git(catalog, ["commit", "--quiet", "--no-verify", "-m", "fixture catalog"]);
+  git(catalog, ["remote", "add", "upstream", "https://github.com/simpsonm09-org/simpsonm09-repo-catalog.git"]);
+  git(catalog, ["update-ref", "refs/remotes/upstream/main", "HEAD"]);
 
   for (const clone of CLONES) {
     const path = join(workspace, "projects", "repos", clone.name);

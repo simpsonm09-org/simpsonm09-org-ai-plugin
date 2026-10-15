@@ -36,6 +36,7 @@ function workspaceRootFor(options: unknown): string {
 interface Scripts {
   access: string;
   token: string;
+  catalog: string;
 }
 
 // The resolver and broker default to the repo-standard clone in the workspace. A caller
@@ -48,6 +49,7 @@ function scriptsFor(options: unknown, workspaceRoot: string): Scripts {
   return {
     access: configured?.access ?? defaults.access,
     token: configured?.token ?? defaults.token,
+    catalog: defaults.catalog,
   };
 }
 
@@ -146,7 +148,7 @@ export default Plugin.define({
         cwd: input.cwd,
         lookup: () => found,
         resolve: (name, command, remoteUrl) =>
-          resolveAccess(accessApi, scripts.access, name, command, remoteUrl),
+          resolveAccess(accessApi, scripts.catalog, name, command, remoteUrl),
         remoteUrl: gitRemoteUrl,
         tokenFor: (name) => tokenFor(tokenApi, scripts.token, name),
       });
@@ -157,7 +159,7 @@ export default Plugin.define({
       if (!repo) return;
       event.system.push({
         type: "text",
-        text: contextLine(repo, levelFor(accessApi, repo)),
+        text: contextLine(repo, levelFor(accessApi, repo, scripts.catalog)),
       });
     });
   },

@@ -3,8 +3,7 @@
 // rewritten command, the ask prompt, and the fail-closed paths. Pi is not run. The handler is
 // called with the event Pi sends and a stub context, and nothing the handler rewrites is run.
 //
-// Every test runs with PATH set to a stub directory (tests/support/stub-path.mjs), so a real gh
-// or git on the machine is never reached from here.
+// Every test uses a restricted PATH with a fake gh and Git for local committed-catalog reads.
 
 import assert from "node:assert/strict";
 import { cpSync, existsSync, readFileSync } from "node:fs";
@@ -22,7 +21,7 @@ import {
   writeCatalog,
 } from "./support/fixture-workspace.mjs";
 import { COMMANDS, CWDS } from "./support/parity-cells.mjs";
-import { findOnPath, makeStubDir } from "./support/stub-path.mjs";
+import { findOnPath, makeStubDir, stubPath } from "./support/stub-path.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoDir = resolve(here, "..");
@@ -43,7 +42,7 @@ before(() => {
   ws = tempDir("pi-ws-");
   buildWorkspace(ws, { level: "read" });
   stubDir = makeStubDir({ bash });
-  process.env.PATH = stubDir;
+  process.env.PATH = stubPath(stubDir);
   process.env.CLAUDE_CODE_GIT_BASH_PATH = process.execPath;
   delete process.env[PI_ASK_VARIABLE];
 });

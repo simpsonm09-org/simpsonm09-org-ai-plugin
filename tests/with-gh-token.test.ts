@@ -19,7 +19,7 @@ import {
   tempDir,
   writeCatalog,
 } from "./support/fixture-workspace.mjs";
-import { findOnPath, makeStubDir } from "./support/stub-path.mjs";
+import { findOnPath, makeStubDir, stubPath } from "./support/stub-path.mjs";
 
 let ws = "";
 let planted = "";
@@ -58,7 +58,7 @@ before(() => {
 
   stubDir = makeStubDir({ bash });
   emptyDir = makeStubDir({ withGh: false, bash });
-  process.env.PATH = stubDir;
+  process.env.PATH = stubPath(stubDir);
 });
 
 after(() => {
@@ -167,7 +167,7 @@ test("an allowed gh read runs in bash with the token only in the child environme
       cwd: fleetCwd(ws),
       env: {
         ...process.env,
-        PATH: stubDir,
+        PATH: stubPath(stubDir),
         CLAUDE_CODE_GIT_BASH_PATH: bashPath,
       },
       log: () => {},
@@ -191,7 +191,7 @@ test("an allowed gh.exe read runs in bash with the token, as the plain gh read d
       cwd: fleetCwd(ws),
       env: {
         ...process.env,
-        PATH: stubDir,
+        PATH: stubPath(stubDir),
         CLAUDE_CODE_GIT_BASH_PATH: bashPath,
       },
       log: () => {},

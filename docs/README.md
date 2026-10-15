@@ -7,3 +7,5 @@
 ## Release notes
 
 - [Pin the access resolver in the plugin package](release-notes/2026-10-15-pinned-gate-resolver.md) describes the resolver update.
+- [Conservative GitHub write detection](release-notes/2026-10-15-conservative-write-detection.md) describes Codex's bounded text-based write signal.
+- [Trust direct Claude plugin copies](release-notes/2026-10-15-trust-direct-claude-plugin-copy.md) describes the recognized Claude install layout.

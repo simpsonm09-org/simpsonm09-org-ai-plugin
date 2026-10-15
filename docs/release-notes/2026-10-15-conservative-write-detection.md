@@ -1,0 +1,3 @@
+# Conservative GitHub write detection
+
+Codex follows the resolver's write capability for a recognized fleet repository; a null capability continues to allow a resolver-classified read. When repository lookup or resolver classification is unavailable, Codex conservatively treats recognizable `gh` and `git push` text as evidence of a write. That fallback may deny quoted examples or wrappers, including local text that merely contains command examples. Detection does not parse shell syntax or evaluate variables, and variable-built executable names remain unsupported. Claude and OpenCode behavior is unchanged.

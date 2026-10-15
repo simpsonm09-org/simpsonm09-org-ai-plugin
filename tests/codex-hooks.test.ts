@@ -158,6 +158,86 @@ test("Codex still allows reads and Claude still allows full-access GitHub writes
   );
 });
 
+test("Codex uses conservative GitHub write text evidence", async () => {
+  writeCatalog(ws, "full");
+  const repo = cwdOf("projects/repos/demo-repo");
+  for (const command of [
+    `node -e "const message = 'create merge push';"`,
+    `node -e "console.log('delete remove close release')"`,
+    `node -e "const message = 'create merge push delete';"`,
+    "git status --short",
+    "git log --oneline",
+    "gh pr list",
+  ]) {
+    assert.equal(
+      await handlePreToolUse(measured(repo, command), {
+        workspaceRoot: ws,
+        env: TOKEN_ENV,
+      }),
+      null,
+      command,
+    );
+  }
+
+  const reason =
+    "agent-access: denied: Codex does not report which folder a command runs in, so GitHub writes from Codex are blocked in every repository. Push or open the pull request from Claude, OpenCode or Copilot.";
+  for (const command of ["git push origin main"]) {
+    assert.deepEqual(
+      await handlePreToolUse(measured(repo, command), {
+        workspaceRoot: ws,
+        env: TOKEN_ENV,
+      }),
+      jsonDeny(reason),
+      command,
+    );
+  }
+
+  assert.deepEqual(
+    await handlePreToolUse(
+      measured(join(ws, "unresolved"), "sudo env X=1 git push origin main"),
+      {
+        workspaceRoot: ws,
+        env: TOKEN_ENV,
+      },
+    ),
+    jsonDeny(reason),
+    "recognizable write text remains denied when the directory is unresolved",
+  );
+
+  for (const command of [
+    "command gh pr merge 1",
+    "echo local; git push origin main",
+    `bash -c "git push origin main"`,
+    `bash -lc 'git push origin main'`,
+    `powershell -Command "gh pr merge 1"`,
+    `env GIT_TRACE=1 sudo git push origin main`,
+    `cmd /c "gh pr merge 1"`,
+    `echo $(gh pr merge 1)`,
+    `node -e "console.log('git push origin main')"`,
+  ]) {
+    assert.deepEqual(
+      await handlePreToolUse(measured(join(ws, "unresolved"), command), {
+        workspaceRoot: ws,
+        env: TOKEN_ENV,
+      }),
+      jsonDeny(reason),
+      command,
+    );
+  }
+
+  assert.equal(
+    await handleClaudePreToolUse(
+      {
+        tool_name: "Bash",
+        tool_input: { command: "git push origin main" },
+        cwd: repo,
+      },
+      { workspaceRoot: ws, env: TOKEN_ENV },
+    ),
+    null,
+  );
+});
+
 test("Bash maps to PowerShell on win32 and Bash elsewhere", () => {
   assert.deepEqual(normalizeCall(measured("C:/w", "npm test"), "win32"), {
     tool_name: "PowerShell",

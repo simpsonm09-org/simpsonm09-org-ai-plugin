@@ -3,11 +3,12 @@
 // rewrites a denied command and injects GH_TOKEN; the Claude Code hook calls decideShell
 // and maps its action onto a PreToolUse answer. The rules live here and nowhere else:
 // which fleet repository a directory belongs to, what the resolver decides for a
-// command, and when a gh command gets a token.
+// command, when Codex's conservative GitHub-write rule applies, and when gh gets a token.
 //
-// The decision is the resolver's, made from the first command only (see README "Known
-// limits"). This module adds no segment analysis, verb table, or token-name rule. The
-// adapters do the I/O (access.mjs, lib/fleet.mjs); this module only sees their answers.
+// The resolver decision is made from the first command only (see README "Known limits"). The
+// conservative text classifier supplies a write signal for Codex and unresolved decisions.
+// It does not interpret shell syntax. The adapters do the
+// I/O (access.mjs, lib/fleet.mjs); this module only sees their answers.
 
 import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
 import {
@@ -292,10 +293,24 @@ export function parseResolverOutput(stdout) {
  * @returns {boolean}
  */
 export function isWriteCommand(command) {
-  if (shouldInject(command)) return true;
-  return /(^|\s)(push|merge|delete|remove|create|close|reopen|tag|release|transfer|archive)(\s|$)/.test(
-    command,
-  );
+  // Treat quoted payloads, wrappers, and substitutions as evidence too. This intentionally
+  // errs on the side of false positives; it is not a shell parser or a security boundary.
+  const words = command.match(/[^\s"'`();|&<>]+/g) ?? [];
+  for (let index = 0; index < words.length; index += 1) {
+    const name = programName(words[index]);
+    if (name === "gh") return true;
+    if (name !== "git") continue;
+    for (let next = index + 1; next < words.length; next += 1) {
+      const argument = words[next];
+      if (argument === "push") return true;
+      if (["-C", "-c", "--git-dir", "--work-tree"].includes(argument)) {
+        next += 1;
+        continue;
+      }
+      if (!argument.startsWith("-")) break;
+    }
+  }
+  return false;
 }
 
 // Refresh a cached installation token five minutes before it expires.

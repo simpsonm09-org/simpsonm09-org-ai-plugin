@@ -391,6 +391,43 @@ test("a plugin outside every trusted layout denies a write and passes a read", a
   }
 });
 
+test("a direct Claude plugin copy loads its trusted workspace from its own location", async () => {
+  const copy = join(ws, ".claude", "plugins", "simpsonm09-org-ai-plugin");
+  mkdirSync(dirname(copy), { recursive: true });
+  for (const entry of [
+    "hooks",
+    "lib",
+    "bin",
+    "gate.mjs",
+    "access.mjs",
+    "runtime",
+  ]) {
+    cpSync(join(repoDir, entry), join(copy, entry), { recursive: true });
+  }
+
+  const savedRoot = process.env.CLAUDE_PLUGIN_ROOT;
+  process.env.CLAUDE_PLUGIN_ROOT = cwdOf("untrusted/cache/plugin");
+  try {
+    const module = await import(
+      `${pathToFileURL(join(copy, "hooks", "lib", "claude.mjs")).href}?direct-copy`
+    );
+    const denied = await module.handlePreToolUse({
+      tool_name: "Bash",
+      cwd: cwdOf("projects/repos/demo-repo"),
+      tool_input: { command: "git push origin main" },
+    });
+    assert.equal(denied?.hookSpecificOutput.permissionDecision, "deny");
+    assert.match(
+      denied?.hookSpecificOutput.permissionDecisionReason,
+      /demo-repo denies this command at level "read"/,
+      "the installed hook found the workspace resolver without an options.workspaceRoot override",
+    );
+  } finally {
+    if (savedRoot === undefined) delete process.env.CLAUDE_PLUGIN_ROOT;
+    else process.env.CLAUDE_PLUGIN_ROOT = savedRoot;
+  }
+});
+
 test("the SessionStart line names the repository and its level, and a non-fleet session gets nothing", async () => {
   writeCatalog(ws, "propose");
   const started = await handleSessionStart(

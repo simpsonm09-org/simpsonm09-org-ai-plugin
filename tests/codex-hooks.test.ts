@@ -158,12 +158,13 @@ test("Codex still allows reads and Claude still allows full-access GitHub writes
   );
 });
 
-test("Codex classifies GitHub commands instead of write-like argument text", async () => {
+test("Codex uses conservative GitHub write text evidence", async () => {
   writeCatalog(ws, "full");
   const repo = cwdOf("projects/repos/demo-repo");
   for (const command of [
     `node -e "const message = 'create merge push';"`,
     `node -e "console.log('delete remove close release')"`,
+    `node -e "const message = 'create merge push delete';"`,
     "git status --short",
     "git log --oneline",
   ]) {
@@ -184,6 +185,12 @@ test("Codex classifies GitHub commands instead of write-like argument text", asy
     "command gh pr merge 1",
     "echo local; git push origin main",
     `bash -c "git push origin main"`,
+    `bash -lc 'git push origin main'`,
+    `powershell -Command "gh pr merge 1"`,
+    `env GIT_TRACE=1 sudo git push origin main`,
+    `cmd /c "gh pr merge 1"`,
+    `echo $(gh pr merge 1)`,
+    `node -e "console.log('git push origin main')"`,
   ]) {
     assert.deepEqual(
       await handlePreToolUse(measured(repo, command), {
@@ -194,6 +201,15 @@ test("Codex classifies GitHub commands instead of write-like argument text", asy
       command,
     );
   }
+
+  assert.deepEqual(
+    await handlePreToolUse(measured("C:/unresolved", "sudo env X=1 git push origin main"), {
+      workspaceRoot: ws,
+      env: TOKEN_ENV,
+    }),
+    jsonDeny(reason),
+    "recognizable write text remains denied when the directory is unresolved",
+  );
 
   assert.equal(
     await handleClaudePreToolUse(

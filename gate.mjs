@@ -6,8 +6,8 @@
 // command, when Codex's conservative GitHub-write rule applies, and when gh gets a token.
 //
 // The resolver decision is made from the first command only (see README "Known limits"). The
-// separate fail-closed classifier recognizes actual gh and git push command positions for
-// Codex and unresolved decisions; it does not scan arbitrary arguments. The adapters do the
+// conservative text classifier supplies a write signal for Codex and unresolved decisions.
+// It does not interpret shell syntax. The adapters do the
 // I/O (access.mjs, lib/fleet.mjs); this module only sees their answers.
 
 import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
@@ -293,69 +293,24 @@ export function parseResolverOutput(stdout) {
  * @returns {boolean}
  */
 export function isWriteCommand(command) {
-  return shellCommandSegments(command).some((segment) => {
-    const parts = tokenize(segment);
-    let program = 0;
-    if (parts[program] === "&") program += 1;
-    while (
-      ["command", "env", "sudo"].includes(programName(parts[program] ?? ""))
-    )
-      program += 1;
-    const name = programName(parts[program] ?? "");
-    if (["bash", "sh", "dash", "zsh"].includes(name)) {
-      const commandFlag = parts.findIndex(
-        (part) => part === "-c" || part === "--command",
-      );
-      return commandFlag >= 0 && isWriteCommand(parts[commandFlag + 1] ?? "");
-    }
-    if (["pwsh", "powershell"].includes(name)) {
-      const commandFlag = parts.findIndex(
-        (part) => part === "-command" || part === "-c",
-      );
-      return commandFlag >= 0 && isWriteCommand(parts[commandFlag + 1] ?? "");
-    }
+  // Treat quoted payloads, wrappers, and substitutions as evidence too. This intentionally
+  // errs on the side of false positives; it is not a shell parser or a security boundary.
+  const words = command.match(/[^\s"'`();|&<>]+/g) ?? [];
+  for (let index = 0; index < words.length; index += 1) {
+    const name = programName(words[index]);
     if (name === "gh") return true;
-    if (name !== "git") return false;
-    let subcommandIndex = program + 1;
-    while (parts[subcommandIndex]?.startsWith("-") && subcommandIndex < parts.length) {
-      const option = parts[subcommandIndex++];
-      if (["-C", "-c", "--git-dir", "--work-tree"].includes(option)) subcommandIndex += 1;
-    }
-    const subcommand = parts[subcommandIndex];
-    return subcommand === "push";
-  });
-}
-
-// Find simple shell command boundaries without interpreting their arguments. This lets the
-// fail-closed classifier notice a governed command after a chain operator while leaving words
-// in quoted file contents and command arguments inert. It intentionally does not expand shell
-// syntax or try to parse substitutions.
-function shellCommandSegments(command) {
-  const segments = [];
-  let start = 0;
-  let quote = "";
-  for (let i = 0; i < command.length; i += 1) {
-    const char = command[i];
-    if (quote) {
-      if (char === quote && (quote !== "'" || command[i - 1] !== "\\")) quote = "";
-      continue;
-    }
-    if (char === "'" || char === '"') {
-      quote = char;
-      continue;
-    }
-    if (char === "\\") {
-      i += 1;
-      continue;
-    }
-    if (char === ";" || char === "|" || char === "&" || char === "\n") {
-      segments.push(command.slice(start, i));
-      if ((char === "|" || char === "&") && command[i + 1] === char) i += 1;
-      start = i + 1;
+    if (name !== "git") continue;
+    for (let next = index + 1; next < words.length; next += 1) {
+      const argument = words[next];
+      if (argument === "push") return true;
+      if (["-C", "-c", "--git-dir", "--work-tree"].includes(argument)) {
+        next += 1;
+        continue;
+      }
+      if (!argument.startsWith("-")) break;
     }
   }
-  segments.push(command.slice(start));
-  return segments;
+  return false;
 }
 
 // Refresh a cached installation token five minutes before it expires.

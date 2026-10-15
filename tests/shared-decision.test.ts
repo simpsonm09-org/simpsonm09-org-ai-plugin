@@ -161,6 +161,23 @@ test("a gh call from a directory the lookup cannot resolve is a denied write", (
   assert.equal(decision.action, "deny");
 });
 
+test("unresolved shared decisions deny recognizable command text and pass reads", () => {
+  const unresolved = {
+    ...deps(ok).deps,
+    lookup: () => ({ repo: null, unresolved: true }),
+  };
+  for (const command of [
+    `node -e "console.log('gh pr merge 1')"`,
+    `powershell -Command "git push origin main"`,
+    `echo $(gh pr merge 1)`,
+  ]) {
+    assert.equal(decideShell({ command }, unresolved).action, "deny", command);
+  }
+  for (const command of ["git status", "git log --oneline", "npm test"]) {
+    assert.equal(decideShell({ command }, unresolved).action, "pass", command);
+  }
+});
+
 test("a repository missing from the catalog gets an actionable write denial", () => {
   const decision = decideShell(
     { command: "git push origin main" },

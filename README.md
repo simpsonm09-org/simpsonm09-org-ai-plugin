@@ -12,7 +12,7 @@ It is CLI-first and contributes no MCP server. It contributes the shared skills 
 - `opencode.fragment.jsonc` is the fragment `maxstack` merges into the workspace config.
 - `index.ts` and `package.json` are the OpenCode plugin entrypoint. `index.ts` is an adapter; the rules are in `gate.mjs`.
 - `gate.mjs` is the shared decision for one shell command. Both harnesses use it, and nothing else decides.
-- `access.mjs` loads the repo-standard resolver and token broker, caches tokens per repository, and bounds each call with a timeout.
+- `access.mjs` loads the pinned resolver from `runtime/` and the token broker from the repo-standard clone, caches tokens per repository, and bounds each call with a timeout.
 - `lib/` holds the fleet lookup (`fleet.mjs`), the trusted-workspace rule (`location.mjs`), the Git Bash lookup (`bash.mjs`), the program-name rule that makes `gh.exe` and `GIT` the plain names (`program.mjs`), and the hook time budget (`budget.mjs`).
 - `.claude-plugin/plugin.json` and `hooks/` are the Claude Code plugin: a `PreToolUse` gate for the Bash and PowerShell tools, and a `SessionStart` line.
 - `pi/index.ts` is the Pi coding agent extension, declared in `package.json`'s `pi` manifest. `hooks/lib/pi.mjs` is its adapter over the Claude adapter.
@@ -23,7 +23,7 @@ It is CLI-first and contributes no MCP server. It contributes the shared skills 
 
 ## The agent access gate
 
-A shell command that runs in a fleet repository is gated by the repository's agent access level, read from the repo-standard catalog. A fleet repository is a clone at `<workspace>/projects/repos/<repo>`, or a worktree at `<workspace>/projects/worktrees/<name>`, which resolves to its clone through git's common directory. Anything else is not gated.
+A shell command that runs in a fleet repository is gated by the repository's agent access level, read from the committed repo-catalog ref. The plugin loads the resolver bundled at `runtime/agent-access.mjs` only after its SHA-256 matches `runtime/agent-access.pin.json` and the required API exports are present. A missing, corrupt, or unsupported resolver denies writes. The resolver reads only `upstream/main` or `main` from the trusted catalog clone; it does not fall back to an uncommitted catalog file. A fleet repository is a clone at `<workspace>/projects/repos/<repo>`, or a worktree at `<workspace>/projects/worktrees/<name>`, which resolves to its clone through git's common directory. Anything else is not gated.
 
 The decision is the resolver's, made from the first command only, in both dialects. PowerShell adds one rule: a leading call operator with a literal program name is read as that program, so `& git push origin main` is decided as `git push origin main`. A denied command is rewritten (OpenCode) or denied (hook runtimes), and an allowed `gh` command gets a GitHub App token for its repository in its environment (`GH_TOKEN`). A write the gate cannot resolve is denied; a read it cannot resolve passes.
 
@@ -58,7 +58,7 @@ To add a skill, create `skills/<id>/SKILL.md` with `name` and `description` fron
 
 ## How it gets loaded
 
-This repository is not installed on its own. [`simpsonm09-maxstack`](https://github.com/simpsonm09-org/simpsonm09-maxstack)'s `scripts/Install-Workspace.ps1 -Apply` copies it to `<workspace>/.opencode/plugins/simpsonm09-org-ai-plugin` and links `<workspace>/.claude/plugins/simpsonm09-org-ai-plugin` to that copy.
+This repository is not installed on its own. [`simpsonm09-maxstack`](https://github.com/simpsonm09-org/simpsonm09-maxstack)'s `scripts/Install-Workspace.ps1 -Apply` copies the files listed in `layer.json` to `<workspace>/.opencode/plugins/simpsonm09-org-ai-plugin` and links `<workspace>/.claude/plugins/simpsonm09-org-ai-plugin` to that copy. `runtime/` is part of that list and contains the pinned resolver and its provenance metadata.
 
 - OpenCode needs no setting. It finds the workspace `.opencode` folder by walking up from the repository or worktree.
 - Claude Code must be started with `--plugin-dir <workspace>/.claude/plugins`. In T3 Code that goes in the Claude provider instance's "Launch arguments". Without it a Claude Code session has neither the skills nor the access gate.
@@ -205,7 +205,13 @@ mise run lint    # flint over the changed files; CI runs flint run --full
 mise run test    # node --test over tests/
 ```
 
-The tests need no sibling checkout. The resolver they run is a frozen copy of the installed `scripts/agent-access.mjs` in `tests/fixtures/installed-agent-access.mjs`. The differential in `tests/parity.test.ts` compares the current code with recorded HEAD outcomes in `tests/fixtures/parity-golden.json`. They cover the skill loader and the layer contract, the gate and its helpers, the fleet lookup against real git worktrees, the Claude hook and its entry points, the launcher's trust checks and a real Git Bash run, and the runtime's import graph.
+The tests run the packaged resolver against temporary catalog git repositories with committed refs. They do not need a sibling checkout or credentials. `tests/parity.test.ts` compares the current code with recorded HEAD outcomes in `tests/fixtures/parity-golden.json`. The suite covers the skill loader and layer contract, the gate and its helpers, the fleet lookup against real git worktrees, the Claude hook and its entry points, the launcher's trust checks and a real Git Bash run, and the runtime's import graph.
+
+## Refresh the pinned resolver
+
+The resolver source is pinned to `simpsonm09-org/simpsonm09-repo-standard` commit `5da707371e38c6391df83d13b487a01253379457`, path `scripts/agent-access.mjs`. The plugin verifies the bundled bytes against SHA-256 `82e78536f740f1354091182770fadbf6364574d22c52162effeb9d861eb20792` before importing them.
+
+To check the bundle, run `just check-gate-resolver`. To reproduce it, run `just refresh-gate-resolver`. The command reads the exact commit from the local standard clone and never fetches. Restart OpenCode or start a new Claude Code session after installing an updated plugin so each host loads the packaged resolver again.
 
 ## License
 

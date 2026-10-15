@@ -45,7 +45,14 @@ before(() => {
   // The plugin's runtime, copied under the workspace's worktrees: the layout the launcher trusts.
   copy = join(ws, "projects", "worktrees", "plugin-copy");
   mkdirSync(copy, { recursive: true });
-  for (const entry of ["hooks", "lib", "bin", "gate.mjs", "access.mjs"]) {
+  for (const entry of [
+    "hooks",
+    "lib",
+    "bin",
+    "runtime",
+    "gate.mjs",
+    "access.mjs",
+  ]) {
     cpSync(join(repoDir, entry), join(copy, entry), { recursive: true });
   }
 

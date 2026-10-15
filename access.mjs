@@ -1,5 +1,5 @@
-// The adapters between the shared decision (gate.mjs) and the two repo-standard scripts
-// it depends on: the access resolver and the GitHub App token broker. The OpenCode plugin
+// The adapter between the shared decision (gate.mjs), the packaged access resolver, and the
+// repo-standard GitHub App token broker. The OpenCode plugin
 // (index.ts), the Claude Code hook, and the launcher all load them through this module,
 // so the way a script is found, imported, spawned, and cached is written once. Every
 // function here may touch the file system or spawn a process, which is why it lives apart
@@ -7,8 +7,9 @@
 
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { dirname, join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { loadPinnedAccessApi } from "./lib/pinned-access.mjs";
 import {
   fallbackLevel,
   nodeRunner,
@@ -29,18 +30,17 @@ const MINT_TIMEOUT_MS = 20_000;
  * @typedef {{ code: number, stdout: string }} CliResult
  * @typedef {{ token: string, expires_at: string }} TokenCache
  * @typedef {{
- *   loadCatalog: (path?: string) => unknown,
- *   loadCommittedCatalog?: (dir?: string) => unknown | null,
+ *   loadCommittedCatalog: (dir: string) => unknown | null,
  *   resolveLevel: (catalog: unknown, repoName: string) => { level?: unknown },
  *   decide: (level: string, command: string, remoteUrl?: string | null) => { capability: string | null, allowed: boolean },
  * }} AccessApi
  * @typedef {{ mintForRepo: (owner: string, repo: string) => Promise<{ token: string, expires_at: string }> }} TokenApi
  */
 
-// The resolver and broker in the repo-standard clone of a workspace.
+// The resolver ships with this package. The broker and catalog use trusted workspace clones.
 /**
  * @param {string} workspaceRoot
- * @returns {{ access: string, token: string }}
+ * @returns {{ access: string, token: string, catalog: string }}
  */
 export function defaultScripts(workspaceRoot) {
   const repoStandard = join(
@@ -50,8 +50,18 @@ export function defaultScripts(workspaceRoot) {
     "simpsonm09-repo-standard",
   );
   return {
-    access: join(repoStandard, "scripts", "agent-access.mjs"),
+    access: join(
+      dirname(fileURLToPath(import.meta.url)),
+      "runtime",
+      "agent-access.mjs",
+    ),
     token: join(repoStandard, "scripts", "agent-token.mjs"),
+    catalog: join(
+      workspaceRoot,
+      "projects",
+      "repos",
+      "simpsonm09-repo-catalog",
+    ),
   };
 }
 
@@ -76,7 +86,7 @@ async function importModule(script) {
 function isAccessApi(value) {
   const api = /** @type {Partial<AccessApi> | null} */ (value);
   return (
-    typeof api?.loadCatalog === "function" &&
+    typeof api?.loadCommittedCatalog === "function" &&
     typeof api.resolveLevel === "function" &&
     typeof api.decide === "function"
   );
@@ -87,7 +97,13 @@ function isAccessApi(value) {
  * @returns {Promise<AccessApi | null>}
  */
 export async function loadAccessApi(script) {
-  const access = await importModule(script);
+  const expected = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "runtime",
+    "agent-access.mjs",
+  );
+  if (script !== expected) return null;
+  const access = await loadPinnedAccessApi(script);
   return isAccessApi(access) ? access : null;
 }
 
@@ -100,13 +116,14 @@ export async function loadTokenApi(script) {
   return broker && typeof broker.mintForRepo === "function" ? broker : null;
 }
 
-// The catalog the decision reads: the committed upstream ref first, then the working tree.
+// The catalog the decision reads from committed refs in the trusted clone.
 /**
  * @param {AccessApi} api
+ * @param {string} catalogDir
  * @returns {unknown}
  */
-function catalogFor(api) {
-  return api.loadCommittedCatalog?.() ?? api.loadCatalog();
+function catalogFor(api, catalogDir) {
+  return api.loadCommittedCatalog(catalogDir);
 }
 
 // Decide one command with the resolver's own decide(). A resolver that throws is an
@@ -118,8 +135,9 @@ function catalogFor(api) {
  * @param {string | null} remoteUrl
  * @returns {CliResult}
  */
-function accessFromApi(api, repo, command, remoteUrl) {
-  const catalog = catalogFor(api);
+function accessFromApi(api, catalogDir, repo, command, remoteUrl) {
+  const catalog = catalogFor(api, catalogDir);
+  if (catalog === null) return { code: 2, stdout: "", catalogMissing: true };
   const resolved = api.resolveLevel(catalog, repo);
   const level =
     typeof resolved.level === "string" ? resolved.level : fallbackLevel();
@@ -144,57 +162,24 @@ function accessFromApi(api, repo, command, remoteUrl) {
   };
 }
 
-// The last resort when the script exports no API: run it as a CLI with a Node runtime,
-// never the OpenCode binary. The remote URL is passed only when it is known.
-/**
- * @param {string} script
- * @param {string} repo
- * @param {string} command
- * @param {string | null} remoteUrl
- * @returns {CliResult}
- */
-function accessFromCli(script, repo, command, remoteUrl) {
-  const args = [script, repo, "--command", command, "--json"];
-  if (remoteUrl) args.push("--remote-url", remoteUrl);
-  try {
-    const stdout = execFileSync(nodeRunner(process.execPath), args, {
-      windowsHide: true,
-      encoding: "utf8",
-      timeout: timeoutFor(CHILD_TIMEOUT_MS),
-    });
-    return { code: 0, stdout: stdout ?? "" };
-  } catch (error) {
-    const failure =
-      /** @type {{ status?: number | null, stdout?: string | Buffer }} */ (
-        error
-      );
-    if (typeof failure?.status === "number")
-      return { code: failure.status, stdout: String(failure.stdout ?? "") };
-    return { code: 2, stdout: "" };
-  }
-}
-
-// Resolve access for one command. The in-process module is preferred; a script that only
-// ships a CLI is spawned with a Node runtime. A module that loads but then throws is an
-// unknown answer (exit 2), not a crash.
+// Resolve access for one command. A missing or invalid packaged module is unknown (exit 2).
 /**
  * @param {AccessApi | null} api
- * @param {string | undefined} script
+ * @param {string} catalogDir
  * @param {string} repo
  * @param {string} command
  * @param {string | null} remoteUrl
  * @returns {CliResult}
  */
-export function resolveAccess(api, script, repo, command, remoteUrl) {
+export function resolveAccess(api, catalogDir, repo, command, remoteUrl) {
   if (api) {
     try {
-      return accessFromApi(api, repo, command, remoteUrl);
+      return accessFromApi(api, catalogDir, repo, command, remoteUrl);
     } catch {
       return { code: 2, stdout: "", catalogMissing: false };
     }
   }
-  if (!script || !existsSync(script)) return { code: 2, stdout: "" };
-  return accessFromCli(script, repo, command, remoteUrl);
+  return { code: 2, stdout: "" };
 }
 
 // The resolved level for the context line. The command decision is the authority; the
@@ -202,12 +187,15 @@ export function resolveAccess(api, script, repo, command, remoteUrl) {
 /**
  * @param {AccessApi | null} api
  * @param {string} repo
+ * @param {string} catalogDir
  * @returns {string}
  */
-export function levelFor(api, repo) {
+export function levelFor(api, repo, catalogDir) {
   if (!api) return fallbackLevel();
   try {
-    const resolved = api.resolveLevel(catalogFor(api), repo);
+    const catalog = catalogFor(api, catalogDir);
+    if (catalog === null) return fallbackLevel();
+    const resolved = api.resolveLevel(catalog, repo);
     return typeof resolved.level === "string"
       ? resolved.level
       : fallbackLevel();

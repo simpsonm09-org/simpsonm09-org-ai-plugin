@@ -206,7 +206,7 @@ async function decideCall(command, cwd, workspaceRoot, shell, runtime) {
       cwd,
       lookup: (dir) => fleetLookup(dir, workspaceRoot),
       resolve: (repo, text, remoteUrl) =>
-        resolveAccess(api, scripts.access, repo, text, remoteUrl),
+        resolveAccess(api, scripts.catalog, repo, text, remoteUrl),
       remoteUrl: gitRemoteUrl,
     },
   );
@@ -420,7 +420,9 @@ export async function handleSessionStart(input, options = {}) {
   const repo = fleetLookup(cwd, workspaceRoot).repo;
   if (!repo) return null;
   const api = await loadAccessApi(defaultScripts(workspaceRoot).access);
-  return sessionContextOutput(contextLine(repo, levelFor(api, repo)));
+  return sessionContextOutput(
+    contextLine(repo, levelFor(api, repo, defaultScripts(workspaceRoot).catalog)),
+  );
 }
 
 // The one rule for a hook run that ran out of budget (or was killed at its outer limit):

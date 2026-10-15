@@ -630,11 +630,11 @@ test("a handler that reports the budget as exhausted gets the same rule through 
 
 test("with git missing from PATH, the hook denies a write in a worktree and passes a read", async () => {
   const worktree = cwdOf("projects/worktrees/wt-demo");
+  writeCatalog(ws, "propose");
   const emptyPath = tempDir("claude-empty-path-");
   const savedPath = process.env.PATH;
   process.env.PATH = emptyPath;
   try {
-    writeCatalog(ws, "propose");
     const write = await handlePreToolUse(
       {
         tool_name: "Bash",

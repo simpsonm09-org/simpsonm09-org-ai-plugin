@@ -35,6 +35,14 @@ coverage:
 # Lint and test.
 verify: lint test
 
+# Check the bundled resolver against the reviewed source object in the standard clone.
+check-gate-resolver:
+    node scripts/refresh-gate-resolver.mjs --check
+
+# Refresh the bundled resolver from the reviewed source object. This never fetches.
+refresh-gate-resolver:
+    node scripts/refresh-gate-resolver.mjs
+
 
 # Prune remote-tracking refs and delete local branches merged into main.
 prune:

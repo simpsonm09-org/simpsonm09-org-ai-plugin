@@ -113,7 +113,7 @@ export async function launch(payload, options = {}) {
       cwd,
       lookup: (dir) => fleetLookup(dir, workspace),
       resolve: (repo, text, remoteUrl) =>
-        resolveAccess(api, scripts.access, repo, text, remoteUrl),
+        resolveAccess(api, scripts.catalog, repo, text, remoteUrl),
       remoteUrl: gitRemoteUrl,
     },
   );

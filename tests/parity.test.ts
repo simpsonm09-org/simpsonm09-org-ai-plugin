@@ -1,8 +1,7 @@
-// The differential against HEAD's gate. tests/fixtures/parity-golden.json holds what HEAD's
-// index.ts and gate.mjs decided for each cell (command text, environment, action), recorded
-// with the installed resolver, a fixture token, and real local git clones (see the scratch
-// runner's --write-golden). This test runs the same cells through the current code, with no
-// sibling clone: the resolver is the frozen copy in tests/fixtures.
+// The differential against the baseline gate. tests/fixtures/parity-golden.json holds the
+// recorded decision for each cell (command text, environment, action), with a fixture token
+// and local git clones. This test runs the same cells through the current code and packaged,
+// hash-verified resolver, with no sibling clone.
 //
 // Requirements it checks:
 //   - the OpenCode adapter gives the same command text and environment as HEAD for every cell

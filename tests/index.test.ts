@@ -5,12 +5,12 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { defaultScripts } from "../access.mjs";
 import plugin from "../index.ts";
+import { buildWorkspace, tempDir } from "./support/fixture-workspace.mjs";
 
-// index.ts takes its workspace from options.workspaceRoot (a test seam; in production the
-// workspace is three levels above the plugin) and its resolver and broker from
-// options.scripts. Every test here sets both to a temporary workspace and fixture scripts,
-// so the setup wiring runs in any checkout and never touches a real clone.
+// The tests use a temporary workspace with a committed catalog and the package's real pinned
+// resolver. Only the token broker is a fixture.
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoDir = resolve(here, "..");
@@ -22,50 +22,15 @@ let reposRoot = "";
 let fleetCwd = "";
 
 before(() => {
-  workspaceRoot = mkdtempSync(join(tmpdir(), "org-index-ws-"));
+  workspaceRoot = tempDir("org-index-ws-");
+  buildWorkspace(workspaceRoot, { level: "propose" });
   reposRoot = join(workspaceRoot, "projects", "repos");
-  mkdirSync(reposRoot, { recursive: true });
   fleetCwd = join(reposRoot, "demo-repo");
 });
 
 after(() => {
   if (workspaceRoot) rmSync(workspaceRoot, { recursive: true, force: true });
 });
-
-// The cwd must resolve to a fleet clone, but the clone directory does not have
-// to exist for repoFromCwd, so a path under projects/repos works without a
-// workspace. The script paths come from the fixture, never the environment.
-
-// A resolver module that reports a fixed level and allows commands whose
-// capability is in the allowed set. It mirrors the real scripts/agent-access.mjs
-// interface, including the optional remoteUrl on decide, so the plugin calls it
-// in-process. A git push to a known non-organization URL is out of scope and
-// allowed; every other decision defers to the allowed set. The token is a
-// literal, never a real credential.
-function accessModuleSource({ level = "propose", allows = ["read"] } = {}) {
-  return `export function loadCatalog() {
-  return { repos: [{ name: "demo-repo", tier: "plugin" }] };
-}
-export function loadCommittedCatalog() {
-  return null;
-}
-export function resolveLevel(catalog, repoName) {
-  return { repo: repoName, tier: "plugin", level: ${JSON.stringify(level)}, source: "tier" };
-}
-export function decide(level, command, remoteUrl) {
-  const url = remoteUrl ?? "";
-  const isPush = /(^|\\s)git push(\\s|$)/.test(command);
-  if (isPush && url.length > 0 && !url.includes("simpsonm09-org")) {
-    return { capability: null, allowed: true };
-  }
-  let capability = "read";
-  if (command.startsWith("gh pr merge")) capability = "mergePr";
-  else if (isPush && /\\bmain\\b/.test(command)) capability = "pushMain";
-  else if (isPush) capability = "pushBranch";
-  return { capability, allowed: ${JSON.stringify(allows)}.includes(capability) };
-}
-`;
-}
 
 function tokenModuleSource(token = "fixture-token-not-real") {
   return `export async function mintForRepo(owner, repo) {
@@ -74,33 +39,18 @@ function tokenModuleSource(token = "fixture-token-not-real") {
 `;
 }
 
-// A resolver that ships only a CLI, no module exports. It exercises the spawn
-// fallback, which must run it with a Node runtime. Like the real resolver, it
-// guards its CLI entry so importing it as a module has no side effect.
-const CLI_ACCESS_SCRIPT = `#!/usr/bin/env node
-import { pathToFileURL } from "node:url";
-function main() {
-  const args = process.argv.slice(2);
-  if (args.includes("--command")) {
-    process.stdout.write(JSON.stringify({ level: "propose", capability: "read", allowed: true }));
-  } else {
-    process.stdout.write(JSON.stringify({ level: "propose" }));
-  }
-}
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
-`;
-
-function fixtureScripts({ access, token } = {}) {
+function fixtureScripts({ token } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "org-scripts-"));
-  const accessPath = join(dir, "agent-access.mjs");
   const tokenPath = join(dir, "agent-token.mjs");
-  writeFileSync(accessPath, access ?? accessModuleSource());
   writeFileSync(tokenPath, token ?? tokenModuleSource());
-  return { dir, access: accessPath, token: tokenPath };
+  return {
+    dir,
+    access: defaultScripts(workspaceRoot).access,
+    token: tokenPath,
+  };
 }
 
-// Scripts that do not exist: a test that does not pass its own scripts gets an unknown resolver,
-// never the sibling clone's.
+// A missing resolver path is never replaced with another source.
 function absentScripts() {
   return {
     access: join(workspaceRoot, "absent-agent-access.mjs"),
@@ -275,22 +225,17 @@ test("the hook emits a PowerShell denial for a pwsh shell", async () => {
   });
 });
 
-test("the hook resolves a command through a module that has no CLI shim", async () => {
-  await withFixture(
-    async (scripts) => {
-      const { shellBefore } = await setupWithStubs({
-        location: fleetCwd,
-        scripts,
-      });
-
-      const input = { command: "gh pr list", cwd: fleetCwd, env: {} };
-      await shellBefore(input);
-
-      assert.equal(input.command, "gh pr list");
-      assert.equal(input.env.GH_TOKEN, "fixture-token-not-real");
-    },
-    { access: CLI_ACCESS_SCRIPT },
-  );
+test("the hook resolves through the packaged module and uses only the broker fixture", async () => {
+  await withFixture(async (scripts) => {
+    const { shellBefore } = await setupWithStubs({
+      location: fleetCwd,
+      scripts,
+    });
+    const input = { command: "gh pr list", cwd: fleetCwd, env: {} };
+    await shellBefore(input);
+    assert.equal(input.command, "gh pr list");
+    assert.equal(input.env.GH_TOKEN, "fixture-token-not-real");
+  });
 });
 
 test("the shell create.before hook injects a token for an allowed gh command", async () => {

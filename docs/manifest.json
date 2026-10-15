@@ -1,3 +1,4 @@
 {
-  "readme": true
+  "readme": true,
+  "releaseNotes": ["release-notes/2026-10-15-pinned-gate-resolver.md"]
 }

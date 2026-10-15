@@ -35,6 +35,7 @@ const PUBLISHED = [
   "hooks",
   "bin",
   "lib",
+  "runtime",
   "workspace-instructions.md",
 ];
 
@@ -47,6 +48,8 @@ const ENTRIES = [
   "hooks/session-start.mjs",
   "hooks/worker.mjs",
   "bin/with-gh-token.mjs",
+  // The pin loader imports this reviewed source from its verified bytes at runtime.
+  "runtime/agent-access.mjs",
 ];
 
 // The code files under a published path, as paths relative to the root.

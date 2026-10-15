@@ -392,6 +392,7 @@ test("a plugin outside every trusted layout denies a write and passes a read", a
 });
 
 test("a direct Claude plugin copy loads its trusted workspace from its own location", async () => {
+  writeCatalog(ws, "read");
   const copy = join(ws, ".claude", "plugins", "simpsonm09-org-ai-plugin");
   mkdirSync(dirname(copy), { recursive: true });
   for (const entry of [

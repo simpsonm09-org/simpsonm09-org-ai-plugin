@@ -13,15 +13,21 @@ after(() => {
 test("plugin workspace recognition accepts direct Claude copies and existing trusted roots", () => {
   const workspace = "/home/agent/workspace";
   assert.equal(
-    workspaceForPluginRoot(`${workspace}/.claude/plugins/simpsonm09-org-ai-plugin`),
+    workspaceForPluginRoot(
+      `${workspace}/.claude/plugins/simpsonm09-org-ai-plugin`,
+    ),
     workspace,
   );
   assert.equal(
-    workspaceForPluginRoot(`${workspace}/.opencode/plugins/simpsonm09-org-ai-plugin`),
+    workspaceForPluginRoot(
+      `${workspace}/.opencode/plugins/simpsonm09-org-ai-plugin`,
+    ),
     workspace,
   );
   assert.equal(
-    workspaceForPluginRoot(`${workspace}/projects/repos/simpsonm09-org-ai-plugin`),
+    workspaceForPluginRoot(
+      `${workspace}/projects/repos/simpsonm09-org-ai-plugin`,
+    ),
     workspace,
   );
   assert.equal(
@@ -30,11 +36,24 @@ test("plugin workspace recognition accepts direct Claude copies and existing tru
   );
 });
 
-test("plugin workspace recognition rejects prefixes and nested lookalikes", () => {
+test("plugin workspace recognition accepts alternate Claude workspace roots", () => {
+  assert.equal(
+    workspaceForPluginRoot(
+      "/outside/home/agent/workspace/.claude/plugins/plugin",
+    ),
+    "/outside/home/agent/workspace",
+  );
+  assert.equal(
+    workspaceForPluginRoot(
+      "/home/agent/workspace/nested/.claude/plugins/plugin",
+    ),
+    "/home/agent/workspace/nested",
+  );
+});
+
+test("plugin workspace recognition rejects nested copies and cache lookalikes", () => {
   const workspace = "/home/agent/workspace";
   for (const root of [
-    `/outside${workspace}/.claude/plugins/plugin`,
-    `${workspace}/nested/.claude/plugins/plugin`,
     `${workspace}/.claude/plugins/plugin/nested`,
     `${workspace}/.claude/cache/plugins/plugin`,
     `${workspace}/.claude/plugins-cache/plugin`,

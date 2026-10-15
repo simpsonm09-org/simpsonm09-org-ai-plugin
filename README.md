@@ -4,6 +4,8 @@ The shared OpenCode layer for the `simpsonm09-org` organization, and the Claude 
 
 The original lives in `simpsonm09-org/simpsonm09-org-ai-plugin`; work happens on the personal fork. See [`repo-standard`](https://github.com/simpsonm09-org/simpsonm09-repo-standard).
 
+See the [documentation index](docs/README.md) for the packaged resolver and its release note.
+
 It is CLI-first and contributes no MCP server. It contributes the shared skills every repository in the organization should have, and nothing personal. The `service-integrations` registry is general and portable; accounts, boards, workspaces, clusters, identities, and bundles live in the personal layer, which the org skills defer to. `maxstack` composes this layer above the faithful PStack port and below the personal layer.
 
 ## Contents

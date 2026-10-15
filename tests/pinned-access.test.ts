@@ -2,20 +2,18 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
   existsSync,
-  mkdtempSync,
   mkdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { defaultScripts, loadAccessApi, resolveAccess } from "../access.mjs";
 import {
-  hasSupportedPinMetadata,
   hasPinnedAccessApi,
+  hasSupportedPinMetadata,
   loadPinnedAccessApi,
   pinMetadata,
   RESOLVER_PIN,
@@ -55,19 +53,17 @@ test("the packaged resolver pin names the reviewed artifact and API contract", (
   );
 });
 
-test("pin provenance in the readme and release manifest matches the runtime", () => {
+test("pin provenance in the readme and docs manifest matches the runtime", () => {
   const readme = readFileSync(join(root, "README.md"), "utf8");
   const manifest = JSON.parse(
     readFileSync(join(root, "docs", "manifest.json"), "utf8"),
   );
   assert.ok(readme.includes(RESOLVER_PIN.commit));
   assert.ok(readme.includes(RESOLVER_PIN.sha256));
-  assert.deepEqual(manifest.releaseNotes, [
-    "release-notes/2026-10-15-pinned-gate-resolver.md",
+  assert.deepEqual(manifest.features, [
+    "docs/features/pinned-gate-resolver.md",
   ]);
-  assert.ok(
-    existsSync(join(root, "docs", ...manifest.releaseNotes[0].split("/"))),
-  );
+  assert.ok(existsSync(join(root, ...manifest.features[0].split("/"))));
 });
 
 test("missing or corrupt packaged resolver bytes cannot load an API", async () => {

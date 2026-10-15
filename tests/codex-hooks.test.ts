@@ -167,6 +167,7 @@ test("Codex uses conservative GitHub write text evidence", async () => {
     `node -e "const message = 'create merge push delete';"`,
     "git status --short",
     "git log --oneline",
+    "gh pr list",
   ]) {
     assert.equal(
       await handlePreToolUse(measured(repo, command), {
@@ -182,15 +183,6 @@ test("Codex uses conservative GitHub write text evidence", async () => {
     "agent-access: denied: Codex does not report which folder a command runs in, so GitHub writes from Codex are blocked in every repository. Push or open the pull request from Claude, OpenCode or Copilot.";
   for (const command of [
     "git push origin main",
-    "command gh pr merge 1",
-    "echo local; git push origin main",
-    `bash -c "git push origin main"`,
-    `bash -lc 'git push origin main'`,
-    `powershell -Command "gh pr merge 1"`,
-    `env GIT_TRACE=1 sudo git push origin main`,
-    `cmd /c "gh pr merge 1"`,
-    `echo $(gh pr merge 1)`,
-    `node -e "console.log('git push origin main')"`,
   ]) {
     assert.deepEqual(
       await handlePreToolUse(measured(repo, command), {
@@ -210,6 +202,27 @@ test("Codex uses conservative GitHub write text evidence", async () => {
     jsonDeny(reason),
     "recognizable write text remains denied when the directory is unresolved",
   );
+
+  for (const command of [
+    "command gh pr merge 1",
+    "echo local; git push origin main",
+    `bash -c "git push origin main"`,
+    `bash -lc 'git push origin main'`,
+    `powershell -Command "gh pr merge 1"`,
+    `env GIT_TRACE=1 sudo git push origin main`,
+    `cmd /c "gh pr merge 1"`,
+    `echo $(gh pr merge 1)`,
+    `node -e "console.log('git push origin main')"`,
+  ]) {
+    assert.deepEqual(
+      await handlePreToolUse(measured("C:/unresolved", command), {
+        workspaceRoot: ws,
+        env: TOKEN_ENV,
+      }),
+      jsonDeny(reason),
+      command,
+    );
+  }
 
   assert.equal(
     await handleClaudePreToolUse(

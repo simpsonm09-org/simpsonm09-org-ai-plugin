@@ -397,9 +397,6 @@ export function decideShell(input, deps) {
     return { action: "pass", repo: null, level: FALLBACK_LEVEL };
   }
 
-  if (input.runtime === "codex" && isWriteCommand(command))
-    return codexWriteDenial(repo);
-
   const remote = pushRemote(command, input.shell);
   const remoteUrl = remote ? deps.remoteUrl(remote, deps.cwd) : null;
   const result = deps.resolve(repo, command, remoteUrl);

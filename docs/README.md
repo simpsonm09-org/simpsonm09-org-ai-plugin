@@ -3,6 +3,7 @@
 ## Features
 
 - [Pinned gate resolver](features/pinned-gate-resolver.md) describes the reviewed resolver bundled with the plugin.
+- [The command observer](features/owned-fork-observer.md) describes the destination and intent observation layer.
 
 ## Release notes
 

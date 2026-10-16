@@ -1,12 +1,16 @@
 // The differential against the baseline gate. tests/fixtures/parity-golden.json holds the
-// recorded decision for each cell (command text, environment, action), with a fixture token
-// and local git clones. This test runs the same cells through the current code and packaged,
+// recorded HEAD decision for each cell (command text, environment, action) from a scratch
+// runner outside this repository; it is not regenerated to match new behavior.
+// tests/fixtures/parity-decisions.json records the cells the destination-aware gate changes on
+// purpose, with the HEAD action, the new action, and the reason, so every change is declared
+// rather than blessed. This test runs the same cells through the current code and the packaged,
 // hash-verified resolver, with no sibling clone.
 //
 // Requirements it checks:
-//   - the OpenCode adapter gives the same command text and environment as HEAD for every cell
-//     that is not a declared intended change (byte-identical), and the Claude hook gives HEAD's
-//     decision for the same cells;
+//   - every cell reaches its recorded decision: the HEAD action, or the declared new action;
+//   - a pass keeps the command text and sets no token; an inject sets the fixture token and
+//     keeps the command text; a deny rewrites the command (the reason text is informational);
+//   - the Claude hook gives the same decision as the OpenCode adapter for every cell;
 //   - the declared intended changes (INTENDED_CWDS) are gated exactly like their clone: a
 //     worktree of a clone, a case variant of a clone's path, and a junction from outside
 //     projects/repos into a clone. A case variant is only checked on a case-insensitive file
@@ -21,6 +25,7 @@ import { handlePreToolUse } from "../hooks/lib/claude.mjs";
 import plugin from "../index.ts";
 import {
   buildWorkspace,
+  FIXTURE_TOKEN,
   removeDir,
   tempDir,
   writeCatalog,
@@ -56,8 +61,27 @@ const golden = JSON.parse(
     };
   }>;
 };
+const decisions = JSON.parse(
+  readFileSync(join(here, "fixtures", "parity-decisions.json"), "utf8"),
+) as {
+  recordedFrom: string;
+  rationale: Record<string, string>;
+  changes: Array<{
+    id: string;
+    cwd: string;
+    level: string;
+    command: string;
+    head: string;
+    now: string;
+    category: string;
+  }>;
+};
 
 const TOKEN_ENV = { CLAUDE_CODE_GIT_BASH_PATH: process.execPath };
+const declaredIds = new Set(decisions.changes.map((change) => change.id));
+const declared = new Map(
+  decisions.changes.map((change) => [change.id, change]),
+);
 
 type Row = {
   id: string;
@@ -77,11 +101,16 @@ let workspace = "";
 let rows: Row[] = [];
 let caseInsensitive = false;
 
-// The Claude action a HEAD action maps to. A PowerShell gh call is refused, not rewritten.
-function claudeExpected(head: string, shell?: string): string {
-  if (head === "pass") return "pass";
-  if (head === "deny") return "deny";
+// The Claude action a decision maps to. A PowerShell gh call is refused, not rewritten.
+function claudeExpected(action: string, shell?: string): string {
+  if (action === "pass") return "pass";
+  if (action === "deny") return "deny";
   return shell ? "deny" : "inject";
+}
+
+// The decision one cell must reach: the declared new action, or HEAD's.
+function expectedAction(cell: { id: string }, head: string): string {
+  return declared.get(cell.id)?.now ?? head;
 }
 
 // Whether a row is checked in this run: a case variant only on a case-insensitive file system.
@@ -165,43 +194,100 @@ test("the golden file holds exactly the committed cell list", () => {
   );
 });
 
-test("the OpenCode adapter matches HEAD byte for byte for every cell that is not an intended change", (t) => {
-  const mismatches: string[] = [];
-  let compared = 0;
-  for (const row of rows) {
-    if (INTENDED_CWDS.includes(row.cwd)) continue;
-    const want = goldenFor(row.id);
-    compared += 1;
-    const same =
-      row.openCode.command === want.head.command &&
-      JSON.stringify(row.openCode.env) === JSON.stringify(want.head.env);
-    if (!same) mismatches.push(row.id);
+test("the decision-change fixture declares only real cells, with a rationale per category", () => {
+  const ids = new Set(committedCells().map((cell) => cell.id));
+  for (const change of decisions.changes) {
+    assert.ok(
+      ids.has(change.id),
+      `declared change is not a committed cell: ${change.id}`,
+    );
+    assert.ok(
+      !INTENDED_CWDS.includes(change.cwd),
+      `declared change is an intended cwd: ${change.id}`,
+    );
+    assert.ok(
+      decisions.rationale[change.category],
+      `no rationale for category ${change.category}`,
+    );
+    assert.notEqual(change.head, change.now, change.id);
   }
-  t.diagnostic(`cells compared: ${compared}`);
-  assert.deepEqual(
-    mismatches,
-    [],
-    `OpenCode differs from HEAD for: ${mismatches.join("; ")}`,
+  assert.equal(
+    new Set(decisions.changes.map((c) => c.category)).size,
+    Object.keys(decisions.rationale).length,
   );
 });
 
-test("the Claude hook gives HEAD's decision for every cell that is not an intended change", (t) => {
+test("the OpenCode adapter reaches the recorded decision for every cell", (t) => {
+  const mismatches: string[] = [];
+  let compared = 0;
+  let changed = 0;
+  for (const row of rows) {
+    if (INTENDED_CWDS.includes(row.cwd)) continue;
+    const want = goldenFor(row.id);
+    const expected = expectedAction(row, want.head.action);
+    compared += 1;
+    if (expected !== want.head.action) changed += 1;
+    if (row.openCode.action !== expected)
+      mismatches.push(
+        `${row.id} expected=${expected} got=${row.openCode.action}`,
+      );
+  }
+  t.diagnostic(
+    `cells compared: ${compared}, declared decision changes: ${changed}`,
+  );
+  assert.deepEqual(
+    mismatches,
+    [],
+    `OpenCode differs from the recorded decision for: ${mismatches.join("; ")}`,
+  );
+  assert.equal(
+    changed,
+    decisions.changes.length,
+    "every declared change must fire, and no other cell may change",
+  );
+});
+
+test("a pass keeps the command and no token; an inject keeps the command and the fixture token", () => {
+  for (const row of rows) {
+    if (INTENDED_CWDS.includes(row.cwd)) continue;
+    const want = goldenFor(row.id);
+    const expected = expectedAction(row, want.head.action);
+    const isDeclared = declaredIds.has(row.id);
+    if (expected === "pass") {
+      assert.equal(row.openCode.command, row.command, row.id);
+      if (isDeclared)
+        assert.equal(row.openCode.env?.GH_TOKEN, undefined, row.id);
+      else assert.deepEqual(row.openCode.env, want.head.env, row.id);
+    } else if (expected === "inject") {
+      assert.equal(row.openCode.command, row.command, row.id);
+      assert.equal(row.openCode.env?.GH_TOKEN, FIXTURE_TOKEN, row.id);
+      if (!isDeclared)
+        assert.deepEqual(row.openCode.env, want.head.env, row.id);
+    } else {
+      assert.notEqual(row.openCode.command, row.command, row.id);
+    }
+  }
+});
+
+test("the Claude hook gives the same decision as the OpenCode adapter for every cell", (t) => {
   const mismatches: string[] = [];
   let compared = 0;
   for (const row of rows) {
     if (INTENDED_CWDS.includes(row.cwd)) continue;
     const want = goldenFor(row.id);
+    const expected = expectedAction(row, want.head.action);
     compared += 1;
-    if (row.claude.action !== claudeExpected(want.head.action, row.shell))
+    const claude = claudeExpected(expected, row.shell);
+    if (row.claude.action !== claude)
       mismatches.push(
-        `${row.id} head=${want.head.action} claude=${row.claude.action}`,
+        `${row.id} expected=${claude} claude=${row.claude.action}`,
       );
   }
   t.diagnostic(`cells compared: ${compared}`);
   assert.deepEqual(
     mismatches,
     [],
-    `Claude differs from HEAD for: ${mismatches.join("; ")}`,
+    `Claude differs from the recorded decision for: ${mismatches.join("; ")}`,
   );
 });
 
@@ -255,4 +341,9 @@ test("each declared intended change is gated exactly like its clone (demo-root)"
 test("the matrix reaches every decision HEAD makes", () => {
   const actions = new Set(golden.cells.map((cell) => cell.head.action));
   assert.deepEqual([...actions].sort(), ["deny", "inject", "pass"]);
+});
+
+test("the declared changes are recorded against the same HEAD as the golden", () => {
+  assert.equal(decisions.recordedFrom, golden.recordedFrom);
+  assert.ok(declaredIds.size > 0);
 });

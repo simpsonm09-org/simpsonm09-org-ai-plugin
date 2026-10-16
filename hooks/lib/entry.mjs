@@ -111,44 +111,63 @@ export function runGuardedHook({
   });
 
   if (wasKilled(result)) {
-    const answer = runtimeFailureAnswer(
+    return emitRuntimeFailure(
       runtime,
       input,
       "time budget exceeded",
+      stdout,
+      () => {
+        const budget = killedAnswer(input, blockOnError, budgetAnswer);
+        if (budget) stdout(budget);
+        return 0;
+      },
     );
-    if (answer) stdout(`${JSON.stringify(answer)}\n`);
-    else {
-      const budget = killedAnswer(input, blockOnError, budgetAnswer);
-      if (budget) stdout(budget);
-    }
-    return 0;
   }
   if (result.error || result.status === null) {
-    const answer = runtimeFailureAnswer(
+    return emitRuntimeFailure(
       runtime,
       input,
       "worker could not start",
+      stdout,
+      () => {
+        stderr(
+          `simpsonm09-org-ai-plugin hook could not run its worker (${result.error?.message ?? "no exit status"}).\n`,
+        );
+        return blockOnError ? 2 : 0;
+      },
     );
-    if (answer) {
-      stdout(`${JSON.stringify(answer)}\n`);
-      return 0;
-    }
-    stderr(
-      `simpsonm09-org-ai-plugin hook could not run its worker (${result.error?.message ?? "no exit status"}).\n`,
-    );
-    return blockOnError ? 2 : 0;
   }
   if (result.status === 0) {
     if (result.stdout) stdout(result.stdout);
     return 0;
   }
-  const answer = runtimeFailureAnswer(runtime, input, "gate or worker failure");
-  if (answer) {
-    stdout(`${JSON.stringify(answer)}\n`);
-    return 0;
-  }
-  if (result.stderr) stderr(result.stderr);
-  return blockOnError ? 2 : 0;
+  return emitRuntimeFailure(
+    runtime,
+    input,
+    "gate or worker failure",
+    stdout,
+    () => {
+      if (result.stderr) stderr(result.stderr);
+      return blockOnError ? 2 : 0;
+    },
+  );
+}
+
+// A runtime's protocol-specific failure answer when it defines one, else the hook's own
+// fallback answer. The fallback returns the exit code.
+/**
+ * @param {string} runtime
+ * @param {string} input
+ * @param {string} failureClass
+ * @param {(text: string) => void} stdout
+ * @param {() => number} fallback
+ * @returns {number}
+ */
+function emitRuntimeFailure(runtime, input, failureClass, stdout, fallback) {
+  const answer = runtimeFailureAnswer(runtime, input, failureClass);
+  if (!answer) return fallback();
+  stdout(`${JSON.stringify(answer)}\n`);
+  return 0;
 }
 
 /**

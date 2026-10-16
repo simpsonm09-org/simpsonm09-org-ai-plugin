@@ -2,29 +2,31 @@
 // through this module: the OpenCode plugin (index.ts) calls gateShellEdit, which also
 // rewrites a denied command and injects GH_TOKEN; the Claude Code hook calls decideShell
 // and maps its action onto a PreToolUse answer. The rules live here and nowhere else:
-// which fleet repository a directory belongs to, what the resolver decides for a
-// command, when Codex's conservative GitHub-write rule applies, and when gh gets a token.
+// which fleet repository a directory belongs to, what the observer sees, what the pinned
+// resolver decides for that destination, when Codex's conservative GitHub-write rule applies,
+// and when gh gets a token.
 //
-// The resolver decision is made from the first command only (see README "Known limits"). The
-// conservative text classifier supplies a write signal for Codex and unresolved decisions.
-// It does not interpret shell syntax. The adapters do the
-// I/O (access.mjs, lib/fleet.mjs); this module only sees their answers.
+// The decision moves onto the command observer (lib/intent.mjs): one recognized-form parse of
+// the command, joined to read-only git state, names the destination, the refs, and any
+// inherited environment conflict. There is no whole-string write scan any more — the observer
+// is the single classifier, and the resolver turns its observation into a verdict. The
+// adapters do the I/O (access.mjs, lib/fleet.mjs, lib/gitstate.mjs); this module only sees
+// their answers and the injected git port.
 
 import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
-import {
-  canonicalCommand,
-  programName,
-  readShellWord,
-} from "./lib/program.mjs";
+import { observeCommand } from "./lib/intent.mjs";
+import { isGovernedWrite } from "./lib/observation.mjs";
+import { canonicalCommand, readShellWord } from "./lib/program.mjs";
 
 const FALLBACK_LEVEL = "read";
 
 /**
  * @typedef {{ code: number, stdout: string, catalogMissing?: boolean }} CliResult
- * @typedef {(repo: string, command: string, remoteUrl: string | null) => CliResult} Resolver
- * @typedef {(remote: string, cwd: string) => string | null} RemoteUrlLookup
+ * @typedef {(repo: string, observation: import("./lib/observation.mjs").Observation) => CliResult} Resolver
+ * @typedef {{ git?: (cwd: string) => ((args: string[]) => string | null) | null, env?: string[] }} ObservationDeps
  * @typedef {"allow" | "deny" | "unknown"} Classification
- * @typedef {{ action: "pass" | "deny" | "inject", repo: string | null, level: string, reason?: string }} Decision
+ * @typedef {{ route: "app" | "ambient", owner: string | null, repo: string | null }} AuthRoute
+ * @typedef {{ action: "pass" | "deny" | "inject", repo: string | null, level: string, reason?: string, auth?: AuthRoute }} Decision
  */
 
 // The clone lives at <workspace>/projects/repos/<repo-name>.
@@ -125,60 +127,6 @@ function tokenizePowerShell(command) {
   return words;
 }
 
-// The remote a git push targets: the first non-flag token after "git push", defaulting
-// to "origin" when absent. A token naming a ref ("main", "refs/heads/x", or "X:Y") is a
-// refspec, not a remote, so a bare push still reads as origin. Returns null for a
-// command that is not a git push, so the caller passes no URL.
-/**
- * @param {string} command
- * @param {"bash" | "powershell"} [shell]
- * @returns {string | null}
- */
-export function pushRemote(command, shell = "bash") {
-  const parts = tokenize(command, shell);
-  if (programName(parts[0] ?? "") !== "git" || parts[1] !== "push") return null;
-  const tokens = parts.slice(2).filter((token) => !token.startsWith("-"));
-  const first = tokens[0];
-  if (!first || looksLikeRefspec(first)) return "origin";
-  return first;
-}
-
-// A refspec names a ref. "main" and "refs/heads/main" are the shorthand and the full
-// form, a colon separates source and destination, and a bare remote name has no colon
-// and no slash.
-/**
- * @param {string} token
- * @returns {boolean}
- */
-function looksLikeRefspec(token) {
-  if (token.includes(":")) return true;
-  if (token === "HEAD") return true;
-  if (token.startsWith("refs/") || token.startsWith("refs\\")) return true;
-  if (!token.includes("/")) return false;
-  const [head] = token.split(/[/\\]/);
-  return head === "refs" || head === "heads";
-}
-
-// Resolve a remote name to its URL inside the command's cwd with `git remote get-url`.
-// A cwd with no git repo, an unknown remote, or a missing git binary yields null, so the
-// resolver keeps its governed default instead of guessing scope.
-/**
- * @param {string} remote
- * @param {string} cwd
- * @param {(args: string[]) => string} exec
- * @returns {string | null}
- */
-export function remoteUrlFor(remote, cwd, exec) {
-  if (!remote || !cwd) return null;
-  try {
-    const url = exec(["-C", cwd, "remote", "get-url", remote]);
-    const trimmed = (url ?? "").trim();
-    return trimmed.length > 0 ? trimmed : null;
-  } catch {
-    return null;
-  }
-}
-
 /**
  * The reason line every denial carries, shared by both harnesses.
  * @param {string} reason
@@ -264,53 +212,38 @@ export function classifyResolver(result) {
   return "unknown";
 }
 
-// The resolver prints one JSON object on stdout in command mode. Anything that does not
-// parse is an unknown level, which the caller treats conservatively.
+// The resolver prints one JSON object on stdout. Anything that does not parse is an unknown
+// answer, which the caller treats conservatively. The destination kind and the auth route are
+// informational inputs to the message and the token step; they never change the verdict.
 /**
  * @param {string} stdout
- * @returns {{ level: string, capability: string | null } | null}
+ * @returns {{ level: string, capability: string | null, kind: string | null, destination: string | null, auth: AuthRoute | null } | null}
  */
 export function parseResolverOutput(stdout) {
   if (!stdout) return null;
   try {
     const parsed = JSON.parse(stdout);
     if (typeof parsed?.level !== "string") return null;
+    const auth = parsed.auth;
     return {
       level: parsed.level,
       capability:
         typeof parsed.capability === "string" ? parsed.capability : null,
+      kind: typeof parsed.kind === "string" ? parsed.kind : null,
+      destination:
+        typeof parsed.destination === "string" ? parsed.destination : null,
+      auth:
+        auth && (auth.route === "app" || auth.route === "ambient")
+          ? {
+              route: auth.route,
+              owner: typeof auth.owner === "string" ? auth.owner : null,
+              repo: typeof auth.repo === "string" ? auth.repo : null,
+            }
+          : null,
     };
   } catch {
     return null;
   }
-}
-
-// Fail closed on a write, and leave a read alone, when the resolver cannot answer. A gh
-// command may be a remote write (pr merge, api, repo edit), so an unknown gh command
-// fails closed too.
-/**
- * @param {string} command
- * @returns {boolean}
- */
-export function isWriteCommand(command) {
-  // Treat quoted payloads, wrappers, and substitutions as evidence too. This intentionally
-  // errs on the side of false positives; it is not a shell parser or a security boundary.
-  const words = command.match(/[^\s"'`();|&<>]+/g) ?? [];
-  for (let index = 0; index < words.length; index += 1) {
-    const name = programName(words[index]);
-    if (name === "gh") return true;
-    if (name !== "git") continue;
-    for (let next = index + 1; next < words.length; next += 1) {
-      const argument = words[next];
-      if (argument === "push") return true;
-      if (["-C", "-c", "--git-dir", "--work-tree"].includes(argument)) {
-        next += 1;
-        continue;
-      }
-      if (!argument.startsWith("-")) break;
-    }
-  }
-  return false;
 }
 
 // Refresh a cached installation token five minutes before it expires.
@@ -343,15 +276,44 @@ export function fallbackLevel() {
   return FALLBACK_LEVEL;
 }
 
-// The answer when the working directory cannot be resolved to a fleet repository (git could
-// not run, for instance). It is the same rule as a command the resolver cannot answer: a
-// write-like command is denied, and any other command passes.
+// The observation of one command, with the git port this decision was given. The observation
+// is a guardrail input: it names a destination, but the resolver decides.
 /**
  * @param {string} command
+ * @param {{ cwd: string, shell?: "bash" | "powershell" }} input
+ * @param {ObservationDeps} deps
+ * @returns {import("./lib/observation.mjs").Observation}
+ */
+function observeFor(command, input, deps) {
+  const git = deps.git ? deps.git(input.cwd) : null;
+  return observeCommand(command, {
+    cwd: input.cwd,
+    shell: input.shell,
+    git,
+    env: deps.env ?? [],
+  });
+}
+
+// The reason for a governed write the observer saw with a destination-changing environment
+// variable set. The variable's *name* is named; its value is never read, so a credential in
+// the environment cannot appear here.
+/**
+ * @param {string[]} names
+ * @returns {string}
+ */
+function environmentReason(names) {
+  return `the environment variable ${names[0]} changes which repository this command reaches, so a governed write is refused`;
+}
+
+// The answer when the working directory cannot be resolved to a fleet repository (git could
+// not run, for instance). It is the same rule as a command the resolver cannot answer: a
+// governed write is denied, and any other command passes.
+/**
+ * @param {import("./lib/observation.mjs").Observation} observation
  * @returns {Decision}
  */
-function unresolvedAnswer(command) {
-  if (isWriteCommand(command)) {
+function unresolvedAnswer(observation) {
+  if (isGovernedWrite(observation)) {
     return {
       action: "deny",
       repo: null,
@@ -363,12 +325,41 @@ function unresolvedAnswer(command) {
   return { action: "pass", repo: null, level: FALLBACK_LEVEL };
 }
 
+// The message for a resolver denial. An unsupported observation reports the shape the observer
+// refused, rather than the misleading "destination unknown". A gh write whose destination the
+// observer could not pin to one repository says so and points at the explicit `-R` form rather
+// than claiming the repository is unknown. An organization destination is denied by its roster
+// level, the message the gate has always printed; any other destination is denied by the
+// target's own capability table, and its reason names that destination.
+/**
+ * @param {ReturnType<typeof parseResolverOutput>} resolved
+ * @param {string} repo
+ * @param {string} level
+ * @param {import("./lib/observation.mjs").Observation} observation
+ * @returns {string}
+ */
+function denyReason(resolved, repo, level, observation) {
+  if (observation?.kind === "unsupported")
+    return `${observation.reason}, so the write is denied`;
+  if (
+    observation?.program === "gh" &&
+    observation.readOnly !== true &&
+    resolved?.kind === "unknown" &&
+    !resolved.destination
+  )
+    return "the destination for this gh command is ambiguous, so specify -R owner/repo for a new operation";
+  if (!resolved || resolved.kind === "org")
+    return `${repo} denies this command at level "${level}"`;
+  const capability = resolved.capability ?? "this command";
+  return `the destination ${resolved.destination ?? "unknown"} denies ${capability} for this repository`;
+}
+
 // The decision for one command, with no side effects: no token, no environment, no
 // rewrite. The repository comes from deps.lookup(cwd), which never throws: it answers
 // { repo } for a fleet directory, { repo: null } for any other directory, and
 // { repo: null, unresolved: true } when the lookup could not run. Without a lookup, the
 // repos-only path rule answers. A cwd outside a fleet repository passes without a resolver
-// call.
+// call, preserving the documented fleet-only scope.
 /**
  * @param {{ command: string, shell?: "bash" | "powershell", runtime?: "codex" }} input the dialect defaults to bash
  * @param {{
@@ -376,68 +367,136 @@ function unresolvedAnswer(command) {
  *   workspaceRoot?: string,
  *   lookup?: (cwd: string) => { repo: string | null, unresolved?: boolean },
  *   resolve: Resolver,
- *   remoteUrl: RemoteUrlLookup,
+ *   git?: (cwd: string) => ((args: string[]) => string | null) | null,
+ *   env?: string[],
  * }} deps
  * @returns {Decision}
  */
 export function decideShell(input, deps) {
   const command = canonicalCommand(programCommand(input.command, input.shell));
+  const shell = input.shell === "powershell" ? "powershell" : "bash";
   const found = deps.lookup
     ? deps.lookup(deps.cwd)
     : { repo: repoFromCwd(deps.cwd, deps.workspaceRoot ?? "") };
-  if (found.unresolved) {
-    if (input.runtime === "codex" && isWriteCommand(command))
-      return codexWriteDenial();
-    return unresolvedAnswer(command);
-  }
-  const repo = found.repo;
-  if (!repo) {
-    if (input.runtime === "codex" && isWriteCommand(command))
-      return codexWriteDenial();
-    return { action: "pass", repo: null, level: FALLBACK_LEVEL };
-  }
+  const observation = observeFor(command, { cwd: deps.cwd, shell }, deps);
+  const governed = isGovernedWrite(observation);
+  const environment = observation.environment ?? [];
+  const codex = input.runtime === "codex";
 
-  const remote = pushRemote(command, input.shell);
-  const remoteUrl = remote ? deps.remoteUrl(remote, deps.cwd) : null;
-  const result = deps.resolve(repo, command, remoteUrl);
+  if (found.unresolved)
+    return unresolvedDecision(observation, governed, environment, codex);
+  const repo = found.repo;
+  if (!repo) return unknownRepoDecision(governed, codex);
+
+  // An inherited variable that changes which repository the command reaches makes the
+  // observation untrustworthy for a governed write: refuse it rather than observe the wrong
+  // repository. Local and read commands are untouched.
+  if (governed && environment.length > 0)
+    return denyEnvironment(repo, environment);
+  return resolveDecision(command, repo, observation, governed, codex, deps);
+}
+
+// The answer when the working directory could not be resolved: a governed write is refused
+// (naming the environment variable first, then Codex's rule), and any other command passes.
+/**
+ * @param {import("./lib/observation.mjs").Observation} observation
+ * @param {boolean} governed
+ * @param {string[]} environment
+ * @param {boolean} codex
+ * @returns {Decision}
+ */
+function unresolvedDecision(observation, governed, environment, codex) {
+  if (governed && environment.length > 0)
+    return denyEnvironment(null, environment);
+  if (codex && governed) return codexWriteDenial();
+  return unresolvedAnswer(observation);
+}
+
+// The answer when the directory is not a fleet repository at all: Codex still blocks a
+// governed write, and every other command passes.
+/**
+ * @param {boolean} governed
+ * @param {boolean} codex
+ * @returns {Decision}
+ */
+function unknownRepoDecision(governed, codex) {
+  if (codex && governed) return codexWriteDenial();
+  return { action: "pass", repo: null, level: FALLBACK_LEVEL };
+}
+
+// The denial for a governed write observed under a destination-changing environment variable.
+/**
+ * @param {string | null} repo
+ * @param {string[]} environment
+ * @returns {Decision}
+ */
+function denyEnvironment(repo, environment) {
+  return {
+    action: "deny",
+    repo,
+    level: FALLBACK_LEVEL,
+    reason: environmentReason(environment),
+  };
+}
+
+// The decision for a command in a resolved fleet repository: ask the resolver, then map its
+// answer. Codex denies a governed write whatever the resolver said.
+/**
+ * @param {string} command
+ * @param {string} repo
+ * @param {import("./lib/observation.mjs").Observation} observation
+ * @param {boolean} governed
+ * @param {boolean} codex
+ * @param {{ resolve: Resolver }} deps
+ * @returns {Decision}
+ */
+function resolveDecision(command, repo, observation, governed, codex, deps) {
+  const result = deps.resolve(repo, observation);
   const classification = classifyResolver(result);
   const resolved = parseResolverOutput(result.stdout);
   const level = resolved?.level ?? FALLBACK_LEVEL;
 
-  // The resolver's capability is the existing command classification for a GitHub write.
-  // For an unknown resolver result, preserve the gate's established conservative fallback.
-  if (
-    input.runtime === "codex" &&
-    (resolved?.capability !== null && resolved?.capability !== undefined ||
-      (classification === "unknown" && isWriteCommand(command)))
-  )
-    return codexWriteDenial(repo, level);
-
-  if (classification === "deny") {
+  // Codex does not report which folder a command runs in, so every governed GitHub write from
+  // Codex is denied regardless of the destination.
+  if (codex && governed) return codexWriteDenial(repo, level);
+  if (classification === "deny")
     return {
       action: "deny",
       repo,
       level,
-      reason: `${repo} denies this command at level "${level}"`,
+      reason: denyReason(resolved, repo, level, observation),
     };
-  }
+  if (classification === "unknown")
+    return unresolvableWrite(repo, level, governed, result);
 
-  if (classification === "unknown") {
-    if (isWriteCommand(command)) {
-      return {
-        action: "deny",
-        repo,
-        level,
-        reason: result.catalogMissing
-          ? `${repo} is not in the fleet catalog (simpsonm09-org/simpsonm09-repo-catalog, repo-catalog/repos.json); add it there before agents can write to it`
-          : `the access resolver could not answer for ${repo}; check that the catalog and resolver are available before running this write`,
-      };
-    }
-    return { action: "pass", repo, level };
-  }
-
-  if (shouldInject(command)) return { action: "inject", repo, level };
+  // An allowed gh command is injected only when the destination is an organization
+  // destination the App serves. A destination outside the organization (an owned fork, a
+  // personal push fork) runs under the caller's own ambient authentication: the gate does not
+  // mint or hand out a token for it.
+  if (shouldInject(command) && resolved?.auth?.route === "app")
+    return { action: "inject", repo, level, auth: resolved.auth };
   return { action: "pass", repo, level };
+}
+
+// The answer when the resolver could not answer at all. A governed write is denied, naming the
+// missing catalog entry or the unavailable resolver; any other command passes.
+/**
+ * @param {string} repo
+ * @param {string} level
+ * @param {boolean} governed
+ * @param {CliResult} result
+ * @returns {Decision}
+ */
+function unresolvableWrite(repo, level, governed, result) {
+  if (!governed) return { action: "pass", repo, level };
+  return {
+    action: "deny",
+    repo,
+    level,
+    reason: result.catalogMissing
+      ? `${repo} is not in the fleet catalog (simpsonm09-org/simpsonm09-repo-catalog, repo-catalog/repos.json); add it there before agents can write to it`
+      : `the access resolver could not answer for ${repo}; check that the catalog and resolver are available before running this write`,
+  };
 }
 
 function codexWriteDenial(repo = null, level = FALLBACK_LEVEL) {
@@ -453,8 +512,9 @@ function codexWriteDenial(repo = null, level = FALLBACK_LEVEL) {
 // In PowerShell `&` is the call operator: it runs the word after it as a program, so that
 // word is the program word. Drop a leading `&` before the program is read, and the
 // executable-spelling handling in canonicalCommand reads the word itself (`& 'git' push` is
-// decided as `git push`). Only a `&` that is a token of its own counts. Nothing else is read:
-// a separator, a pipeline, or an assignment is decided by its first command, as in Bash.
+// decided as `git push`). Only a `&` that is a token of its own counts. Nothing else is read
+// here: the observer owns the segment analysis, and a compound command with a governed write
+// is an unsupported shape it denies.
 /**
  * @param {string} command
  * @param {"bash" | "powershell"} [shell]
@@ -465,9 +525,27 @@ function programCommand(command, shell) {
   return command.replace(/^(\s*)&(?=\s)\s*/, "$1");
 }
 
+// The conservative lexical read of a command with no git state and no working directory. Used
+// where the gate cannot reach git state — a call with no cwd, a relative cwd, or a hook that
+// ran out of budget — so a governed-write shape still fails closed, while a local command, a
+// quoted mention, or a known gh read passes. This is the observer without its git port, not the
+// whole-string scan it replaced.
+/**
+ * @param {string} command
+ * @param {"bash" | "powershell"} [shell]
+ * @returns {boolean}
+ */
+export function isGovernedCommand(command, shell) {
+  return isGovernedWrite(
+    observeCommand(command, {
+      shell: shell === "powershell" ? "powershell" : "bash",
+    }),
+  );
+}
+
 // The OpenCode side of the decision. It applies the decision to the command holder and
-// the environment: a denial rewrites the command, and an injection mints the token for
-// the repository and sets GH_TOKEN. A token that cannot be minted is a denial, as before.
+// the environment: a denial rewrites the command, and an injection mints the token for the
+// destination and sets GH_TOKEN. A token that cannot be minted is a denial, as before.
 /**
  * @param {{ command: string, shell?: string }} input
  * @param {Record<string, string | undefined>} env
@@ -476,8 +554,9 @@ function programCommand(command, shell) {
  *   workspaceRoot?: string,
  *   lookup?: (cwd: string) => { repo: string | null, unresolved?: boolean },
  *   resolve: Resolver,
- *   remoteUrl: RemoteUrlLookup,
- *   tokenFor: (repo: string) => Promise<string | null>,
+ *   git?: (cwd: string) => ((args: string[]) => string | null) | null,
+ *   env?: string[],
+ *   tokenFor: (owner: string, repo: string) => Promise<string | null>,
  * }} deps
  * @returns {Promise<Decision>}
  */
@@ -490,9 +569,11 @@ export async function gateShellEdit(input, env, deps) {
   }
 
   if (decision.action === "inject") {
-    const token = await deps.tokenFor(decision.repo ?? "");
+    const owner = decision.auth?.owner ?? "";
+    const repo = decision.auth?.repo ?? decision.repo ?? "";
+    const token = await deps.tokenFor(owner, repo);
     if (!token) {
-      const reason = `${decision.repo} could not mint a token for a gh command`;
+      const reason = `${repo} could not mint a token for a gh command`;
       input.command = denyCommand(reason, input.shell);
       return {
         action: "deny",

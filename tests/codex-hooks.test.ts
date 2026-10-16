@@ -7,7 +7,6 @@ import { spawn, spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { tokenize } from "../gate.mjs";
 import { handlePreToolUse as handleClaudePreToolUse } from "../hooks/lib/claude.mjs";
 import { handlePreToolUse, normalizeCall } from "../hooks/lib/codex.mjs";
 import { runGuardedHook } from "../hooks/lib/entry.mjs";
@@ -158,7 +157,7 @@ test("Codex still allows reads and Claude still allows full-access GitHub writes
   );
 });
 
-test("Codex uses conservative GitHub write text evidence", async () => {
+test("Codex denies a governed write and leaves local commands and quoted text alone", async () => {
   writeCatalog(ws, "full");
   const repo = cwdOf("projects/repos/demo-repo");
   for (const command of [
@@ -181,7 +180,14 @@ test("Codex uses conservative GitHub write text evidence", async () => {
 
   const reason =
     "agent-access: denied: Codex does not report which folder a command runs in, so GitHub writes from Codex are blocked in every repository. Push or open the pull request from Claude, OpenCode or Copilot.";
-  for (const command of ["git push origin main"]) {
+  for (const command of [
+    "git push origin main",
+    "gh pr create --title x",
+    "gh pr merge 1",
+    "gh api -X POST repos/o/r",
+    "cd x && git push origin main",
+    "FOO=1 git push origin main",
+  ]) {
     assert.deepEqual(
       await handlePreToolUse(measured(repo, command), {
         workspaceRoot: ws,
@@ -192,35 +198,33 @@ test("Codex uses conservative GitHub write text evidence", async () => {
     );
   }
 
+  // A governed write in a directory the lookup cannot resolve is denied.
   assert.deepEqual(
     await handlePreToolUse(
-      measured(join(ws, "unresolved"), "sudo env X=1 git push origin main"),
-      {
-        workspaceRoot: ws,
-        env: TOKEN_ENV,
-      },
+      measured(join(ws, "unresolved"), "git push origin main"),
+      { workspaceRoot: ws, env: TOKEN_ENV },
     ),
     jsonDeny(reason),
-    "recognizable write text remains denied when the directory is unresolved",
+    "a governed write remains denied when the directory is unresolved",
   );
 
+  // A wrapper or interpreter is the documented escape: the program word is the wrapper, so the
+  // observer reads the command as local and Codex leaves it alone.
   for (const command of [
     "command gh pr merge 1",
-    "echo local; git push origin main",
     `bash -c "git push origin main"`,
     `bash -lc 'git push origin main'`,
     `powershell -Command "gh pr merge 1"`,
     `env GIT_TRACE=1 sudo git push origin main`,
     `cmd /c "gh pr merge 1"`,
-    `echo $(gh pr merge 1)`,
     `node -e "console.log('git push origin main')"`,
   ]) {
-    assert.deepEqual(
+    assert.equal(
       await handlePreToolUse(measured(join(ws, "unresolved"), command), {
         workspaceRoot: ws,
         env: TOKEN_ENV,
       }),
-      jsonDeny(reason),
+      null,
       command,
     );
   }
@@ -568,7 +572,7 @@ test("PowerShell does not treat quoted text, comments, or search patterns as com
   }
 });
 
-test("POSIX dialect keeps the established shell-reader decisions for equivalent syntax", async () => {
+test("POSIX dialect keeps the observer's shell decisions for equivalent syntax", async () => {
   const cases = [
     ["'git' push no-such-remote main", "deny"],
     ['"git" push no-such-remote main', "deny"],
@@ -579,12 +583,14 @@ test("POSIX dialect keeps the established shell-reader decisions for equivalent 
     ["(git push no-such-remote main)", "allow"],
     ["$(git push no-such-remote main)", "allow"],
     ["`git push no-such-remote main`", "allow"],
-    ["echo safe | git push no-such-remote main", "allow"],
-    ["git status; git push no-such-remote main", "allow"],
-    ["git status && git push no-such-remote main", "allow"],
-    ["git status || git push no-such-remote main", "allow"],
+    // A compound command with a governed write in it is not parsed past the first segment: it
+    // is an unsupported governed-write shape, so it fails closed rather than passing.
+    ["echo safe | git push no-such-remote main", "deny"],
+    ["git status; git push no-such-remote main", "deny"],
+    ["git status && git push no-such-remote main", "deny"],
+    ["git status || git push no-such-remote main", "deny"],
     ["echo safe | xargs git push no-such-remote main", "allow"],
-    ["FOO=1 git push no-such-remote main", "allow"],
+    ["FOO=1 git push no-such-remote main", "deny"],
     ["git pu`sh no-such-remote main", "allow"],
   ] as const;
   const { decideShell } = await import("../gate.mjs");
@@ -594,13 +600,15 @@ test("POSIX dialect keeps the established shell-reader decisions for equivalent 
       {
         cwd: cwdOf("projects/repos/demo-repo"),
         lookup: () => ({ repo: "demo-repo" }),
-        resolve: (_repo, text) => {
-          const words = tokenize(text, "bash");
-          return words[0] === "git" && words[1] === "push"
-            ? { code: 1, stdout: JSON.stringify({ level: "read" }) }
-            : { code: 0, stdout: JSON.stringify({ level: "read" }) };
-        },
-        remoteUrl: () => null,
+        resolve: (_repo, observation) =>
+          observation.readOnly === true
+            ? { code: 0, stdout: JSON.stringify({ level: "read" }) }
+            : {
+                code: 1,
+                stdout: JSON.stringify({ level: "read", kind: "org" }),
+              },
+        git: () => null,
+        env: [],
       },
     );
     assert.equal(
@@ -618,14 +626,16 @@ test("resolver unknown distinguishes an absent catalog entry from resolver failu
     cwd: cwdOf("projects/repos/demo-repo"),
     lookup: () => ({ repo: "demo-repo" }),
     resolve: () => ({ code: 2, stdout: "" }),
-    remoteUrl: () => null,
+    git: () => null,
+    env: [],
   });
   assert.match(decision.reason ?? "", /resolver could not answer/i);
   const missing = decideShell(input, {
     cwd: cwdOf("projects/repos/demo-repo"),
     lookup: () => ({ repo: "demo-repo" }),
     resolve: () => ({ code: 2, stdout: "", catalogMissing: true }),
-    remoteUrl: () => null,
+    git: () => null,
+    env: [],
   });
   assert.match(missing.reason ?? "", /not in the fleet catalog/i);
 });

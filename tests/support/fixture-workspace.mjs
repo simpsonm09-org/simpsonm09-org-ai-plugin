@@ -22,16 +22,47 @@ export const FIXTURE_TOKEN = "fixture-token-not-real";
 export const ORG_URL = "https://github.com/simpsonm09-org/demo-repo.git";
 export const FORK_URL = "https://github.com/simpsonm09/fork-repo.git";
 
+// A real fleet clone: `origin` is the personal fork and `upstream` is the organization
+// repository, so a `gh` command with no `-R` names two GitHub destinations and is ambiguous.
+export const TWO_REMOTE_FORK_URL =
+  "https://github.com/simpsonm09/two-remote-repo.git";
+export const TWO_REMOTE_ORG_URL =
+  "https://github.com/simpsonm09-org/two-remote-repo.git";
+
 // The git clones the cells use. nogit-repo is a directory with no git; unlisted-repo is a
-// clone the catalog does not name, so the resolver falls back to its default level.
+// clone the catalog does not name, so the resolver falls back to its default level. pstack-max
+// is an approved owned fork: its origin is the personal fork, its upstream is the recorded
+// third-party parent, and the catalog's owned-forks policy names it.
 export const CLONES = [
   { name: "demo-repo", origin: ORG_URL },
   { name: "fork-repo", origin: FORK_URL },
   {
+    name: "two-remote-repo",
+    origin: TWO_REMOTE_FORK_URL,
+    upstream: TWO_REMOTE_ORG_URL,
+  },
+  {
     name: "unlisted-repo",
     origin: "https://github.com/simpsonm09-org/unlisted-repo.git",
   },
+  {
+    name: "pstack-max",
+    origin: "https://github.com/simpsonm09/pstack-max.git",
+    upstream: "https://github.com/michael-denyer/pstack-claude.git",
+  },
 ];
+
+// The owned-fork policy the catalog carries on its committed ref. It names the personal owner
+// the personal push fork collapses through, and the approved owned fork's target.
+export const OWNED_FORKS = {
+  forks: [
+    {
+      repository: "simpsonm09/pstack-max",
+      upstream: "michael-denyer/pstack-claude",
+      agentAccess: "propose",
+    },
+  ],
+};
 
 /**
  * Write the catalog working tree: demo-repo and fork-repo at the given level.
@@ -42,10 +73,12 @@ export function writeCatalog(workspace, level) {
   const dir = join(workspace, "projects", "repos", "simpsonm09-repo-catalog");
   mkdirSync(dir, { recursive: true });
   const catalog = {
+    org: "simpsonm09-org",
     agentAccessDefaults: { standard: "read" },
     repos: [
       { name: "demo-repo", tier: "standard", agentAccess: level },
       { name: "fork-repo", tier: "standard", agentAccess: level },
+      { name: "two-remote-repo", tier: "standard", agentAccess: level },
     ],
   };
   const path = join(dir, "repos.json");
@@ -54,7 +87,13 @@ export function writeCatalog(workspace, level) {
   writeFileSync(path, content);
   if (existsSync(join(dir, ".git"))) {
     git(dir, ["add", "repos.json"]);
-    git(dir, ["commit", "--quiet", "--no-verify", "-m", "fixture catalog update"]);
+    git(dir, [
+      "commit",
+      "--quiet",
+      "--no-verify",
+      "-m",
+      "fixture catalog update",
+    ]);
     git(dir, ["update-ref", "refs/remotes/upstream/main", "HEAD"]);
   }
 }
@@ -109,7 +148,26 @@ export function buildWorkspace(dir, { level = "read" } = {}) {
   git(catalog, ["init", "--quiet", "-b", "main"]);
   git(catalog, ["add", "repos.json"]);
   git(catalog, ["commit", "--quiet", "--no-verify", "-m", "fixture catalog"]);
-  git(catalog, ["remote", "add", "upstream", "https://github.com/simpsonm09-org/simpsonm09-repo-catalog.git"]);
+  git(catalog, [
+    "remote",
+    "add",
+    "upstream",
+    "https://github.com/simpsonm09-org/simpsonm09-repo-catalog.git",
+  ]);
+  git(catalog, ["update-ref", "refs/remotes/upstream/main", "HEAD"]);
+  // The owned-fork policy, committed on the same ref so loadCommittedOwnedForks reads it.
+  writeFileSync(
+    join(catalog, "owned-forks.json"),
+    `${JSON.stringify(OWNED_FORKS, null, 2)}\n`,
+  );
+  git(catalog, ["add", "owned-forks.json"]);
+  git(catalog, [
+    "commit",
+    "--quiet",
+    "--no-verify",
+    "-m",
+    "fixture owned forks",
+  ]);
   git(catalog, ["update-ref", "refs/remotes/upstream/main", "HEAD"]);
 
   for (const clone of CLONES) {
@@ -124,7 +182,19 @@ export function buildWorkspace(dir, { level = "read" } = {}) {
       "-m",
       "init",
     ]);
+    // A non-default branch exists, so a fixture push of a feature branch resolves to a real
+    // branch (pushBranch) rather than to an unknown ref (pushMain).
+    git(path, ["branch", "feat/x"]);
     git(path, ["remote", "add", "origin", clone.origin]);
+    if (clone.upstream)
+      git(path, ["remote", "add", "upstream", clone.upstream]);
+    // The remote-tracking HEAD is the only local evidence of the default branch.
+    git(path, ["update-ref", "refs/remotes/origin/main", "HEAD"]);
+    git(path, [
+      "symbolic-ref",
+      "refs/remotes/origin/HEAD",
+      "refs/remotes/origin/main",
+    ]);
   }
   // A directory under repos that is not a git clone.
   mkdirSync(join(workspace, "projects", "repos", "nogit-repo"), {

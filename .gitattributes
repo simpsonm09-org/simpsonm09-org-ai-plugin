@@ -5,3 +5,4 @@
 *.jpg binary
 *.webp binary
 package-lock.json linguist-generated=true
+runtime/agent-access.mjs linguist-generated=true

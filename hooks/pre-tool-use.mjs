@@ -10,10 +10,7 @@
 
 try {
   const [{ readHookInput, runGuardedHook }, { runtimeNamed }] =
-    await Promise.all([
-      import("./lib/entry.mjs"),
-      import("./lib/runtime.mjs"),
-    ]);
+    await Promise.all([import("./lib/entry.mjs"), import("./lib/runtime.mjs")]);
   const runtime = runtimeNamed(process.argv[2]);
   runtime.installLastResortHandlers?.(runtime.writeStdout);
   const input = await readHookInput();
@@ -29,7 +26,9 @@ try {
     const { runtimeNamed } = await import("./lib/runtime.mjs");
     const runtime = runtimeNamed(process.argv[2]);
     if (typeof runtime.failureAnswer === "function") {
-      runtime.writeStdout(`${JSON.stringify(runtime.failureAnswer('{"hook_event_name":"PreToolUse"}', "hook could not start"))}\n`);
+      runtime.writeStdout(
+        `${JSON.stringify(runtime.failureAnswer('{"hook_event_name":"PreToolUse"}', "hook could not start"))}\n`,
+      );
       process.exitCode = 0;
       process.exit(0);
     }

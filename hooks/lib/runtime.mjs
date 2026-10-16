@@ -5,8 +5,8 @@
 // An unknown name throws, so a hook started with it fails closed.
 
 import * as claude from "./claude.mjs";
-import * as copilot from "./copilot.mjs";
 import * as codex from "./codex.mjs";
+import * as copilot from "./copilot.mjs";
 
 const RUNTIMES = new Map([
   ["claude", claude],

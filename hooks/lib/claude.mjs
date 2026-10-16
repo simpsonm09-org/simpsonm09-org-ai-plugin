@@ -14,7 +14,7 @@ import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   defaultScripts,
-  gitRemoteUrl,
+  gitReader,
   levelFor,
   loadAccessApi,
   resolveAccess,
@@ -24,7 +24,7 @@ import {
   contextLine,
   decideShell,
   denyMessage,
-  isWriteCommand,
+  isGovernedCommand,
   powerShellQuote,
   shellQuote,
 } from "../../gate.mjs";
@@ -35,6 +35,7 @@ import {
   PRE_TOOL_USE_BUDGET,
   startBudget,
 } from "../../lib/budget.mjs";
+import { environmentSnapshot } from "../../lib/environment.mjs";
 import { fleetLookup } from "../../lib/fleet.mjs";
 import { realPath, workspaceForPluginRoot } from "../../lib/location.mjs";
 import { displayCommand, readOnlyGh, runsLauncher } from "./commands.mjs";
@@ -205,9 +206,10 @@ async function decideCall(command, cwd, workspaceRoot, shell, runtime) {
     {
       cwd,
       lookup: (dir) => fleetLookup(dir, workspaceRoot),
-      resolve: (repo, text, remoteUrl) =>
-        resolveAccess(api, scripts.catalog, repo, text, remoteUrl),
-      remoteUrl: gitRemoteUrl,
+      resolve: (repo, observation) =>
+        resolveAccess(api, scripts.catalog, repo, observation),
+      git: (dir) => gitReader(dir),
+      env: environmentSnapshot(),
     },
   );
 }
@@ -267,7 +269,7 @@ const LAUNCHER_DENIAL = "the GitHub token launcher is not for direct use";
 // The PreToolUse answer for one command in this call's directory, dialect, and workspace. The
 // call's own command, and a launcher line's plain command, use it.
 //   - A call with no working directory is denied when it is a write, and passed when a read.
-//     A gh call is a write for this purpose (gate.mjs isWriteCommand), so it is denied too.
+//     A gh write is a write for this purpose (gate.mjs isGovernedCommand), so it is denied too.
 //   - A call the plugin cannot find its workspace for is denied when it is a write.
 //   - A call the gate denies is denied with the gate's reason.
 //   - An allowed gh call is rewritten to run through the launcher: "allow" for a read, "ask"
@@ -281,7 +283,11 @@ const LAUNCHER_DENIAL = "the GitHub token launcher is not for direct use";
  */
 async function answerCall(call, command, options) {
   const workspaceRoot = trustedWorkspace(options);
-  if (call.cwd && !isAbsolute(call.cwd) && isWriteCommand(command)) {
+  if (
+    call.cwd &&
+    !isAbsolute(call.cwd) &&
+    isGovernedCommand(command, dialectOf(call.tool, options, call.command))
+  ) {
     return denyOutput(
       denyMessage(
         "the working directory is relative and cannot be checked safely; retry with an absolute cwd",
@@ -289,7 +295,10 @@ async function answerCall(call, command, options) {
     );
   }
   if (!call.cwd || !workspaceRoot) {
-    if (!isWriteCommand(command)) return null;
+    if (
+      !isGovernedCommand(command, dialectOf(call.tool, options, call.command))
+    )
+      return null;
     const reason = call.cwd
       ? "the plugin is not installed in a trusted workspace layout, so the gate cannot find the resolver for this write"
       : "the gate could not determine the working directory for this write";
@@ -421,7 +430,10 @@ export async function handleSessionStart(input, options = {}) {
   if (!repo) return null;
   const api = await loadAccessApi(defaultScripts(workspaceRoot).access);
   return sessionContextOutput(
-    contextLine(repo, levelFor(api, repo, defaultScripts(workspaceRoot).catalog)),
+    contextLine(
+      repo,
+      levelFor(api, repo, defaultScripts(workspaceRoot).catalog),
+    ),
   );
 }
 
@@ -440,7 +452,13 @@ export function budgetAnswer(input, options) {
   const gated = GATED_TOOLS.includes(input.tool_name);
   if (!gated) return null;
   const command = input.tool_input?.command;
-  if (typeof command !== "string" || isWriteCommand(command))
+  if (
+    typeof command !== "string" ||
+    isGovernedCommand(
+      command,
+      input.tool_name === "PowerShell" ? "powershell" : "bash",
+    )
+  )
     return denyOutput(denyMessage(BUDGET_REASON));
   return null;
 }

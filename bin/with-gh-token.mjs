@@ -26,7 +26,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   defaultScripts,
-  gitRemoteUrl,
+  gitReader,
   loadAccessApi,
   loadTokenApi,
   resolveAccess,
@@ -34,6 +34,7 @@ import {
 } from "../access.mjs";
 import { decideShell, denyMessage } from "../gate.mjs";
 import { gitBashPath } from "../lib/bash.mjs";
+import { environmentSnapshot } from "../lib/environment.mjs";
 import { fleetLookup } from "../lib/fleet.mjs";
 import { realPath, workspaceForPluginRoot } from "../lib/location.mjs";
 import { decodePayload } from "./payload.mjs";
@@ -112,9 +113,10 @@ export async function launch(payload, options = {}) {
     {
       cwd,
       lookup: (dir) => fleetLookup(dir, workspace),
-      resolve: (repo, text, remoteUrl) =>
-        resolveAccess(api, scripts.catalog, repo, text, remoteUrl),
-      remoteUrl: gitRemoteUrl,
+      resolve: (repo, observation) =>
+        resolveAccess(api, scripts.catalog, repo, observation),
+      git: (dir) => gitReader(dir),
+      env: environmentSnapshot(env),
     },
   );
   if (decision.action !== "inject" || decision.repo !== payload.repo) {
@@ -140,7 +142,12 @@ export async function launch(payload, options = {}) {
   }
 
   const broker = await loadTokenApi(scripts.token);
-  const token = await tokenFor(broker, scripts.token, decision.repo ?? "");
+  const token = await tokenFor(
+    broker,
+    scripts.token,
+    decision.auth?.owner ?? "",
+    decision.auth?.repo ?? "",
+  );
   if (!token) {
     log(
       denyMessage(`${decision.repo} could not mint a token for a gh command`),
@@ -199,7 +206,11 @@ function childHost(shell, env, options) {
  */
 function runChild(file, args, env, log) {
   return new Promise((resolveExit) => {
-    const child = spawn(file, args, { windowsHide: true, stdio: "inherit", env });
+    const child = spawn(file, args, {
+      windowsHide: true,
+      stdio: "inherit",
+      env,
+    });
     const stop = (signal) => {
       if (child.exitCode === null && child.signalCode === null)
         child.kill(signal);

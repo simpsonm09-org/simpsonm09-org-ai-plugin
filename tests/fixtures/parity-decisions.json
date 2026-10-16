@@ -1,0 +1,502 @@
+{
+  "recordedFrom": "HEAD 05f22c14794e34d62c0fa861181c18e37aad4395",
+  "note": "The cells whose decision the destination-aware gate intentionally changes, with the recorded HEAD action and the new action. tests/parity.test.ts asserts exactly these cells change and no others. This fixture's topology is the single-remote clone the golden file models; the cells a real two-remote clone (origin = personal fork, upstream = organization repository) changes are declared separately in tests/fixtures/parity-two-remote.json.",
+  "rationale": {
+    "bare-push": "A bare `git push` (and `git push origin` with no refspec) is resolved through git's own default push remote and the current branch, so it is a pushMain on `main` rather than the pushBranch its lack of a refspec suggested.",
+    "head-ref": "`HEAD` resolves to the checked-out branch, so `git push origin HEAD` on `main` is a pushMain.",
+    "unresolved-remote": "The first positional after `git push` is the repository. A token that is neither a URL nor a configured remote leaves the destination unresolved, so a governed write is denied rather than allowed as an out-of-scope URL.",
+    "admin-verb": "A gh verb with no precise capability (`pr comment`, `repo delete`, `release create`, `workflow run`) is a conservative `admin` write, denied below `full` instead of allowed at every level.",
+    "personal-fork-push": "The clone's own fork of a governed repository is the governed destination at the roster level, so its default branch is denied; this replaces the previous out-of-scope-by-URL allowance.",
+    "personal-fork-auth": "A destination owned by the personal account uses that account's ambient authentication, so the gate does not mint an organization App token for it; the command still passes.",
+    "compound": "A compound command that contains a governed write is an unsupported shape, so the whole command is denied instead of decided by its first word.",
+    "assignment-prefix": "A benign leading `NAME=value` assignment is skipped to find the program word, so the command is observed as the `git push` it runs and its capability applies."
+  },
+  "changes": [
+    {
+      "id": "demo-root|posix|full|git push fork feat/x",
+      "cwd": "demo-root",
+      "level": "full",
+      "command": "git push fork feat/x",
+      "head": "pass",
+      "now": "deny",
+      "category": "unresolved-remote"
+    },
+    {
+      "id": "demo-root|posix|full|git push upstream refs/heads/main",
+      "cwd": "demo-root",
+      "level": "full",
+      "command": "git push upstream refs/heads/main",
+      "head": "pass",
+      "now": "deny",
+      "category": "unresolved-remote"
+    },
+    {
+      "id": "demo-root|posix|full|gh pr comment 1 --body x",
+      "cwd": "demo-root",
+      "level": "full",
+      "command": "gh pr comment 1 --body x",
+      "head": "inject",
+      "now": "deny",
+      "category": "admin-verb"
+    },
+    {
+      "id": "demo-root|posix|full|cd x && git push origin main",
+      "cwd": "demo-root",
+      "level": "full",
+      "command": "cd x && git push origin main",
+      "head": "pass",
+      "now": "deny",
+      "category": "compound"
+    },
+    {
+      "id": "fork|posix|full|gh pr merge 1",
+      "cwd": "fork",
+      "level": "full",
+      "command": "gh pr merge 1",
+      "head": "inject",
+      "now": "pass",
+      "category": "personal-fork-auth"
+    },
+    {
+      "id": "fork|posix|full|gh pr view 1",
+      "cwd": "fork",
+      "level": "full",
+      "command": "gh pr view 1",
+      "head": "inject",
+      "now": "pass",
+      "category": "personal-fork-auth"
+    },
+    {
+      "id": "fork|posix|full|cd x && git push origin main",
+      "cwd": "fork",
+      "level": "full",
+      "command": "cd x && git push origin main",
+      "head": "pass",
+      "now": "deny",
+      "category": "compound"
+    },
+    {
+      "id": "demo-root|posix|merge|git push",
+      "cwd": "demo-root",
+      "level": "merge",
+      "command": "git push",
+      "head": "pass",
+      "now": "deny",
+      "category": "bare-push"
+    },
+    {
+      "id": "demo-root|posix|merge|git push fork feat/x",
+      "cwd": "demo-root",
+      "level": "merge",
+      "command": "git push fork feat/x",
+      "head": "pass",
+      "now": "deny",
+      "category": "unresolved-remote"
+    },
+    {
+      "id": "demo-root|posix|merge|git push origin HEAD",
+      "cwd": "demo-root",
+      "level": "merge",
+      "command": "git push origin HEAD",
+      "head": "pass",
+      "now": "deny",
+      "category": "head-ref"
+    },
+    {
+      "id": "demo-root|posix|merge|gh pr comment 1 --body x",
+      "cwd": "demo-root",
+      "level": "merge",
+      "command": "gh pr comment 1 --body x",
+      "head": "inject",
+      "now": "deny",
+      "category": "admin-verb"
+    },
+    {
+      "id": "demo-root|posix|merge|gh repo delete o/r --yes",
+      "cwd": "demo-root",
+      "level": "merge",
+      "command": "gh repo delete o/r --yes",
+      "head": "inject",
+      "now": "deny",
+      "category": "admin-verb"
+    },
+    {
+      "id": "demo-root|posix|merge|gh release create v1",
+      "cwd": "demo-root",
+      "level": "merge",
+      "command": "gh release create v1",
+      "head": "inject",
+      "now": "deny",
+      "category": "admin-verb"
+    },
+    {
+      "id": "demo-root|posix|merge|gh workflow run ci.yml",
+      "cwd": "demo-root",
+      "level": "merge",
+      "command": "gh workflow run ci.yml",
+      "head": "inject",
+      "now": "deny",
+      "category": "admin-verb"
+    },
+    {
+      "id": "demo-root|posix|merge|cd x && git push origin main",
+      "cwd": "demo-root",
+      "level": "merge",
+      "command": "cd x && git push origin main",
+      "head": "pass",
+      "now": "deny",
+      "category": "compound"
+    },
+    {
+      "id": "demo-root|posix|merge|FOO=1 git push origin main",
+      "cwd": "demo-root",
+      "level": "merge",
+      "command": "FOO=1 git push origin main",
+      "head": "pass",
+      "now": "deny",
+      "category": "assignment-prefix"
+    },
+    {
+      "id": "fork|posix|merge|git push origin main",
+      "cwd": "fork",
+      "level": "merge",
+      "command": "git push origin main",
+      "head": "pass",
+      "now": "deny",
+      "category": "personal-fork-push"
+    },
+    {
+      "id": "fork|posix|merge|git push",
+      "cwd": "fork",
+      "level": "merge",
+      "command": "git push",
+      "head": "pass",
+      "now": "deny",
+      "category": "bare-push"
+    },
+    {
+      "id": "fork|posix|merge|gh pr merge 1",
+      "cwd": "fork",
+      "level": "merge",
+      "command": "gh pr merge 1",
+      "head": "inject",
+      "now": "pass",
+      "category": "personal-fork-auth"
+    },
+    {
+      "id": "fork|posix|merge|gh pr view 1",
+      "cwd": "fork",
+      "level": "merge",
+      "command": "gh pr view 1",
+      "head": "inject",
+      "now": "pass",
+      "category": "personal-fork-auth"
+    },
+    {
+      "id": "fork|posix|merge|cd x && git push origin main",
+      "cwd": "fork",
+      "level": "merge",
+      "command": "cd x && git push origin main",
+      "head": "pass",
+      "now": "deny",
+      "category": "compound"
+    },
+    {
+      "id": "demo-root|posix|none|gh pr comment 1 --body x",
+      "cwd": "demo-root",
+      "level": "none",
+      "command": "gh pr comment 1 --body x",
+      "head": "inject",
+      "now": "deny",
+      "category": "admin-verb"
+    },
+    {
+      "id": "demo-root|posix|none|gh repo delete o/r --yes",
+      "cwd": "demo-root",
+      "level": "none",
+      "command": "gh repo delete o/r --yes",
+      "head": "inject",
+      "now": "deny",
+      "category": "admin-verb"
+    },
+    {
+      "id": "demo-root|posix|none|gh release create v1",
+      "cwd": "demo-root",
+      "level": "none",
+      "command": "gh release create v1",
+      "head": "inject",
+      "now": "deny",
+      "category": "admin-verb"
+    },
+    {
+      "id": "demo-root|posix|none|gh workflow run ci.yml",
+      "cwd": "demo-root",
+      "level": "none",
+      "command": "gh workflow run ci.yml",
+      "head": "inject",
+      "now": "deny",
+      "category": "admin-verb"
+    },
+    {
+      "id": "demo-root|posix|none|cd x && git push origin main",
+      "cwd": "demo-root",
+      "level": "none",
+      "command": "cd x && git push origin main",
+      "head": "pass",
+      "now": "deny",
+      "category": "compound"
+    },
+    {
+      "id": "demo-root|posix|none|FOO=1 git push origin main",
+      "cwd": "demo-root",
+      "level": "none",
+      "command": "FOO=1 git push origin main",
+      "head": "pass",
+      "now": "deny",
+      "category": "assignment-prefix"
+    },
+    {
+      "id": "fork|posix|none|git push origin main",
+      "cwd": "fork",
+      "level": "none",
+      "command": "git push origin main",
+      "head": "pass",
+      "now": "deny",
+      "category": "personal-fork-push"
+    },
+    {
+      "id": "fork|posix|none|git push",
+      "cwd": "fork",
+      "level": "none",
+      "command": "git push",
+      "head": "pass",
+      "now": "deny",
+      "category": "bare-push"
+    },
+    {
+      "id": "fork|posix|none|gh pr view 1",
+      "cwd": "fork",
+      "level": "none",
+      "command": "gh pr view 1",
+      "head": "inject",
+      "now": "pass",
+      "category": "personal-fork-auth"
+    },
+    {
+      "id": "fork|posix|none|cd x && git push origin main",
+      "cwd": "fork",
+      "level": "none",
+      "command": "cd x && git push origin main",
+      "head": "pass",
+      "now": "deny",
+      "category": "compound"
+    },
+    {
+      "id": "demo-root|posix|propose|git push",
+      "cwd": "demo-root",
+      "level": "propose",
+      "command": "git push",
+      "head": "pass",
+      "now": "deny",
+      "category": "bare-push"
+    },
+    {
+      "id": "demo-root|posix|propose|git push fork feat/x",
+      "cwd": "demo-root",
+      "level": "propose",
+      "command": "git push fork feat/x",
+      "head": "pass",
+      "now": "deny",
+      "category": "unresolved-remote"
+    },
+    {
+      "id": "demo-root|posix|propose|git push origin HEAD",
+      "cwd": "demo-root",
+      "level": "propose",
+      "command": "git push origin HEAD",
+      "head": "pass",
+      "now": "deny",
+      "category": "head-ref"
+    },
+    {
+      "id": "demo-root|posix|propose|gh pr comment 1 --body x",
+      "cwd": "demo-root",
+      "level": "propose",
+      "command": "gh pr comment 1 --body x",
+      "head": "inject",
+      "now": "deny",
+      "category": "admin-verb"
+    },
+    {
+      "id": "demo-root|posix|propose|gh repo delete o/r --yes",
+      "cwd": "demo-root",
+      "level": "propose",
+      "command": "gh repo delete o/r --yes",
+      "head": "inject",
+      "now": "deny",
+      "category": "admin-verb"
+    },
+    {
+      "id": "demo-root|posix|propose|gh release create v1",
+      "cwd": "demo-root",
+      "level": "propose",
+      "command": "gh release create v1",
+      "head": "inject",
+      "now": "deny",
+      "category": "admin-verb"
+    },
+    {
+      "id": "demo-root|posix|propose|gh workflow run ci.yml",
+      "cwd": "demo-root",
+      "level": "propose",
+      "command": "gh workflow run ci.yml",
+      "head": "inject",
+      "now": "deny",
+      "category": "admin-verb"
+    },
+    {
+      "id": "demo-root|posix|propose|cd x && git push origin main",
+      "cwd": "demo-root",
+      "level": "propose",
+      "command": "cd x && git push origin main",
+      "head": "pass",
+      "now": "deny",
+      "category": "compound"
+    },
+    {
+      "id": "demo-root|posix|propose|FOO=1 git push origin main",
+      "cwd": "demo-root",
+      "level": "propose",
+      "command": "FOO=1 git push origin main",
+      "head": "pass",
+      "now": "deny",
+      "category": "assignment-prefix"
+    },
+    {
+      "id": "fork|posix|propose|git push origin main",
+      "cwd": "fork",
+      "level": "propose",
+      "command": "git push origin main",
+      "head": "pass",
+      "now": "deny",
+      "category": "personal-fork-push"
+    },
+    {
+      "id": "fork|posix|propose|git push",
+      "cwd": "fork",
+      "level": "propose",
+      "command": "git push",
+      "head": "pass",
+      "now": "deny",
+      "category": "bare-push"
+    },
+    {
+      "id": "fork|posix|propose|gh pr view 1",
+      "cwd": "fork",
+      "level": "propose",
+      "command": "gh pr view 1",
+      "head": "inject",
+      "now": "pass",
+      "category": "personal-fork-auth"
+    },
+    {
+      "id": "fork|posix|propose|cd x && git push origin main",
+      "cwd": "fork",
+      "level": "propose",
+      "command": "cd x && git push origin main",
+      "head": "pass",
+      "now": "deny",
+      "category": "compound"
+    },
+    {
+      "id": "demo-root|posix|read|gh pr comment 1 --body x",
+      "cwd": "demo-root",
+      "level": "read",
+      "command": "gh pr comment 1 --body x",
+      "head": "inject",
+      "now": "deny",
+      "category": "admin-verb"
+    },
+    {
+      "id": "demo-root|posix|read|gh repo delete o/r --yes",
+      "cwd": "demo-root",
+      "level": "read",
+      "command": "gh repo delete o/r --yes",
+      "head": "inject",
+      "now": "deny",
+      "category": "admin-verb"
+    },
+    {
+      "id": "demo-root|posix|read|gh release create v1",
+      "cwd": "demo-root",
+      "level": "read",
+      "command": "gh release create v1",
+      "head": "inject",
+      "now": "deny",
+      "category": "admin-verb"
+    },
+    {
+      "id": "demo-root|posix|read|gh workflow run ci.yml",
+      "cwd": "demo-root",
+      "level": "read",
+      "command": "gh workflow run ci.yml",
+      "head": "inject",
+      "now": "deny",
+      "category": "admin-verb"
+    },
+    {
+      "id": "demo-root|posix|read|cd x && git push origin main",
+      "cwd": "demo-root",
+      "level": "read",
+      "command": "cd x && git push origin main",
+      "head": "pass",
+      "now": "deny",
+      "category": "compound"
+    },
+    {
+      "id": "demo-root|posix|read|FOO=1 git push origin main",
+      "cwd": "demo-root",
+      "level": "read",
+      "command": "FOO=1 git push origin main",
+      "head": "pass",
+      "now": "deny",
+      "category": "assignment-prefix"
+    },
+    {
+      "id": "fork|posix|read|git push origin main",
+      "cwd": "fork",
+      "level": "read",
+      "command": "git push origin main",
+      "head": "pass",
+      "now": "deny",
+      "category": "personal-fork-push"
+    },
+    {
+      "id": "fork|posix|read|git push",
+      "cwd": "fork",
+      "level": "read",
+      "command": "git push",
+      "head": "pass",
+      "now": "deny",
+      "category": "bare-push"
+    },
+    {
+      "id": "fork|posix|read|gh pr view 1",
+      "cwd": "fork",
+      "level": "read",
+      "command": "gh pr view 1",
+      "head": "inject",
+      "now": "pass",
+      "category": "personal-fork-auth"
+    },
+    {
+      "id": "fork|posix|read|cd x && git push origin main",
+      "cwd": "fork",
+      "level": "read",
+      "command": "cd x && git push origin main",
+      "head": "pass",
+      "now": "deny",
+      "category": "compound"
+    }
+  ]
+}

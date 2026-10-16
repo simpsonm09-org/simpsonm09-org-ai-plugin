@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { Plugin } from "@opencode/plugin";
 import {
   defaultScripts,
-  gitRemoteUrl,
+  gitReader,
   levelFor,
   loadAccessApi,
   loadTokenApi,
@@ -12,6 +12,7 @@ import {
   tokenFor,
 } from "./access.mjs";
 import { contextLine, gateShellEdit } from "./gate.mjs";
+import { environmentSnapshot } from "./lib/environment.mjs";
 import { fleetLookup } from "./lib/fleet.mjs";
 
 // This file is an adapter. The rules are in gate.mjs; the decision for a command is
@@ -147,10 +148,12 @@ export default Plugin.define({
       await gateShellEdit(input, input.env, {
         cwd: input.cwd,
         lookup: () => found,
-        resolve: (name, command, remoteUrl) =>
-          resolveAccess(accessApi, scripts.catalog, name, command, remoteUrl),
-        remoteUrl: gitRemoteUrl,
-        tokenFor: (name) => tokenFor(tokenApi, scripts.token, name),
+        resolve: (name, observation) =>
+          resolveAccess(accessApi, scripts.catalog, name, observation),
+        git: (dir) => gitReader(dir),
+        env: environmentSnapshot(),
+        tokenFor: (owner, name) =>
+          tokenFor(tokenApi, scripts.token, owner, name),
       });
     });
 

@@ -6,13 +6,11 @@ import {
   contextLine,
   denyCommand,
   gateShellEdit,
+  isGovernedCommand,
   isPowerShell,
-  isWriteCommand,
   nodeRunner,
   parseResolverOutput,
   powerShellQuote,
-  pushRemote,
-  remoteUrlFor,
   repoFromCwd,
   shouldInject,
   tokenUsable,
@@ -21,6 +19,22 @@ import { canonicalCommand, programName } from "../lib/program.mjs";
 
 const ws = resolve("workspace");
 const reposRoot = join(ws, "projects", "repos");
+
+// A read-only git port that answers only the remote queries the observer makes, so a gate
+// test does not need a real clone on disk. Everything else is null, which leaves the
+// observation unresolved.
+/**
+ * @param {string | null} url
+ * @returns {(args: string[]) => string | null}
+ */
+function readerFor(url: string | null) {
+  return (args) => {
+    const key = args.join(" ");
+    if (key === "remote") return "origin\nupstream";
+    if (key.startsWith("remote get-url")) return url;
+    return null;
+  };
+}
 
 test("repoFromCwd names the clone for a directory inside a repo", () => {
   assert.equal(
@@ -53,62 +67,6 @@ test("shouldInject only matches a gh command", () => {
   assert.equal(shouldInject("npx gh"), false);
 });
 
-test("pushRemote reads the remote after git push, defaulting to origin", () => {
-  assert.equal(pushRemote("git push"), "origin");
-  assert.equal(pushRemote("git push origin main"), "origin");
-  assert.equal(pushRemote("git push upstream main"), "upstream");
-  assert.equal(pushRemote("git push --dry-run origin main"), "origin");
-  assert.equal(pushRemote("git push -f upstream refs/heads/main"), "upstream");
-  assert.equal(pushRemote("git push --force-with-lease"), "origin");
-  // A bare "main" in the remote position reads as a remote, matching the
-  // resolver's own parse: it has no colon and no slash, so it is not a refspec.
-  assert.equal(pushRemote("git push main"), "main");
-  assert.equal(pushRemote("git push refs/heads/main"), "origin");
-  assert.equal(pushRemote("git push feat/x:main"), "origin");
-  // Not a git push: no remote to resolve.
-  assert.equal(pushRemote("gh pr merge 1"), null);
-  assert.equal(pushRemote("git fetch origin"), null);
-  assert.equal(pushRemote("ls -la"), null);
-});
-
-test("remoteUrlFor returns the trimmed URL and null on any failure", () => {
-  const ok = () =>
-    remoteUrlFor(
-      "origin",
-      "/repo",
-      () => "https://github.com/simpsonm09/simpsonm09-repo-standard.git\n",
-    );
-  assert.equal(
-    ok(),
-    "https://github.com/simpsonm09/simpsonm09-repo-standard.git",
-  );
-
-  const seen: string[][] = [];
-  remoteUrlFor("upstream", "/repo", (args) => {
-    seen.push(args);
-    return "https://github.com/simpsonm09-org/x.git";
-  });
-  assert.deepEqual(seen, [["-C", "/repo", "remote", "get-url", "upstream"]]);
-
-  const throws = () =>
-    remoteUrlFor("origin", "/repo", () => {
-      throw new Error("no such remote");
-    });
-  assert.equal(throws(), null);
-  assert.equal(
-    remoteUrlFor("origin", "/repo", () => "  \n"),
-    null,
-  );
-  assert.equal(
-    remoteUrlFor("", "/repo", () => "x"),
-    null,
-  );
-  assert.equal(
-    remoteUrlFor("origin", "", () => "x"),
-    null,
-  );
-});
-
 test("classifyResolver maps exit codes to allow, deny, and unknown", () => {
   assert.equal(classifyResolver({ code: 0, stdout: "read\n" }), "allow");
   assert.equal(classifyResolver({ code: 1, stdout: "" }), "deny");
@@ -116,12 +74,18 @@ test("classifyResolver maps exit codes to allow, deny, and unknown", () => {
   assert.equal(classifyResolver({ code: 127, stdout: "" }), "unknown");
 });
 
-test("isWriteCommand recognizes a gh command and a remote write", () => {
-  assert.equal(isWriteCommand("gh api -X POST /repos"), true);
-  assert.equal(isWriteCommand("git push origin main"), true);
-  assert.equal(isWriteCommand("gh pr merge 3"), true);
-  assert.equal(isWriteCommand("ls -la"), false);
-  assert.equal(isWriteCommand("cat file"), false);
+test("isGovernedCommand is the observer without a git port: writes and pushes yes, reads no", () => {
+  assert.equal(isGovernedCommand("gh api -X POST /repos"), true);
+  assert.equal(isGovernedCommand("git push origin main"), true);
+  assert.equal(isGovernedCommand("gh pr merge 3"), true);
+  assert.equal(isGovernedCommand("gh pr create --title x"), true);
+  assert.equal(isGovernedCommand("ls -la"), false);
+  assert.equal(isGovernedCommand("cat file"), false);
+  assert.equal(isGovernedCommand("git status"), false);
+  assert.equal(isGovernedCommand("gh pr view 1"), false);
+  // A quoted mention is not a program word, so it is not a governed write.
+  assert.equal(isGovernedCommand('echo "gh pr create"'), false);
+  assert.equal(isGovernedCommand("gh.exe api -X POST /repos"), true);
 });
 
 test("denyCommand prints to stderr and exits non-zero in POSIX form", () => {
@@ -226,14 +190,17 @@ test("contextLine names the repository and its level", () => {
   assert.match(contextLine("simpsonm09-org-ai-plugin", "read"), /"read"/);
 });
 
-test("parseResolverOutput reads the level and capability from the resolver JSON", () => {
+test("parseResolverOutput reads the level, capability, destination, and auth route", () => {
   assert.deepEqual(
     parseResolverOutput(
-      '{"level":"merge","capability":"mergePr","allowed":true}',
+      '{"level":"merge","capability":"mergePr","allowed":true,"kind":"org","destination":"simpsonm09-org/demo-repo","auth":{"route":"app","owner":"simpsonm09-org","repo":"demo-repo"}}',
     ),
     {
       level: "merge",
       capability: "mergePr",
+      kind: "org",
+      destination: "simpsonm09-org/demo-repo",
+      auth: { route: "app", owner: "simpsonm09-org", repo: "demo-repo" },
     },
   );
   assert.deepEqual(
@@ -241,6 +208,9 @@ test("parseResolverOutput reads the level and capability from the resolver JSON"
     {
       level: "read",
       capability: null,
+      kind: null,
+      destination: null,
+      auth: null,
     },
   );
   assert.equal(parseResolverOutput(""), null);
@@ -250,21 +220,38 @@ test("parseResolverOutput reads the level and capability from the resolver JSON"
 
 const insideRepo = join(reposRoot, "demo-repo");
 const outsideRepo = join(ws, "docs");
+
+/**
+ * The gate deps with a stub resolver. The observation the gate passes is the real observer's
+ * output for the injected git port, so a test asserts the destination the observer saw.
+ * @param {(repo: string, observation: import("../lib/observation.mjs").Observation) => { code: number, stdout: string }} resolve
+ * @param {Record<string, unknown>} [extra]
+ */
 const stubDeps = (
   resolve: (
     repo: string,
-    command: string,
-    remoteUrl: string | null,
+    observation: import("../lib/observation.mjs").Observation,
   ) => { code: number; stdout: string },
+  extra: Record<string, unknown> = {},
 ) => ({
   cwd: insideRepo,
   workspaceRoot: ws,
   resolve,
-  remoteUrl: () => "https://github.com/simpsonm09-org/demo-repo.git",
+  git: () => readerFor("https://github.com/simpsonm09-org/demo-repo.git"),
+  env: [],
   tokenFor: async () => "ghs_stub_token",
+  ...extra,
 });
-const jsonFor = (level: string) =>
-  JSON.stringify({ level, capability: null, allowed: true });
+
+const jsonFor = (level: string, capability: string | null = null) =>
+  JSON.stringify({
+    level,
+    capability,
+    allowed: true,
+    kind: "org",
+    destination: "simpsonm09-org/demo-repo",
+    auth: { route: "app", owner: "simpsonm09-org", repo: "demo-repo" },
+  });
 
 test("gateShellEdit leaves a command outside a fleet clone alone", async () => {
   const input = { command: "git push" };
@@ -286,7 +273,7 @@ test("gateShellEdit rewrites a denied command into the failing POSIX form", asyn
   const decision = await gateShellEdit(
     input,
     env,
-    stubDeps(() => ({ code: 1, stdout: jsonFor("read") })),
+    stubDeps(() => ({ code: 1, stdout: jsonFor("read", "pushMain") })),
   );
 
   assert.equal(decision.action, "deny");
@@ -302,7 +289,7 @@ test("gateShellEdit rewrites a denied command into PowerShell form when the shel
   const decision = await gateShellEdit(
     input,
     env,
-    stubDeps(() => ({ code: 1, stdout: jsonFor("read") })),
+    stubDeps(() => ({ code: 1, stdout: jsonFor("read", "mergePr") })),
   );
 
   assert.equal(decision.action, "deny");
@@ -312,19 +299,51 @@ test("gateShellEdit rewrites a denied command into PowerShell form when the shel
   assert.equal(env.GH_TOKEN, undefined);
 });
 
-test("gateShellEdit injects GH_TOKEN for an allowed gh command", async () => {
+test("gateShellEdit injects GH_TOKEN for an allowed organization gh command", async () => {
   const input = { command: "gh pr list" };
   const env: Record<string, string | undefined> = {};
-  const decision = await gateShellEdit(
-    input,
-    env,
-    stubDeps(() => ({ code: 0, stdout: jsonFor("propose") })),
-  );
+  const seen: Array<[string, string]> = [];
+  const decision = await gateShellEdit(input, env, {
+    ...stubDeps(() => ({ code: 0, stdout: jsonFor("propose") })),
+    tokenFor: async (owner: string, repo: string) => {
+      seen.push([owner, repo]);
+      return "ghs_stub_token";
+    },
+  });
 
   assert.equal(decision.action, "inject");
   assert.equal(decision.level, "propose");
   assert.equal(env.GH_TOKEN, "ghs_stub_token");
   assert.equal(input.command, "gh pr list");
+  assert.deepEqual(seen, [["simpsonm09-org", "demo-repo"]]);
+});
+
+test("gateShellEdit passes an allowed owned-fork gh command without minting a token", async () => {
+  const input = { command: "gh pr create -R simpsonm09/pstack-max" };
+  const env: Record<string, string | undefined> = {};
+  let minted = 0;
+  const decision = await gateShellEdit(input, env, {
+    ...stubDeps(() => ({
+      code: 0,
+      stdout: JSON.stringify({
+        level: "read",
+        capability: "openPr",
+        allowed: true,
+        kind: "owned-fork",
+        destination: "simpsonm09/pstack-max",
+        auth: { route: "ambient", owner: null, repo: null },
+      }),
+    })),
+    tokenFor: async () => {
+      minted += 1;
+      return "never";
+    },
+  });
+
+  assert.equal(decision.action, "pass");
+  assert.equal(env.GH_TOKEN, undefined);
+  assert.equal(minted, 0, "an ambient destination never mints an App token");
+  assert.equal(input.command, "gh pr create -R simpsonm09/pstack-max");
 });
 
 test("gateShellEdit fails closed on an unknown resolver for a write", async () => {
@@ -370,100 +389,82 @@ test("gateShellEdit fails closed when a gh command cannot mint a token", async (
   assert.equal(env.GH_TOKEN, undefined);
 });
 
-// A scope-aware resolver stub that mirrors the real resolver: a git push to a
-// known non-organization URL needs no capability and is allowed; every other
-// push against the organization (or an unknown) URL is governed. The gate must
-// resolve the remote and hand the URL to this resolver for the fork push to
-// pass and the organization main push to fail.
-const scopedResolver =
-  (level: string) =>
-  (_repo: string, command: string, remoteUrl: string | null) => {
-    const url = remoteUrl ?? "";
-    const isPush = /(^|\s)git push(\s|$)/.test(command);
-    const outOfScope =
-      isPush && url.length > 0 && !url.includes("simpsonm09-org");
-    const wantsMain = /\bmain\b/.test(command);
-    const allowed = outOfScope || !wantsMain || level === "full";
-    return {
-      code: allowed ? 0 : 1,
-      stdout: JSON.stringify({ level, capability: null, allowed }),
-    };
-  };
-
-test("gateShellEdit passes the fork remote URL and allows a fork push", async () => {
-  const seen: Array<[string, string | null]> = [];
+test("the gate hands the observer's destination to the resolver, not a remote name", async () => {
+  const seen: import("../lib/observation.mjs").Observation[] = [];
   const input = { command: "git push --dry-run origin main" };
   const env: Record<string, string | undefined> = {};
   const decision = await gateShellEdit(input, env, {
-    ...stubDeps((_repo, command, remoteUrl) => {
-      seen.push([command, remoteUrl]);
-      return scopedResolver("propose")(_repo, command, remoteUrl);
+    ...stubDeps((_repo, observation) => {
+      seen.push(observation);
+      return { code: 1, stdout: jsonFor("propose", "pushMain") };
     }),
-    remoteUrl: () =>
-      "https://github.com/simpsonm09/simpsonm09-repo-standard.git",
+    git: () =>
+      readerFor("https://github.com/simpsonm09/simpsonm09-repo-standard.git"),
   });
 
-  assert.deepEqual(seen, [
-    [
-      "git push --dry-run origin main",
-      "https://github.com/simpsonm09/simpsonm09-repo-standard.git",
-    ],
-  ]);
-  assert.equal(decision.action, "pass");
-  assert.equal(decision.level, "propose");
-  assert.equal(input.command, "git push --dry-run origin main");
-});
-
-test("gateShellEdit passes the organization remote URL and denies an org main push", async () => {
-  const seen: string[] = [];
-  const input = { command: "git push --dry-run upstream main" };
-  const env: Record<string, string | undefined> = {};
-  const decision = await gateShellEdit(input, env, {
-    ...stubDeps((_repo, command, remoteUrl) => {
-      seen.push(remoteUrl ?? "");
-      return scopedResolver("propose")(_repo, command, remoteUrl);
-    }),
-    remoteUrl: () =>
-      "https://github.com/simpsonm09-org/simpsonm09-repo-standard.git",
+  assert.equal(seen.length, 1);
+  assert.deepEqual(seen[0].destination, {
+    host: "github.com",
+    owner: "simpsonm09",
+    repo: "simpsonm09-repo-standard",
   });
-
-  assert.deepEqual(seen, [
-    "https://github.com/simpsonm09-org/simpsonm09-repo-standard.git",
-  ]);
+  assert.equal(seen[0].capability, "pushMain");
   assert.equal(decision.action, "deny");
   assert.match(input.command, /exit 1/);
 });
 
-test("gateShellEdit passes no URL when git cannot resolve the remote", async () => {
+test("gateShellEdit resolves the organization remote and denies the org main push", async () => {
+  const seen: string[] = [];
+  const input = { command: "git push --dry-run upstream main" };
+  const env: Record<string, string | undefined> = {};
+  const decision = await gateShellEdit(input, env, {
+    ...stubDeps((_repo, observation) => {
+      seen.push(observation.destination?.owner ?? "");
+      return { code: 1, stdout: jsonFor("propose", "pushMain") };
+    }),
+    git: () =>
+      readerFor(
+        "https://github.com/simpsonm09-org/simpsonm09-repo-standard.git",
+      ),
+  });
+
+  assert.deepEqual(seen, ["simpsonm09-org"]);
+  assert.equal(decision.action, "deny");
+  assert.match(input.command, /exit 1/);
+});
+
+test("gateShellEdit passes no destination when git cannot resolve the remote", async () => {
   const seen: Array<string | null> = [];
   const input = { command: "git push origin main" };
   const env: Record<string, string | undefined> = {};
   const decision = await gateShellEdit(input, env, {
-    ...stubDeps((_repo, command, remoteUrl) => {
-      seen.push(remoteUrl);
-      return scopedResolver("propose")(_repo, command, remoteUrl);
+    ...stubDeps((_repo, observation) => {
+      seen.push(observation.destination?.repo ?? null);
+      return { code: 1, stdout: jsonFor("propose", "pushMain") };
     }),
-    remoteUrl: () => null,
+    git: () => readerFor(null),
   });
 
   assert.deepEqual(seen, [null]);
   assert.equal(decision.action, "deny");
 });
 
-test("gateShellEdit skips the remote lookup for a non-push command", async () => {
+test("gateShellEdit asks the resolver for a local command and passes it unchanged", async () => {
   let lookups = 0;
-  const input = { command: "gh pr list" };
+  const input = { command: "npm test" };
   const env: Record<string, string | undefined> = {};
   const decision = await gateShellEdit(input, env, {
-    ...stubDeps(() => ({ code: 0, stdout: jsonFor("propose") })),
-    remoteUrl: () => {
+    ...stubDeps(() => {
       lookups += 1;
-      return null;
-    },
+      return { code: 0, stdout: jsonFor("propose") };
+    }),
   });
 
-  assert.equal(decision.action, "inject");
-  assert.equal(lookups, 0);
+  // The resolver is asked (the level is informational), but the observation is local: nothing
+  // is injected and the command is not rewritten.
+  assert.equal(decision.action, "pass");
+  assert.equal(input.command, "npm test");
+  assert.equal(lookups, 1);
 });
 
 test("programName gives the plain program name for every executable spelling", () => {
@@ -532,28 +533,14 @@ test("shouldInject matches every executable spelling of gh, as the plain name", 
   assert.equal(shouldInject("npx gh.exe"), false);
 });
 
-test("pushRemote reads the remote of every executable spelling of git", () => {
-  assert.equal(pushRemote("git.exe push upstream main"), "upstream");
-  assert.equal(pushRemote("GIT push upstream main"), "upstream");
-  assert.equal(
-    pushRemote('"C:\\Program Files\\Git\\cmd\\git.exe" push'),
-    "origin",
-  );
-  assert.equal(pushRemote("git.exe fetch origin"), null);
-});
-
-test("isWriteCommand treats an executable spelling of gh as a gh write", () => {
-  assert.equal(isWriteCommand("gh.exe api -X POST /repos"), true);
-});
-
 test("gateShellEdit decides a gh.exe call as the plain gh call and keeps the typed command", async () => {
   const seen: string[] = [];
   const input = { command: "gh.exe pr create --fill" };
   const env: Record<string, string | undefined> = {};
   const decision = await gateShellEdit(input, env, {
-    ...stubDeps((_repo, command) => {
-      seen.push(command);
-      return { code: 0, stdout: jsonFor("propose") };
+    ...stubDeps((_repo, observation) => {
+      seen.push(`${observation.operation}:${observation.capability}`);
+      return { code: 0, stdout: jsonFor("propose", "openPr") };
     }),
   });
 
@@ -566,7 +553,7 @@ test("gateShellEdit decides a gh.exe call as the plain gh call and keeps the typ
   );
   assert.deepEqual(
     seen,
-    ["gh pr create --fill"],
-    "the resolver is asked about the plain name",
+    ["openPr:openPr"],
+    "the observer reads the plain name",
   );
 });

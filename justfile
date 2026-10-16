@@ -11,9 +11,10 @@ default:
 install:
     mise install
 
-# Run every linter over the tracked files.
+# Run every linter over the tracked files, plus the .mjs checks flint's patterns miss.
 lint:
     mise exec -- flint run --full
+    mise exec -- node scripts/check-mjs.mjs
 
 # Fix what the linters can fix.
 lint-fix:
@@ -34,6 +35,11 @@ coverage:
 
 # Lint and test.
 verify: lint test
+
+# Enforce the complexity, lint, and format rules on the .mjs files flint's patterns do not
+# reach. The shared lint workflow runs this recipe, so a defect in a runtime module fails CI.
+complexity:
+    mise exec -- node scripts/check-mjs.mjs
 
 # Check the bundled resolver against the reviewed source object in the standard clone.
 check-gate-resolver:

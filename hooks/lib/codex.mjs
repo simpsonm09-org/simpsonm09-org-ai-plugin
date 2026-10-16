@@ -37,11 +37,11 @@ export function normalizeCall(input, platform = process.platform) {
   // Linux can exercise the Windows dialect with a real posix temp directory: win32.isAbsolute
   // reads a rooted path as absolute, and the gate below still resolves it with this host's
   // path rules.
-  const absolute = platform === "win32"
-    ? win32.isAbsolute(input.cwd)
-    : posix.isAbsolute(input.cwd);
-  if (!absolute)
-    throw new Error("the Codex Bash payload has a relative cwd");
+  const absolute =
+    platform === "win32"
+      ? win32.isAbsolute(input.cwd)
+      : posix.isAbsolute(input.cwd);
+  if (!absolute) throw new Error("the Codex Bash payload has a relative cwd");
 
   return {
     tool_name: platform === "win32" ? "PowerShell" : "Bash",
@@ -102,16 +102,22 @@ export function failureAnswer(input, failureClass) {
   const kind = failureClassFor(input, failureClass);
   const messages = {
     "invalid JSON input": "the Codex gate received invalid JSON input",
-    "missing command": "the Codex gate received a Bash payload without a string tool_input.command",
-    "invalid tool name": "the Codex gate received a PreToolUse payload without a string tool_name",
-    "invalid cwd": "the Codex gate received a Bash payload with a missing, empty, non-string, or relative cwd",
+    "missing command":
+      "the Codex gate received a Bash payload without a string tool_input.command",
+    "invalid tool name":
+      "the Codex gate received a PreToolUse payload without a string tool_name",
+    "invalid cwd":
+      "the Codex gate received a Bash payload with a missing, empty, non-string, or relative cwd",
     "wrong event": "the Codex gate received an event other than PreToolUse",
     "time budget exceeded": "the Codex gate exceeded its time budget",
     "worker could not start": "the Codex gate worker could not start",
     "hook could not start": "the Codex hook could not start",
-    "gate or worker failure": "the Codex gate failed internally while evaluating this command",
-    "uncaught exception": "the Codex hook encountered an uncaught internal failure",
-    "unhandled rejection": "the Codex hook encountered an unhandled internal failure",
+    "gate or worker failure":
+      "the Codex gate failed internally while evaluating this command",
+    "uncaught exception":
+      "the Codex hook encountered an uncaught internal failure",
+    "unhandled rejection":
+      "the Codex hook encountered an unhandled internal failure",
   };
   return {
     hookSpecificOutput: {
@@ -141,12 +147,15 @@ function failureClassFor(input, fallback) {
     typeof parsed?.tool_input?.command !== "string"
   )
     return "missing command";
-  if (parsed?.tool_name === "Bash" && (
-    typeof parsed?.cwd !== "string" || parsed.cwd.length === 0 ||
-    (process.platform === "win32"
-      ? !/^(?:[A-Za-z]:[\\/]|\\\\[^\\/]+[\\/][^\\/]+)/.test(parsed.cwd)
-      : !parsed.cwd.startsWith("/"))
-  )) return "invalid cwd";
+  if (
+    parsed?.tool_name === "Bash" &&
+    (typeof parsed?.cwd !== "string" ||
+      parsed.cwd.length === 0 ||
+      (process.platform === "win32"
+        ? !/^(?:[A-Za-z]:[\\/]|\\\\[^\\/]+[\\/][^\\/]+)/.test(parsed.cwd)
+        : !parsed.cwd.startsWith("/")))
+  )
+    return "invalid cwd";
   return fallback;
 }
 
@@ -180,7 +189,9 @@ export function writeStdout(text) {
     }
   } catch {
     try {
-      process.stderr.write("simpsonm09-org-ai-plugin: Codex denial could not be delivered because stdout is closed.\n");
+      process.stderr.write(
+        "simpsonm09-org-ai-plugin: Codex denial could not be delivered because stdout is closed.\n",
+      );
     } catch {
       // There is no protocol channel left to report through.
     }

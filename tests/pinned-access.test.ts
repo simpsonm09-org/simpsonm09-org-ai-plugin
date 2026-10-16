@@ -10,7 +10,12 @@ import {
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { defaultScripts, loadAccessApi, resolveAccess } from "../access.mjs";
+import {
+  defaultScripts,
+  loadAccessApi,
+  observeShellCommand,
+  resolveAccess,
+} from "../access.mjs";
 import {
   hasPinnedAccessApi,
   hasSupportedPinMetadata,
@@ -24,31 +29,47 @@ import {
   tempDir,
 } from "./support/fixture-workspace.mjs";
 
-const ORG_URL = "https://github.com/simpsonm09-org/demo-repo.git";
-const FORK_URL = "https://github.com/simpsonm09/fork-repo.git";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+
+const apiShape = {
+  loadCommittedCatalog() {},
+  loadCommittedOwnedForks() {},
+  resolveLevel() {},
+  resolveDestination() {},
+  decideTarget() {},
+};
 
 test("the packaged resolver pin names the reviewed artifact and API contract", () => {
   assert.equal(
     RESOLVER_PIN.repository,
     "simpsonm09-org/simpsonm09-repo-standard",
   );
-  assert.equal(RESOLVER_PIN.commit, "5da707371e38c6391df83d13b487a01253379457");
+  assert.equal(RESOLVER_PIN.commit, "b108c6b339903e075fd757dfd5880a9325a18b5b");
   assert.equal(RESOLVER_PIN.sourcePath, "scripts/agent-access.mjs");
   assert.match(RESOLVER_PIN.sha256, /^[0-9a-f]{64}$/);
-  assert.equal(RESOLVER_PIN.apiVersion, 1);
   assert.equal(
-    hasPinnedAccessApi({
-      loadCommittedCatalog() {},
-      resolveLevel() {},
-      decide() {},
-    }),
-    true,
+    RESOLVER_PIN.sha256,
+    "d068dc5a7c8a86077fc8c5fc90d8096b3c1419f2a3a6feb7a1c68a71d1d9a442",
   );
-  assert.equal(hasPinnedAccessApi({ resolveLevel() {}, decide() {} }), false);
+  assert.equal(RESOLVER_PIN.apiVersion, 2);
+  assert.equal(hasPinnedAccessApi(apiShape), true);
+  // Every destination export is required: an older bundle without them cannot load.
+  for (const missing of [
+    "loadCommittedOwnedForks",
+    "resolveDestination",
+    "decideTarget",
+  ]) {
+    const partial = { ...apiShape };
+    delete partial[/** @type {keyof typeof apiShape} */ (missing)];
+    assert.equal(hasPinnedAccessApi(partial), false, missing);
+  }
+  assert.equal(
+    hasPinnedAccessApi({ resolveLevel() {}, decideTarget() {} }),
+    false,
+  );
   assert.equal(hasSupportedPinMetadata(pinMetadata()), true);
   assert.equal(
-    hasSupportedPinMetadata({ ...pinMetadata(), apiVersion: 2 }),
+    hasSupportedPinMetadata({ ...pinMetadata(), apiVersion: 1 }),
     false,
   );
 });
@@ -62,8 +83,10 @@ test("pin provenance in the readme and docs manifest matches the runtime", () =>
   assert.ok(readme.includes(RESOLVER_PIN.sha256));
   assert.deepEqual(manifest.features, [
     "docs/features/pinned-gate-resolver.md",
+    "docs/features/owned-fork-observer.md",
   ]);
-  assert.ok(existsSync(join(root, ...manifest.features[0].split("/"))));
+  for (const feature of manifest.features)
+    assert.ok(existsSync(join(root, ...feature.split("/"))), feature);
 });
 
 test("missing or corrupt packaged resolver bytes cannot load an API", async () => {
@@ -78,7 +101,12 @@ test("missing or corrupt packaged resolver bytes cannot load an API", async () =
     );
     assert.equal(await loadPinnedAccessApi(corrupt), null);
     assert.deepEqual(
-      resolveAccess(null, dir, "demo-repo", "gh pr create", ORG_URL),
+      resolveAccess(
+        null,
+        dir,
+        "demo-repo",
+        observeShellCommand(dir, "gh pr create"),
+      ),
       { code: 2, stdout: "" },
     );
   } finally {
@@ -86,37 +114,29 @@ test("missing or corrupt packaged resolver bytes cannot load an API", async () =
   }
 });
 
-test("the packaged resolver uses committed catalog data and preserves fork scope", async () => {
+test("the packaged resolver uses committed catalog data for an organization destination", async () => {
   const dir = tempDir("pinned-resolver-workspace-");
   try {
-    const { workspace } = buildWorkspace(dir, { level: "propose" });
+    const { workspace, cwd } = buildWorkspace(dir, { level: "propose" });
     const scripts = defaultScripts(workspace);
     const api = await loadAccessApi(scripts.access);
     assert.ok(api);
 
+    const demo = cwd("projects/repos/demo-repo");
+    const pushMain = observeShellCommand(demo, "git push origin main");
+    const pushBranch = observeShellCommand(demo, "git push origin feat/x");
+    const createPr = observeShellCommand(demo, "gh pr create");
+
     assert.equal(
-      resolveAccess(
-        api,
-        scripts.catalog,
-        "demo-repo",
-        "git push origin main",
-        ORG_URL,
-      ).code,
+      resolveAccess(api, scripts.catalog, "demo-repo", pushMain).code,
       1,
     );
     assert.equal(
-      resolveAccess(
-        api,
-        scripts.catalog,
-        "demo-repo",
-        "git push origin main",
-        FORK_URL,
-      ).code,
+      resolveAccess(api, scripts.catalog, "demo-repo", pushBranch).code,
       0,
     );
     assert.equal(
-      resolveAccess(api, scripts.catalog, "demo-repo", "gh pr create", ORG_URL)
-        .code,
+      resolveAccess(api, scripts.catalog, "demo-repo", createPr).code,
       0,
     );
 
@@ -128,13 +148,7 @@ test("the packaged resolver uses committed catalog data and preserves fork scope
       }),
     );
     assert.equal(
-      resolveAccess(
-        api,
-        scripts.catalog,
-        "demo-repo",
-        "git push origin main",
-        ORG_URL,
-      ).code,
+      resolveAccess(api, scripts.catalog, "demo-repo", pushMain).code,
       1,
     );
 
@@ -148,13 +162,7 @@ test("the packaged resolver uses committed catalog data and preserves fork scope
     );
     writeFileSync(source, "export const decide = () => ({ allowed: true });\n");
     assert.equal(
-      resolveAccess(
-        api,
-        scripts.catalog,
-        "demo-repo",
-        "git push origin main",
-        ORG_URL,
-      ).code,
+      resolveAccess(api, scripts.catalog, "demo-repo", pushMain).code,
       1,
     );
   } finally {
@@ -176,7 +184,12 @@ test("a missing committed catalog denies writes even when its working file grant
     const api = await loadAccessApi(defaultScripts(dir).access);
     assert.ok(api);
     assert.deepEqual(
-      resolveAccess(api, catalog, "demo-repo", "gh pr create", ORG_URL),
+      resolveAccess(
+        api,
+        catalog,
+        "demo-repo",
+        observeShellCommand(dir, "gh pr create"),
+      ),
       { code: 2, stdout: "", catalogMissing: true },
     );
   } finally {
@@ -187,7 +200,7 @@ test("a missing committed catalog denies writes even when its working file grant
 test("standard checkout edits and branch changes do not replace the pinned resolver", async () => {
   const dir = tempDir("pinned-resolver-standard-git-");
   try {
-    const { workspace } = buildWorkspace(dir, { level: "propose" });
+    const { workspace, cwd } = buildWorkspace(dir, { level: "propose" });
     const standard = join(
       workspace,
       "projects",
@@ -219,9 +232,12 @@ test("standard checkout edits and branch changes do not replace the pinned resol
     const scripts = defaultScripts(workspace);
     const api = await loadAccessApi(scripts.access);
     assert.ok(api);
+    const merge = observeShellCommand(
+      cwd("projects/repos/demo-repo"),
+      "gh pr merge 1",
+    );
     assert.equal(
-      resolveAccess(api, scripts.catalog, "demo-repo", "gh pr merge 1", ORG_URL)
-        .code,
+      resolveAccess(api, scripts.catalog, "demo-repo", merge).code,
       1,
     );
     writeFileSync(
@@ -229,8 +245,7 @@ test("standard checkout edits and branch changes do not replace the pinned resol
       "export const decide = () => ({ capability: null, allowed: true });\n",
     );
     assert.equal(
-      resolveAccess(api, scripts.catalog, "demo-repo", "gh pr merge 1", ORG_URL)
-        .code,
+      resolveAccess(api, scripts.catalog, "demo-repo", merge).code,
       1,
     );
   } finally {

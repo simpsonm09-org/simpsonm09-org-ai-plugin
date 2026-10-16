@@ -8,6 +8,7 @@
 //   node scripts/agent-access.mjs <repo-name> [--catalog <path>] [--json]
 //   node scripts/agent-access.mjs <repo-name> --allows <capability> [--catalog <path>]
 //   node scripts/agent-access.mjs <repo-name> --command "<shell command>" [--remote-url <url>] [--catalog <path>]
+//   node scripts/agent-access.mjs <repo-name> --host <host> --destination <owner/repo> --intent <json> [--catalog-dir <path>] [--json]
 //
 // The level mode prints the level and exits 0. The allows mode exits 0 when the
 // repository's level grants the capability, and 1 when it does not. The command
@@ -16,6 +17,11 @@
 // git push: a push to a remote that is not the organization is out of scope and
 // allowed, matching the pre-push hook. A missing catalog exits 2, so a caller
 // fails closed on remote writes.
+//
+// The destination mode answers the sharper question: may this destination be
+// written this way? It reads the roster and the owned-fork policy from committed
+// catalog refs, and it takes the intent as a validated object rather than
+// parsing it out of a command string.
 
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -80,6 +86,321 @@ export function allows(level, capability) {
   return (CAPABILITIES[level] ?? []).includes(capability);
 }
 
+// The destination policy. A level answers "how much may this clone do"; a
+// destination answers "which repository is being written". The roster governs
+// the organization repositories and their personal push forks from one level, so
+// the same repository cannot be allowed in one enforcement point and denied in
+// another. The owned-fork policy names the personally owned targets that the
+// organization roster does not cover.
+
+// The only host this policy knows. Any other host resolves to unknown.
+const GITHUB_HOST = 'github.com';
+
+// The identity patterns the catalog validator applies, mirrored so this reader
+// validates the policy data instead of trusting its shape. A narrower reading is
+// the safe direction: a rejected file cannot become a grant.
+const OWNER_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
+const REPOSITORY_PATTERN = /^[A-Za-z0-9._-]{1,100}$/;
+
+// The one personal account the catalog validator allows to own a recorded fork.
+// The validator rejects any other owner, so a policy that names one is not a
+// policy this reader may trust. Keeping the constant here, in the single
+// validation below, is what makes the committed loader and a direct pure call
+// agree instead of each carrying its own idea of the owner.
+const OWNED_OWNER = 'simpsonm09';
+
+export const DESTINATION_KINDS = ['org', 'owned-fork', 'upstream', 'unknown'];
+
+// What each target kind may do. `null` means the level's capability table
+// decides, which is the organization case. An owned fork gets a strict subset of
+// `propose`: a non-default branch push and a pull request inside the same
+// repository, never a merge, a tag, a deletion, or an administrative verb. An
+// upstream or an unknown destination grants reads only, so every write is denied.
+export const CAPABILITIES_BY_KIND = {
+  org: null,
+  'owned-fork': ['read', 'pushBranch', 'openPr'],
+  upstream: ['read'],
+  unknown: ['read'],
+};
+
+// Read the owned-fork policy from the committed catalog. It comes from
+// `upstream/main` only, the organization ref the agent cannot push. A local
+// `main` ref is writable by the same user, so it is never a grant source, and a
+// missing, malformed, or unsupported file closes the owned-fork and upstream
+// kinds instead of falling back to the working tree.
+export function loadCommittedOwnedForks(dir = CATALOG_DIR) {
+  let out;
+  try {
+    out = execFileSync('git', ['-C', dir, 'show', 'upstream/main:owned-forks.json'], {
+      windowsHide: true,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+  } catch {
+    return null;
+  }
+  let policy;
+  try {
+    policy = JSON.parse(out);
+  } catch {
+    return null;
+  }
+  return trustedOwnedForks(policy);
+}
+
+// The shape rules the catalog validator enforces, applied by the reader. The
+// collection accepts only `propose`, and `.upstream` records provenance, so it is
+// never read as a grant.
+function ownedForksErrors(policy) {
+  if (policy === null || typeof policy !== 'object' || Array.isArray(policy)) return ['not an object'];
+  const errors = [];
+  if (!Object.keys(policy).every((key) => key === 'forks')) errors.push('an unknown top-level field');
+  if (!Array.isArray(policy.forks)) return [...errors, 'forks is not an array'];
+  const seen = new Set();
+  for (const [index, entry] of policy.forks.entries()) {
+    errors.push(...ownedForkEntryErrors(entry, index, seen));
+  }
+  return errors;
+}
+
+function ownedForkEntryErrors(entry, index, seen) {
+  const label = `forks[${index}]`;
+  if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) return [`${label} is not an object`];
+  const errors = [];
+  const keys = ['repository', 'upstream', 'agentAccess'];
+  if (!Object.keys(entry).every((key) => keys.includes(key))) errors.push(`${label} has an unknown field`);
+  if (!isFullyQualified(entry.repository)) errors.push(`${label}.repository is not an owner/repository identity`);
+  if (isFullyQualified(entry.repository) && entry.repository.split('/')[0].toLowerCase() !== OWNED_OWNER) {
+    errors.push(`${label}.repository is not owned by ${OWNED_OWNER}`);
+  }
+  if (!isFullyQualified(entry.upstream)) errors.push(`${label}.upstream is not an owner/repository identity`);
+  if (isFullyQualified(entry.repository) && isFullyQualified(entry.upstream)
+    && entry.repository.toLowerCase() === entry.upstream.toLowerCase()) {
+    errors.push(`${label}.repository and ${label}.upstream are not distinct`);
+  }
+  if (entry.agentAccess !== 'propose') errors.push(`${label}.agentAccess is not propose`);
+  if (isFullyQualified(entry.repository) && seen.has(entry.repository.toLowerCase())) {
+    errors.push(`${label}.repository duplicates an earlier entry`);
+  }
+  if (isFullyQualified(entry.repository)) seen.add(entry.repository.toLowerCase());
+  return errors;
+}
+
+function isFullyQualified(value) {
+  if (typeof value !== 'string') return false;
+  const parts = value.split('/');
+  return parts.length === 2 && OWNER_PATTERN.test(parts[0]) && REPOSITORY_PATTERN.test(parts[1]);
+}
+
+// The policy the grant path may use, or `null` when it is not one the catalog
+// validator would accept. The loader and every pure entry point route through
+// this one function, so a raw object a caller passes in cannot grant from an
+// owner, a level, or a shape the validator rejects: one validation, one owner
+// rule, one truth, rather than a second check beside the first.
+function trustedOwnedForks(ownedForks) {
+  return ownedForksErrors(ownedForks).length === 0 ? ownedForks : null;
+}
+
+// The owner whose repositories the policy records. The catalog validator restricts
+// every owned fork to one personal account, so that owner is the personal account,
+// and the clone's own fork of a governed repository can be told apart from a
+// third-party repository that happens to share the name. The policy must pass the
+// validator's rules first, so an invalid owner cannot become the personal account
+// and collapse a third-party repository into the organization level. Without a
+// trusted policy the collapse is unavailable and those writes fail closed.
+function personalOwners(ownedForks) {
+  const owners = new Set();
+  for (const fork of trustedOwnedForks(ownedForks)?.forks ?? []) {
+    if (isFullyQualified(fork?.repository)) owners.add(fork.repository.split('/')[0].toLowerCase());
+  }
+  return owners;
+}
+
+// Identity match against the owned-fork policy, case-insensitive. The policy must
+// pass the same validation the loader applies, so a raw object with an owner the
+// catalog validator rejects grants nothing. Never reads `.upstream` as a grant;
+// the caller tests that separately.
+export function resolveOwnedFork(ownedForks, owner, repo) {
+  const identity = destinationIdentity(owner, repo);
+  if (!identity) return { owned: false };
+  for (const fork of trustedOwnedForks(ownedForks)?.forks ?? []) {
+    if (typeof fork?.repository === 'string' && fork.repository.toLowerCase() === identity) {
+      return { owned: true, repository: fork.repository, upstream: fork.upstream, level: 'propose', source: 'owned-fork' };
+    }
+  }
+  return { owned: false };
+}
+
+function destinationIdentity(owner, repo) {
+  if (typeof owner !== 'string' || typeof repo !== 'string') return null;
+  if (!OWNER_PATTERN.test(owner) || !REPOSITORY_PATTERN.test(repo)) return null;
+  return `${owner}/${repo}`.toLowerCase();
+}
+
+// Classify one fully qualified destination against the roster and the owned-fork
+// policy. First match wins, and the kind decides which capability table applies.
+// `localRepo` is the clone's own identity, which is what makes a personal fork
+// the clone's own fork rather than an unrelated repository with the same name.
+//
+// 1. a host other than github.com, or a malformed destination -> unknown
+// 2. the organization repository -> org, at the roster level for that repository
+// 3. the personal owner's fork of the clone's governed repository -> org, at the
+//    same roster level, so one policy governs the repository and its push fork
+// 4. an owned-fork target -> owned-fork, `propose`
+// 5. a recorded upstream -> upstream, no level, so writes are denied
+// 6. anything else -> unknown, no level, so writes are denied
+export function resolveDestination({ roster, ownedForks, localRepo, host, destination } = {}) {
+  const unresolved = { kind: 'unknown', owner: null, repo: null, level: 'none', source: 'unknown' };
+  if (typeof host !== 'string' || host.toLowerCase() !== GITHUB_HOST) return unresolved;
+  const identity = parseDestination(destination);
+  if (!identity) return unresolved;
+  const governed = matchGoverned(roster, ownedForks, localRepo, identity);
+  if (governed) return governed;
+  const fork = resolveOwnedFork(ownedForks, identity.owner, identity.repo);
+  if (fork.owned) {
+    return { kind: 'owned-fork', owner: identity.owner, repo: identity.repo, level: fork.level, source: 'owned-fork', upstream: fork.upstream };
+  }
+  if (isRecordedUpstream(ownedForks, identity)) {
+    return { kind: 'upstream', owner: identity.owner, repo: identity.repo, level: 'none', source: 'upstream' };
+  }
+  return { ...unresolved, owner: identity.owner, repo: identity.repo };
+}
+
+function matchGoverned(roster, ownedForks, localRepo, identity) {
+  const org = typeof roster?.org === 'string' ? roster.org.toLowerCase() : null;
+  if (!org) return null;
+  const names = rosterNames(roster);
+  if (identity.owner === org && names.has(identity.repo)) {
+    return governedAt(roster, names.get(identity.repo), identity, 'org');
+  }
+  const local = typeof localRepo === 'string' ? localRepo.toLowerCase() : null;
+  const ownFork = local !== null && identity.repo === local && identity.owner !== org;
+  if (ownFork && names.has(local) && personalOwners(ownedForks).has(identity.owner)) {
+    return governedAt(roster, names.get(local), identity, 'personal-fork');
+  }
+  return null;
+}
+
+function governedAt(roster, declared, identity, source) {
+  return { kind: 'org', owner: identity.owner, repo: identity.repo, level: resolveLevel(roster, declared).level, source };
+}
+
+function isRecordedUpstream(ownedForks, identity) {
+  const name = destinationIdentity(identity.owner, identity.repo);
+  return (trustedOwnedForks(ownedForks)?.forks ?? []).some(
+    (fork) => typeof fork?.upstream === 'string' && fork.upstream.toLowerCase() === name,
+  );
+}
+
+function rosterNames(roster) {
+  const names = new Map();
+  for (const entry of roster?.repos ?? []) {
+    if (typeof entry?.name === 'string') names.set(entry.name.toLowerCase(), entry.name);
+  }
+  return names;
+}
+
+function parseDestination(destination) {
+  if (typeof destination !== 'string') return null;
+  const parts = destination.split('/');
+  if (parts.length !== 2 || !OWNER_PATTERN.test(parts[0]) || !REPOSITORY_PATTERN.test(parts[1])) return null;
+  return { owner: parts[0].toLowerCase(), repo: parts[1].toLowerCase() };
+}
+
+const KNOWN_CAPABILITIES = new Set(Object.values(CAPABILITIES).flat());
+
+// The operations that write, and the capabilities that write. The names are the
+// ones the intent already uses. An intent whose operation is a write but whose
+// capability is null, or whose operation and capability disagree about writing,
+// is inconsistent: it denies instead of falling through to the read path.
+const WRITE_OPERATIONS = new Set(['push', 'openPr', 'mergePr', 'admin']);
+const WRITE_CAPABILITIES = new Set(['pushBranch', 'pushMain', 'openPr', 'mergePr', 'admin']);
+
+// True when the intent contradicts itself about writing. A caller that omits the
+// operation is judged on the capability alone, so a direct pure call that names
+// only a capability keeps its behavior.
+function inconsistentIntent(operation, capability) {
+  if (operation === undefined) return false;
+  const operationWrites = WRITE_OPERATIONS.has(operation);
+  const capabilityWrites = capability !== null && WRITE_CAPABILITIES.has(capability);
+  return operationWrites !== capabilityWrites;
+}
+
+// Authorize one structured intent against one resolved destination. The caller
+// builds the destination and the intent from the command and the observed git
+// state, then this validates the intent; no write is inferred from a level, and
+// nothing in the command text can word a grant.
+//
+// `capability === null` is a known read or a local command that reaches nothing
+// this policy governs, so it needs the caller to mark it read-only. An intent
+// whose operation is a write cannot take that path: the mismatch denies.
+export function decideTarget(target = {}, intent = {}) {
+  const capability = intent?.capability ?? null;
+  if (inconsistentIntent(intent?.operation, capability)) {
+    return verdict(false, capability, 'the operation and the capability disagree about writing');
+  }
+  if (capability === null) return decideReadOnly(intent);
+  if (!KNOWN_CAPABILITIES.has(capability)) return verdict(false, capability, 'unknown capability');
+  const kind = DESTINATION_KINDS.includes(target?.kind) ? target.kind : 'unknown';
+  if (kind === 'org') {
+    return allows(target.level, capability)
+      ? verdict(true, capability, `${kind} ${target.level} grants ${capability}`)
+      : verdict(false, capability, `${kind} ${target.level} denies ${capability}`);
+  }
+  if (!(CAPABILITIES_BY_KIND[kind] ?? []).includes(capability)) {
+    return verdict(false, capability, `${kind} does not grant ${capability}`);
+  }
+  if (capability === 'read') return verdict(true, capability, 'read');
+  if (intent?.resolved !== true) return verdict(false, capability, 'the destination or the ref is unresolved');
+  if (capability === 'pushBranch') return decidePush(intent);
+  if (capability === 'openPr') return decideOpenPr(target, intent);
+  return verdict(false, capability, `${kind} does not grant ${capability}`);
+}
+
+// The null-capability path: allowed only when the caller marked the command a
+// read. A caller that cannot say it is a read fails closed.
+function decideReadOnly(intent) {
+  return intent?.readOnly === true
+    ? verdict(true, null, 'read only')
+    : verdict(false, null, 'no capability and not a known read');
+}
+
+// A push to a fork. Only a single non-default branch refspec qualifies, and the
+// default is the caller's resolved default branch rather than a literal name, so
+// a tag, a deletion, a force, a multi-refspec, and an unresolved ref all deny.
+function decidePush(intent) {
+  if (intent.force === true) return verdict(false, 'pushBranch', 'a force push is not allowed');
+  if (intent.delete === true) return verdict(false, 'pushBranch', 'deleting a ref is not allowed');
+  const refs = Array.isArray(intent.refs) ? intent.refs : [];
+  if (refs.length !== 1) return verdict(false, 'pushBranch', 'exactly one branch refspec is required');
+  const ref = refs[0] ?? {};
+  if (ref.kind !== 'branch') return verdict(false, 'pushBranch', 'only a branch push is allowed');
+  if (ref.isDefault !== false) return verdict(false, 'pushBranch', 'the default branch is not allowed');
+  return verdict(true, 'pushBranch', 'a non-default branch push');
+}
+
+// A pull request is allowed only when its head and its base stay in the
+// destination repository. An owner-qualified side that differs, or names an owner
+// without a repository, is ambiguous and denied.
+function decideOpenPr(target, intent) {
+  if (!sameRepository(intent.base, target)) return verdict(false, 'openPr', 'the base is another repository');
+  if (!sameRepository(intent.head, target)) return verdict(false, 'openPr', 'the head is another repository');
+  return verdict(true, 'openPr', 'a pull request inside the same repository');
+}
+
+function sameRepository(side, target) {
+  if (side === null || side === undefined) return true;
+  if (typeof side !== 'object') return false;
+  const owner = side.owner;
+  if (owner === null || owner === undefined || owner === '') return true;
+  if (typeof owner !== 'string' || typeof side.repo !== 'string') return false;
+  return owner.toLowerCase() === target.owner && side.repo.toLowerCase() === target.repo;
+}
+
+function verdict(allowed, capability, reason) {
+  return { allowed, capability, reason };
+}
+
 // The organization remote the push hook governs. A push to any other remote is
 // out of scope, so the gate leaves it to the hook's own scope rule.
 const ORG_REMOTE_MARKER = 'simpsonm09-org';
@@ -91,10 +412,46 @@ const ORG_REMOTE_MARKER = 'simpsonm09-org';
 const COMMAND_RULES = [
   { capability: 'mergePr', test: (parts) => parts[0] === 'gh' && parts[1] === 'pr' && parts[2] === 'merge' },
   { capability: 'openPr', test: (parts) => parts[0] === 'gh' && parts[1] === 'pr' && parts[2] === 'create' },
-  { capability: 'pushMain', test: (parts) => isGitPush(parts) && gitPushRefspecs(parts).some(isMainRef) },
+  { capability: 'admin', test: (parts) => isGhAdmin(parts) },
+  { capability: 'pushMain', test: (parts) => isGitPush(parts) && gitPushNeedsMain(parts) },
   { capability: 'pushBranch', test: (parts) => isGitPush(parts) },
-  { capability: 'admin', test: (parts) => parts[0] === 'gh' && parts[1] === 'api' && isWriteMethod(parts) },
 ];
+
+// A gh subcommand that changes repository state, or an api call that writes. Each
+// is a named positional test on the recognized verb, never a scan of the whole
+// command text, so a quoted example of the verb is not a match.
+const GH_ADMIN_VERBS = {
+  release: ['create', 'edit', 'delete', 'upload'],
+  workflow: ['run', 'enable', 'disable'],
+  secret: ['set', 'delete'],
+  repo: ['create', 'delete', 'edit', 'rename', 'transfer', 'archive'],
+};
+
+function isGhAdmin(parts) {
+  if (parts[0] !== 'gh') return false;
+  const verbs = GH_ADMIN_VERBS[parts[1]];
+  if (verbs?.includes(parts[2])) return true;
+  return parts[1] === 'api' && (isWriteMethod(parts) || hasImplicitApiBody(parts));
+}
+
+// gh api treats -f/--field/--raw-field/--input as an implicit write. A body flag
+// is the exact token, a long flag with its value after "=", or the attached short
+// form gh also accepts (-fkey=value, -Fkey=@file). The short form is matched on
+// the -f/-F prefix of one token -- the same attached-short-flag reading the
+// method parser uses -- not a scan of the command text. A long flag starts with
+// "--", so it never reads as an attached short flag.
+const API_BODY_FLAGS = ['-f', '-F', '--field', '--raw-field', '--input'];
+const API_BODY_PREFIXES = ['--field=', '--raw-field=', '--input='];
+
+function hasImplicitApiBody(parts) {
+  return parts.some(isApiBodyFlag);
+}
+
+function isApiBodyFlag(part) {
+  if (API_BODY_FLAGS.includes(part)) return true;
+  if (API_BODY_PREFIXES.some((prefix) => part.startsWith(prefix))) return true;
+  return !part.startsWith('--') && (part.startsWith('-f') || part.startsWith('-F')) && part.length > 2;
+}
 
 function isGitPush(parts) {
   return parts[0] === 'git' && parts[1] === 'push';
@@ -131,12 +488,29 @@ function looksLikeRefspec(token) {
 
 // git push <remote> <refspec>. Bare "main" expands to refs/heads/main. A
 // refspec with a colon separates source and destination ("X:main", ":main",
-// "feat/x:main"), and the destination is the ref the remote writes, so the
-// part after the colon is the one tested.
-function isMainRef(refspec) {
+// "feat/x:main"), and the destination is the ref the remote writes, so the part
+// after the colon is the one tested. A tag destination is a tag write, and a
+// deletion of the default branch is a default-branch write.
+function refspecDestination(refspec) {
   const value = refspec ?? '';
-  const ref = value.includes(':') ? value.slice(value.indexOf(':') + 1) : value;
-  return ref === 'main' || ref === 'refs/heads/main';
+  return value.includes(':') ? value.slice(value.indexOf(':') + 1) : value;
+}
+
+function isProtectedRef(refspec) {
+  const ref = refspecDestination(refspec);
+  return ref === 'main' || ref === 'refs/heads/main' || ref.startsWith('refs/tags/') || ref.startsWith('refs/tags\\');
+}
+
+// A push needs `pushMain` when it writes a tag or the default branch, or when it
+// writes refs the command does not name: --tags, --all, --mirror, --follow-tags,
+// and --delete push refs on their own, and --prune removes the remote refs the
+// refspec does not cover, which is the same broad scope. A bare ref name is left
+// to the caller's ref resolution rather than a name guess.
+const PUSH_MAIN_FLAGS = ['--tags', '--all', '--mirror', '--follow-tags', '--delete', '-d', '--prune'];
+
+function gitPushNeedsMain(parts) {
+  if (gitPushRefspecs(parts).some(isProtectedRef)) return true;
+  return parts.slice(2).some((token) => token.startsWith('-') && PUSH_MAIN_FLAGS.includes(token));
 }
 
 // A git push is governed only when it targets the organization remote. When the
@@ -150,15 +524,29 @@ function pushInScope(parts, remoteUrl) {
 }
 
 // gh api mutates only when it names an explicit HTTP method. The method comes
-// from the next token after -X or --method, or from a --method=... form.
+// from the next token after -X or --method, from a --method=... form, or from the
+// attached short form gh also accepts (-XDELETE). The attached form is matched on
+// the -X prefix, not a scan of the whole token, so a value that merely contains
+// "POST" is never a method.
+const WRITE_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
+
 function isWriteMethod(parts) {
-  const write = ['POST', 'PUT', 'PATCH', 'DELETE'];
   for (let index = 0; index < parts.length; index += 1) {
-    const arg = parts[index];
-    const value = arg === '-X' || arg === '--method' ? parts[index + 1] : arg.startsWith('--method=') ? arg.slice('--method='.length) : null;
-    if (value && write.includes(value.toUpperCase())) return true;
+    const value = methodArgument(parts, index);
+    if (value && WRITE_METHODS.includes(value.toUpperCase())) return true;
   }
   return false;
+}
+
+// The HTTP method one token names, or null when it names none. A bare -X or
+// --method takes the next token, --method=... carries its own value, and -X...
+// appends the value to the short flag.
+function methodArgument(parts, index) {
+  const arg = parts[index] ?? '';
+  if (arg === '-X' || arg === '--method') return parts[index + 1];
+  if (arg.startsWith('--method=')) return arg.slice('--method='.length);
+  if (arg.startsWith('-X') && arg.length > 2) return arg.slice(2);
+  return null;
 }
 
 // Split a shell command on whitespace and quotes. It is not a full shell parse,
@@ -226,6 +614,18 @@ export function selfTest() {
     ['git push origin feat/x', 'pushBranch'],
     ['git push origin :main', 'pushMain'],
     ['git push origin feat/x:main', 'pushMain'],
+    ['git push origin refs/tags/v1', 'pushMain'],
+    ['git push origin v1:refs/tags/v1', 'pushMain'],
+    ['git push origin --tags', 'pushMain'],
+    ['git push --all', 'pushMain'],
+    ['git push --mirror', 'pushMain'],
+    ['git push origin --delete feat/x', 'pushMain'],
+    ['git push origin --prune feat/x', 'pushMain'],
+    ['git push --prune origin feat/x', 'pushMain'],
+    ['git push --dry-run --prune origin feat/x', 'pushMain'],
+    ['git push origin --prune feat/x feat/y', 'pushMain'],
+    ['git push origin --prune refs/heads/*:refs/heads/*', 'pushMain'],
+    ['git push --prune', 'pushMain'],
     ['git push --dry-run origin main', 'pushMain'],
     ['git push -f origin main', 'pushMain'],
     ['git push --force-with-lease origin refs/heads/main', 'pushMain'],
@@ -235,14 +635,43 @@ export function selfTest() {
     ['git push', 'pushBranch'],
     ['gh api repos/o/r --method PATCH', 'admin'],
     ['gh api -X DELETE repos/o/r', 'admin'],
+    ['gh api -XDELETE repos/o/r', 'admin'],
+    ['gh api -XPOST repos/o/r', 'admin'],
+    ['gh api -XPATCH repos/o/r', 'admin'],
+    ['gh api -XPUT repos/o/r', 'admin'],
     ['gh api --method=POST repos/o/r', 'admin'],
     ['gh api --method=delete repos/o/r', 'admin'],
+    ['gh api -f name=value repos/o/r', 'admin'],
+    ['gh api -fkey=value repos/o/r', 'admin'],
+    ['gh api -Fkey=@file repos/o/r', 'admin'],
+    ['gh api -f=key=value repos/o/r', 'admin'],
+    ['gh api graphql -fquery=mutation', 'admin'],
+    ['gh api --input - repos/o/r', 'admin'],
+    ['gh release create v1', 'admin'],
+    ['gh workflow run ci.yml', 'admin'],
+    ['gh secret set X', 'admin'],
+    ['gh repo edit --description y', 'admin'],
+    ['gh release list', null],
+    ['gh workflow list', null],
+    ['gh secret list', null],
     ['gh api -X get repos/o/r', null],
     ['gh api repos/o/r', null],
     ['gh api -X GET repos/o/r', null],
+    ['gh api -XGET repos/o/r', null],
+    ['gh api -X HEAD repos/o/r', null],
+    ['gh api -XHEAD repos/o/r', null],
+    ['gh api -X', null],
+    ['gh api -XPOSTED repos/o/r', null],
+    ['gh api repos/o/r --jq .name', null],
+    ['gh api repos/o/r --paginate', null],
     ['gh pr view 1', null],
     ['npm test', null],
     ['git status', null],
+    ['echo "gh pr create"', null],
+    ['git commit -m "gh pr create docs"', null],
+    ['echo "gh api -fkey=value repos/o/r"', null],
+    ['git commit -m "git push origin --prune"', null],
+    ['npm test 2>&1 | grep "git push origin main"', null],
     ['', null],
   ];
   for (const [command, expected] of table) {
@@ -263,12 +692,18 @@ export function selfTest() {
     ['none', 'npm test', true],
     ['read', 'gh api -X POST repos/o/r', false],
     ['full', 'gh api -X POST repos/o/r', true],
+    ['propose', 'git push origin --prune feat/x', false],
+    ['merge', 'git push origin --prune feat/x', false],
+    ['full', 'git push origin --prune feat/x', true],
+    ['read', 'gh api -fkey=value repos/o/r', false],
+    ['full', 'gh api -fkey=value repos/o/r', true],
   ];
   for (const [level, command, expected] of allowed) {
     assert(decide(level, command).allowed === expected, `decide ${level} ${JSON.stringify(command)} -> ${expected}`);
   }
 
   assertPushScope(assert, fork, org);
+  assertDestinationPolicy(assert);
 }
 
 // The push scope coverage: a known non-organization remote is out of scope and
@@ -300,24 +735,92 @@ function assertPushScope(assert, fork, org) {
   }
 }
 
+// The destination and intent coverage: one policy truth for the organization
+// repository and its personal push fork, a strict subset for an owned fork, and
+// no write for an upstream or an unknown destination. Split from selfTest so
+// each stays short.
+function assertDestinationPolicy(assert) {
+  const ownedForks = {
+    forks: [{ repository: 'simpsonm09/pstack-max', upstream: 'acme/upstream-lib', agentAccess: 'propose' }],
+  };
+  const roster = {
+    org: 'simpsonm09-org',
+    agentAccessDefaults: { fixture: 'read' },
+    repos: [{ name: 'demo', tier: 'fixture', agentAccess: 'propose' }],
+  };
+  const at = (localRepo, destination, host = 'github.com') => resolveDestination({ roster, ownedForks, localRepo, host, destination });
+
+  assert(at('demo', 'simpsonm09-org/demo').kind === 'org', 'the organization repository is org');
+  const personal = at('demo', 'simpsonm09/demo');
+  assert(personal.kind === 'org' && personal.source === 'personal-fork', 'the personal push fork follows the org level');
+  assert(at('demo', 'simpsonm09-org/not-listed').kind === 'unknown', 'an unlisted repository is unknown');
+  assert(at('demo', 'acme/demo').kind === 'unknown', 'a third-party repository with the same name is unknown');
+  assert(at('pstack-max', 'simpsonm09/pstack-max').kind === 'owned-fork', 'an owned fork is its own kind');
+  assert(at('pstack-max', 'acme/upstream-lib').kind === 'upstream', 'a recorded upstream is read only');
+  assert(at('pstack-max', 'simpsonm09/pstack-max', 'gitlab.com').kind === 'unknown', 'another host is unknown');
+
+  const owned = at('pstack-max', 'simpsonm09/pstack-max');
+  const push = (extra) => ({
+    operation: 'push',
+    capability: 'pushBranch',
+    readOnly: false,
+    resolved: true,
+    force: false,
+    delete: false,
+    refs: [{ kind: 'branch', name: 'feat/x', isDefault: false }],
+    ...extra,
+  });
+
+  assert(decideTarget(owned, push()).allowed === true, 'an owned fork allows a non-default branch push');
+  assert(decideTarget(owned, push({ refs: [{ kind: 'branch', name: 'main', isDefault: true }] })).allowed === false, 'an owned fork denies the default branch');
+  assert(decideTarget(owned, push({ refs: [{ kind: 'tag', name: 'v1', isDefault: false }] })).allowed === false, 'an owned fork denies a tag');
+  assert(decideTarget(owned, push({ force: true })).allowed === false, 'an owned fork denies a force push');
+  assert(decideTarget(owned, push({ delete: true })).allowed === false, 'an owned fork denies a deletion');
+  assert(decideTarget(owned, push({ refs: [] })).allowed === false, 'an owned fork denies an unresolved ref');
+  assert(decideTarget(owned, { ...push(), capability: 'pushMain' }).allowed === false, 'an owned fork denies a main push');
+  assert(decideTarget(owned, { ...push(), capability: 'mergePr' }).allowed === false, 'an owned fork denies a merge');
+  assert(decideTarget(owned, { ...push(), capability: 'admin' }).allowed === false, 'an owned fork denies an admin verb');
+  const crossRepo = { ...push(), capability: 'openPr', base: { owner: 'acme', repo: 'upstream-lib', branch: 'main' } };
+  assert(decideTarget(owned, crossRepo).allowed === false, 'an owned fork denies a cross-repository pull request');
+  const sameRepo = { ...push(), capability: 'openPr', base: { owner: null, repo: null, branch: 'main' } };
+  assert(decideTarget(owned, sameRepo).allowed === true, 'an owned fork allows a pull request in the same repository');
+  assert(decideTarget(at('pstack-max', 'acme/upstream-lib'), push()).allowed === false, 'an upstream denies a branch push');
+  assert(decideTarget(at('pstack-max', 'acme/other'), { capability: null, readOnly: true, resolved: true }).allowed === true, 'an unknown destination allows a read');
+  assert(decideTarget(at('pstack-max', 'acme/other'), { capability: null, readOnly: false, resolved: true }).allowed === false, 'an unknown destination denies an unqualified command');
+
+  const writingWithoutCapability = { ...push(), capability: null, readOnly: true };
+  assert(decideTarget(owned, writingWithoutCapability).allowed === false, 'a write operation with no capability is inconsistent and denied');
+
+  const foreignPolicy = { forks: [{ repository: 'evil/pstack-max', upstream: 'acme/upstream-lib', agentAccess: 'propose' }] };
+  assert(resolveOwnedFork(foreignPolicy, 'evil', 'pstack-max').owned === false, 'a policy whose owner the validator rejects grants nothing');
+}
+
+// One table for the value-taking flags, so the parser stays a loop rather than a
+// chain. A Map keys on the exact flag and cannot collide with an object prototype.
+const ARG_KEYS = new Map([
+  ['--catalog', 'catalog'],
+  ['--catalog-dir', 'catalogDir'],
+  ['--allows', 'allows'],
+  ['--command', 'command'],
+  ['--remote-url', 'remoteUrl'],
+  ['--host', 'host'],
+  ['--destination', 'destination'],
+  ['--intent', 'intent'],
+]);
+
 function parseArgs(argv) {
-  const args = { repo: undefined, catalog: undefined, allows: undefined, command: undefined, remoteUrl: undefined, json: false };
+  const args = { repo: undefined, json: false };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
-    if (arg === '--catalog') {
+    const key = ARG_KEYS.get(arg);
+    if (key) {
       index += 1;
-      args.catalog = argv[index];
-    } else if (arg === '--allows') {
-      index += 1;
-      args.allows = argv[index];
-    } else if (arg === '--command') {
-      index += 1;
-      args.command = argv[index];
-    } else if (arg === '--remote-url') {
-      index += 1;
-      args.remoteUrl = argv[index];
-    } else if (arg === '--json') args.json = true;
-    else if (!args.repo) args.repo = arg;
+      args[key] = argv[index];
+    } else if (arg === '--json') {
+      args.json = true;
+    } else if (!args.repo) {
+      args.repo = arg;
+    }
   }
   return args;
 }
@@ -331,6 +834,9 @@ function main() {
 
   const args = parseArgs(argv);
   if (!args.repo) return usageAndExit();
+  if (args.host !== undefined || args.destination !== undefined || args.intent !== undefined) {
+    return runDestinationMode(args);
+  }
 
   const catalog = loadCatalogFromArgs(args);
   const resolved = resolveLevel(catalog, args.repo);
@@ -358,7 +864,105 @@ function runSelfTest() {
 
 function usageAndExit() {
   process.stderr.write('usage: agent-access <repo-name> [--catalog <path>] [--json] [--allows <capability>] [--command "<shell command>"] [--remote-url <url>]\n');
+  process.stderr.write('       agent-access <repo-name> --host <host> --destination <owner/repo> --intent <json> [--catalog-dir <path>] [--json]\n');
   process.exit(2);
+}
+
+// The destination mode. The catalog is read from committed refs only, and the
+// intent is a validated object, so a caller cannot word a grant out of a command
+// string. Exit 0 allows, 1 denies, and 2 is usage or an unreadable roster, which
+// a caller treats as a denial.
+function runDestinationMode(args) {
+  const intent = parseIntent(args.intent);
+  if (args.host === undefined || args.destination === undefined || !intent) return usageAndExit();
+  const roster = loadCommittedCatalog(args.catalogDir);
+  if (!roster) {
+    process.stderr.write('agent-access: cannot read the committed catalog, denying remote writes\n');
+    process.exit(2);
+  }
+  const ownedForks = loadCommittedOwnedForks(args.catalogDir);
+  const target = resolveDestination({ roster, ownedForks, localRepo: args.repo, host: args.host, destination: args.destination });
+  const outcome = decideTarget(target, intent);
+  if (args.json) process.stdout.write(`${JSON.stringify({ ...target, intent, ...outcome })}\n`);
+  process.exit(outcome.allowed ? 0 : 1);
+}
+
+const INTENT_OPERATIONS = ['push', 'openPr', 'mergePr', 'admin', 'read', 'none', 'unknown'];
+const INTENT_REF_KINDS = ['branch', 'tag', 'other', 'unknown'];
+const INTENT_KEYS = ['operation', 'capability', 'readOnly', 'resolved', 'refs', 'force', 'delete', 'base', 'head'];
+const REF_KEYS = ['kind', 'name', 'isDefault'];
+const SIDE_KEYS = ['owner', 'repo', 'branch'];
+
+// A structured intent, validated field by field. Anything unrecognized is a usage
+// error, so a caller that cannot build a trustworthy intent fails closed instead
+// of falling back to a permissive default.
+function parseIntent(raw) {
+  if (typeof raw !== 'string') return null;
+  let value;
+  try {
+    value = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!validIntent(value)) return null;
+  const intent = {
+    operation: value.operation,
+    capability: value.capability ?? null,
+    readOnly: value.readOnly,
+    resolved: value.resolved,
+    refs: value.refs ?? [],
+    force: value.force === true,
+    delete: value.delete === true,
+  };
+  if (value.base) intent.base = value.base;
+  if (value.head) intent.head = value.head;
+  return intent;
+}
+
+// Every field is checked, including the two optional sides, so an unrecognized or
+// malformed intent cannot reach the policy.
+function validIntent(value) {
+  if (!hasOnly(value, INTENT_KEYS)) return false;
+  if (!INTENT_OPERATIONS.includes(value.operation)) return false;
+  if (!validIntentCapability(value.capability)) return false;
+  if (typeof value.readOnly !== 'boolean' || typeof value.resolved !== 'boolean') return false;
+  if (!isOptionalBoolean(value.force) || !isOptionalBoolean(value.delete)) return false;
+  const refs = value.refs ?? [];
+  if (!Array.isArray(refs) || !refs.every(isRef)) return false;
+  return isSide(value.base) && isSide(value.head);
+}
+
+function validIntentCapability(capability) {
+  return capability === undefined || capability === null || KNOWN_CAPABILITIES.has(capability);
+}
+
+function hasOnly(value, keys) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    && Object.keys(value).every((key) => keys.includes(key));
+}
+
+function isOptionalBoolean(value) {
+  return value === undefined || typeof value === 'boolean';
+}
+
+function isRef(ref) {
+  if (!hasOnly(ref, REF_KEYS)) return false;
+  if (!INTENT_REF_KINDS.includes(ref.kind)) return false;
+  return typeof ref.name === 'string' && isOptionalDefault(ref);
+}
+
+function isOptionalDefault(ref) {
+  return ref.isDefault === undefined || ref.isDefault === null || typeof ref.isDefault === 'boolean';
+}
+
+// An absent side is valid, a present one must name only strings. The policy then
+// reads the owner and the repository, so a validated side cannot smuggle a value
+// the type does not expect.
+function isSide(value) {
+  if (value === undefined || value === null) return true;
+  if (!hasOnly(value, SIDE_KEYS)) return false;
+  const fields = SIDE_KEYS.filter((key) => value[key] !== undefined && value[key] !== null);
+  return fields.every((key) => typeof value[key] === 'string');
 }
 
 function loadCatalogFromArgs(args) {

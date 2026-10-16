@@ -6,7 +6,12 @@ import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
-import { levelFor, resolveAccess, tokenFor } from "../access.mjs";
+import {
+  levelFor,
+  observeCommand,
+  resolveAccess,
+  tokenFor,
+} from "../access.mjs";
 import {
   decideShell,
   denyCommand,
@@ -21,36 +26,38 @@ import { removeDir, tempDir } from "./support/fixture-workspace.mjs";
 
 const ws = resolve("ws-root");
 const cwd = join(ws, "projects", "repos", "demo-repo");
-const ok = { code: 0, stdout: JSON.stringify({ level: "propose" }) };
-const deny = { code: 1, stdout: JSON.stringify({ level: "read" }) };
-const unknown = { code: 2, stdout: "" };
 
+// The stub resolver ignores the observation and returns the given result; the observation is
+// still recorded so a test can assert what the observer saw.
 function deps(
   result: { code: number; stdout: string },
   extra: Record<string, unknown> = {},
 ) {
   const calls: Array<{
     repo: string;
-    command: string;
-    remoteUrl: string | null;
+    observation: import("../lib/observation.mjs").Observation;
   }> = [];
   return {
     calls,
     deps: {
       cwd,
       workspaceRoot: ws,
-      resolve: (repo: string, command: string, remoteUrl: string | null) => {
-        calls.push({ repo, command, remoteUrl });
+      resolve: (
+        repo: string,
+        observation: import("../lib/observation.mjs").Observation,
+      ) => {
+        calls.push({ repo, observation });
         return result;
       },
-      remoteUrl: () => null,
+      git: () => null,
+      env: [],
       ...extra,
     },
   };
 }
 
 test("a directory outside the fleet passes without asking the resolver", () => {
-  const spy = deps(deny);
+  const spy = deps({ code: 1, stdout: JSON.stringify({ level: "read" }) });
   const decision = decideShell(
     { command: "git push origin main" },
     { ...spy.deps, cwd: join(ws, "elsewhere") },
@@ -61,7 +68,18 @@ test("a directory outside the fleet passes without asking the resolver", () => {
 });
 
 test("a resolver denial is a deny with the level it resolved", () => {
-  const decision = decideShell({ command: "gh pr merge 1" }, deps(deny).deps);
+  const decision = decideShell(
+    { command: "gh pr merge 1" },
+    deps({
+      code: 1,
+      stdout: JSON.stringify({
+        level: "read",
+        capability: "mergePr",
+        allowed: false,
+        kind: "org",
+      }),
+    }).deps,
+  );
   assert.deepEqual(decision, {
     action: "deny",
     repo: "demo-repo",
@@ -70,7 +88,26 @@ test("a resolver denial is a deny with the level it resolved", () => {
   });
 });
 
+test("a non-organization denial names the destination and the capability", () => {
+  const decision = decideShell(
+    { command: "gh pr merge 1" },
+    deps({
+      code: 1,
+      stdout: JSON.stringify({
+        level: "read",
+        capability: "mergePr",
+        allowed: false,
+        kind: "owned-fork",
+        destination: "simpsonm09/pstack-max",
+      }),
+    }).deps,
+  );
+  assert.equal(decision.action, "deny");
+  assert.match(decision.reason ?? "", /simpsonm09\/pstack-max denies mergePr/);
+});
+
 test("a resolver that cannot answer denies a write and passes a read", () => {
+  const unknown = { code: 2, stdout: "" };
   assert.equal(
     decideShell({ command: "git push origin main" }, deps(unknown).deps).action,
     "deny",
@@ -82,6 +119,16 @@ test("a resolver that cannot answer denies a write and passes a read", () => {
 });
 
 test("an allowed gh call is an inject, and an allowed non-gh call is a pass", () => {
+  const ok = {
+    code: 0,
+    stdout: JSON.stringify({
+      level: "propose",
+      capability: null,
+      allowed: true,
+      kind: "org",
+      auth: { route: "app", owner: "simpsonm09-org", repo: "demo-repo" },
+    }),
+  };
   assert.equal(
     decideShell({ command: "gh pr view 1" }, deps(ok).deps).action,
     "inject",
@@ -92,7 +139,35 @@ test("an allowed gh call is an inject, and an allowed non-gh call is a pass", ()
   );
 });
 
+test("an allowed gh call to an ambient destination passes without injecting", () => {
+  const decision = decideShell(
+    { command: "gh pr create -R simpsonm09/pstack-max" },
+    deps({
+      code: 0,
+      stdout: JSON.stringify({
+        level: "read",
+        capability: "openPr",
+        allowed: true,
+        kind: "owned-fork",
+        destination: "simpsonm09/pstack-max",
+        auth: { route: "ambient", owner: null, repo: null },
+      }),
+    }).deps,
+  );
+  assert.equal(decision.action, "pass");
+});
+
 test("the shared decision reads an executable spelling of gh and git as the plain name", () => {
+  const ok = {
+    code: 0,
+    stdout: JSON.stringify({
+      level: "propose",
+      capability: null,
+      allowed: true,
+      kind: "org",
+      auth: { route: "app", owner: "simpsonm09-org", repo: "demo-repo" },
+    }),
+  };
   assert.equal(
     decideShell(
       { command: '"C:\\Program Files\\GitHub CLI\\gh.exe" pr view 1' },
@@ -103,39 +178,43 @@ test("the shared decision reads an executable spelling of gh and git as the plai
   const spy = deps(ok);
   decideShell({ command: "GIT.exe push origin main" }, spy.deps);
   assert.deepEqual(
-    spy.calls.map((call) => call.command),
-    ["git push origin main"],
-    "the resolver is asked about the plain name",
+    spy.calls.map((call) => call.observation.operation),
+    ["push"],
+    "the observer reads the plain name",
   );
 });
 
 test("a leading space keeps a gh call out of the injection, as HEAD did", () => {
   assert.equal(shouldInject(" gh pr view 1"), false);
   assert.equal(
-    decideShell({ command: " gh pr view 1" }, deps(ok).deps).action,
+    decideShell(
+      { command: " gh pr view 1" },
+      deps({
+        code: 0,
+        stdout: JSON.stringify({
+          level: "propose",
+          capability: null,
+          allowed: true,
+          kind: "org",
+          auth: { route: "app", owner: "simpsonm09-org", repo: "demo-repo" },
+        }),
+      }).deps,
+    ).action,
     "pass",
   );
 });
 
-test("the remote URL is looked up for a push and only for a push", () => {
-  const seen: string[] = [];
-  const spy = deps(ok, {
-    remoteUrl: (remote: string) => {
-      seen.push(remote);
-      return "https://github.com/simpsonm09/fork.git";
-    },
-  });
+test("the resolver is asked for every fleet command, with the observer's observation", () => {
+  const spy = deps({ code: 0, stdout: JSON.stringify({ level: "propose" }) });
   decideShell({ command: "git push origin main" }, spy.deps);
   decideShell({ command: "git status" }, spy.deps);
-  assert.deepEqual(seen, ["origin"]);
-  assert.equal(
-    spy.calls[0].remoteUrl,
-    "https://github.com/simpsonm09/fork.git",
-  );
+  assert.equal(spy.calls.length, 2);
+  assert.equal(spy.calls[0].observation.operation, "push");
+  assert.equal(spy.calls[1].observation.kind, "local");
 });
 
 test("a directory the lookup cannot resolve is a denied write and a passed read, with no resolver call", () => {
-  const spy = deps(ok);
+  const spy = deps({ code: 0, stdout: JSON.stringify({ level: "propose" }) });
   const write = decideShell(
     { command: "git push origin main" },
     { ...spy.deps, lookup: () => ({ repo: null, unresolved: true }) },
@@ -153,37 +232,88 @@ test("a directory the lookup cannot resolve is a denied write and a passed read,
   assert.equal(spy.calls.length, 0);
 });
 
-test("a gh call from a directory the lookup cannot resolve is a denied write", () => {
+test("a gh write from a directory the lookup cannot resolve is a denied write", () => {
   const decision = decideShell(
-    { command: "gh pr view 1" },
-    { ...deps(ok).deps, lookup: () => ({ repo: null, unresolved: true }) },
+    { command: "gh pr create --title x" },
+    {
+      ...deps({ code: 0, stdout: JSON.stringify({ level: "propose" }) }).deps,
+      lookup: () => ({ repo: null, unresolved: true }),
+    },
   );
   assert.equal(decision.action, "deny");
 });
 
-test("unresolved shared decisions deny recognizable command text and pass reads", () => {
+test("an unresolved directory denies a governed write and passes a local command", () => {
   const unresolved = {
-    ...deps(ok).deps,
+    ...deps({ code: 0, stdout: JSON.stringify({ level: "propose" }) }).deps,
     lookup: () => ({ repo: null, unresolved: true }),
   };
   for (const command of [
-    `node -e "console.log('gh pr merge 1')"`,
-    `powershell -Command "git push origin main"`,
-    `echo $(gh pr merge 1)`,
+    "git push origin main",
+    "gh pr merge 1",
+    "cd x && git push origin main",
   ]) {
     assert.equal(decideShell({ command }, unresolved).action, "deny", command);
   }
-  for (const command of ["git status", "git log --oneline", "npm test"]) {
+  // A quoted mention is not a program word: the observer reads the program, so these pass.
+  for (const command of [
+    `node -e "console.log('gh pr merge 1')"`,
+    `powershell -Command "git push origin main"`,
+    "git status",
+    "npm test",
+  ]) {
     assert.equal(decideShell({ command }, unresolved).action, "pass", command);
   }
+});
+
+test("an inherited destination-changing variable denies a governed write and leaves a read alone", () => {
+  const ok = {
+    code: 0,
+    stdout: JSON.stringify({
+      level: "propose",
+      capability: null,
+      allowed: true,
+      kind: "org",
+      auth: { route: "app", owner: "simpsonm09-org", repo: "demo-repo" },
+    }),
+  };
+  const withEnv = { ...deps(ok, { env: ["GH_REPO"] }).deps };
+  const write = decideShell({ command: "git push origin main" }, withEnv);
+  assert.equal(write.action, "deny");
+  assert.match(write.reason ?? "", /GH_REPO changes which repository/);
+  const read = decideShell({ command: "gh pr view 1" }, withEnv);
+  assert.equal(read.action, "inject");
+
+  const clean = deps(ok).deps;
+  assert.notEqual(
+    decideShell({ command: "git push origin main" }, clean).action,
+    "deny",
+  );
+});
+
+test("an inline repository assignment is unsupported, while a benign one stays local", () => {
+  const unresolved = {
+    ...deps({ code: 0, stdout: JSON.stringify({ level: "propose" }) }).deps,
+    lookup: () => ({ repo: null, unresolved: true }),
+  };
+  assert.equal(
+    decideShell({ command: "GIT_DIR=/tmp/x git push origin main" }, unresolved)
+      .action,
+    "deny",
+    "an inline repository assignment is a governed write",
+  );
+  assert.equal(
+    decideShell({ command: "FOO=bar git status" }, unresolved).action,
+    "pass",
+  );
 });
 
 test("a repository missing from the catalog gets an actionable write denial", () => {
   const decision = decideShell(
     { command: "git push origin main" },
     {
-      ...deps(unknown).deps,
-      resolve: () => ({ ...unknown, catalogMissing: true }),
+      ...deps({ code: 2, stdout: "" }).deps,
+      resolve: () => ({ code: 2, stdout: "", catalogMissing: true }),
     },
   );
   assert.equal(decision.action, "deny");
@@ -210,7 +340,7 @@ test("PowerShell is recognized from a Windows-style path on any platform", () =>
 });
 
 test("the injected repository lookup decides which repository a directory is", () => {
-  const spy = deps(deny);
+  const spy = deps({ code: 1, stdout: JSON.stringify({ level: "read" }) });
   const decision = decideShell(
     { command: "gh pr merge 1" },
     { ...spy.deps, cwd: "anywhere", lookup: () => ({ repo: "other-repo" }) },
@@ -225,7 +355,15 @@ test("gateShellEdit rewrites a denial and leaves the environment alone", async (
   };
   const env: Record<string, string> = {};
   await gateShellEdit(input, env, {
-    ...deps(deny).deps,
+    ...deps({
+      code: 1,
+      stdout: JSON.stringify({
+        level: "read",
+        capability: "mergePr",
+        allowed: false,
+        kind: "org",
+      }),
+    }).deps,
     tokenFor: async () => "never",
   });
   assert.equal(
@@ -241,7 +379,16 @@ test("gateShellEdit denies an allowed gh call when no token can be minted", asyn
   };
   const env: Record<string, string> = {};
   const decision = await gateShellEdit(input, env, {
-    ...deps(ok).deps,
+    ...deps({
+      code: 0,
+      stdout: JSON.stringify({
+        level: "propose",
+        capability: null,
+        allowed: true,
+        kind: "org",
+        auth: { route: "app", owner: "simpsonm09-org", repo: "demo-repo" },
+      }),
+    }).deps,
     tokenFor: async () => null,
   });
   assert.equal(decision.action, "deny");
@@ -256,7 +403,16 @@ test("gateShellEdit sets GH_TOKEN for an allowed gh call", async () => {
   const input: { command: string } = { command: "gh pr view 1" };
   const env: Record<string, string> = {};
   const decision = await gateShellEdit(input, env, {
-    ...deps(ok).deps,
+    ...deps({
+      code: 0,
+      stdout: JSON.stringify({
+        level: "propose",
+        capability: null,
+        allowed: true,
+        kind: "org",
+        auth: { route: "app", owner: "simpsonm09-org", repo: "demo-repo" },
+      }),
+    }).deps,
     tokenFor: async () => "fixture-token",
   });
   assert.equal(decision.action, "inject");
@@ -277,33 +433,47 @@ test("isWorktreePath recognizes a folder under projects/worktrees only", () => {
   assert.equal(isWorktreePath(join(ws, "projects", "repos", "w"), ws), false);
 });
 
-test("the access adapter keeps one token per repository", async () => {
+test("the access adapter keeps one token per destination", async () => {
   const minted: string[] = [];
   const api = {
-    mintForRepo: async (_owner: string, repo: string) => {
-      minted.push(repo);
+    mintForRepo: async (owner: string, repo: string) => {
+      minted.push(`${owner}/${repo}`);
       return { token: `token-for-${repo}`, expires_at: "2099-01-01T00:00:00Z" };
     },
   };
-  assert.equal(await tokenFor(api, "", "alpha-repo"), "token-for-alpha-repo");
   assert.equal(
-    await tokenFor(api, "", "beta-repo"),
+    await tokenFor(api, "", "simpsonm09-org", "alpha-repo"),
+    "token-for-alpha-repo",
+  );
+  assert.equal(
+    await tokenFor(api, "", "simpsonm09-org", "beta-repo"),
     "token-for-beta-repo",
     "a repo never gets another repo's token",
   );
-  assert.equal(await tokenFor(api, "", "alpha-repo"), "token-for-alpha-repo");
-  assert.deepEqual(
-    minted,
-    ["alpha-repo", "beta-repo"],
-    "a cached token is reused, not minted again",
+  assert.equal(
+    await tokenFor(api, "", "simpsonm09-org", "alpha-repo"),
+    "token-for-alpha-repo",
   );
+  // The same repository under another owner is a different destination, so it is minted.
+  assert.equal(
+    await tokenFor(api, "", "simpsonm09", "alpha-repo"),
+    "token-for-alpha-repo",
+  );
+  assert.deepEqual(minted, [
+    "simpsonm09-org/alpha-repo",
+    "simpsonm09-org/beta-repo",
+    "simpsonm09/alpha-repo",
+  ]);
 });
 
 test("a broker that fails or returns no token yields no token", async () => {
   const failing = { mintForRepo: async () => Promise.reject(new Error("401")) };
   const empty = { mintForRepo: async () => ({ token: "", expires_at: "" }) };
-  assert.equal(await tokenFor(failing, "", "gamma-repo"), null);
-  assert.equal(await tokenFor(empty, "", "delta-repo"), null);
+  assert.equal(
+    await tokenFor(failing, "", "simpsonm09-org", "gamma-repo"),
+    null,
+  );
+  assert.equal(await tokenFor(empty, "", "simpsonm09-org", "delta-repo"), null);
 });
 
 test("a broker script that only ships a CLI mints its token in a Node child process", async () => {
@@ -314,7 +484,10 @@ test("a broker script that only ships a CLI mints its token in a Node child proc
       script,
       'process.stdout.write(JSON.stringify({ token: "cli-token", expires_at: "2099-01-01T00:00:00Z" }));\n',
     );
-    assert.equal(await tokenFor(null, script, "cli-repo"), "cli-token");
+    assert.equal(
+      await tokenFor(null, script, "simpsonm09-org", "cli-repo"),
+      "cli-token",
+    );
   } finally {
     removeDir(dir);
   }
@@ -325,51 +498,158 @@ test("a resolver module that throws is an unknown answer, not a crash", () => {
     loadCommittedCatalog: () => {
       throw new Error("no catalog");
     },
+    loadCommittedOwnedForks: () => null,
     resolveLevel: () => ({}),
-    decide: () => ({ capability: null, allowed: true }),
+    resolveDestination: () => ({ kind: "unknown" }),
+    decideTarget: () => ({ capability: null, allowed: true }),
   };
   assert.deepEqual(
-    resolveAccess(api, "unused", "demo-repo", "git push origin main", null),
+    resolveAccess(
+      api,
+      "unused",
+      "demo-repo",
+      observeCommand("git push origin main", {}),
+    ),
     { code: 2, stdout: "", catalogMissing: false },
   );
 });
 
 test("an unknown answer says catalog missing only after a readable catalog confirms it", () => {
+  const observation = observeCommand("git push origin main", {});
   const catalogMissing = resolveAccess(
     {
       loadCommittedCatalog: () => ({ repos: [] }),
+      loadCommittedOwnedForks: () => null,
       resolveLevel: () => ({ level: "read", source: "unknown" }),
-      decide: () => {
+      resolveDestination: () => ({ kind: "unknown" }),
+      decideTarget: () => {
         throw new Error("resolver unavailable");
       },
     },
     undefined,
     "demo-repo",
-    "git push origin main",
-    null,
+    observation,
   );
   assert.equal(catalogMissing.catalogMissing, true);
 
   const unreadable = resolveAccess(
     {
-      loadCommittedCatalog: () => {
-        throw new Error("catalog parse error");
-      },
+      loadCommittedCatalog: () => null,
+      loadCommittedOwnedForks: () => null,
       resolveLevel: () => ({ level: "read", source: "unknown" }),
-      decide: () => ({ capability: null, allowed: false }),
+      resolveDestination: () => ({ kind: "unknown" }),
+      decideTarget: () => ({ capability: null, allowed: false }),
     },
     undefined,
     "demo-repo",
-    "git push origin main",
-    null,
+    observation,
   );
-  assert.equal(unreadable.catalogMissing, false);
+  assert.equal(unreadable.catalogMissing, true);
+  assert.equal(unreadable.code, 2);
 });
 
 test("a missing resolver script is an unknown answer, and the level falls back to read", () => {
   assert.deepEqual(
-    resolveAccess(null, join(ws, "missing.mjs"), "demo-repo", "git push", null),
+    resolveAccess(
+      null,
+      join(ws, "missing.mjs"),
+      "demo-repo",
+      observeCommand("git push", {}),
+    ),
     { code: 2, stdout: "" },
   );
   assert.equal(levelFor(null, "demo-repo"), "read");
+});
+
+// A fake resolver whose destination policy level differs from the local clone's roster level.
+// The verdict is the destination's, so the reported level and a denial built from it must name
+// the destination's level, with the local clone's level kept beside it as the context level.
+function destinationLevelApi() {
+  return {
+    loadCommittedCatalog: () => ({
+      org: "simpsonm09-org",
+      repos: [{ name: "demo-repo", tier: "standard", agentAccess: "read" }],
+    }),
+    loadCommittedOwnedForks: () => null,
+    resolveLevel: (_catalog: unknown, name: string) => ({
+      repo: name,
+      level: "read",
+      source: "override",
+    }),
+    resolveDestination: () => ({
+      kind: "org",
+      owner: "simpsonm09-org",
+      repo: "other-repo",
+      level: "full",
+      source: "org",
+    }),
+    decideTarget: () => ({ capability: "mergePr", allowed: false }),
+  };
+}
+
+test("the reported level is the destination policy level, with the context level beside it", () => {
+  const result = resolveAccess(
+    destinationLevelApi(),
+    "unused",
+    "demo-repo",
+    observeCommand("gh pr merge 1 -R simpsonm09-org/other-repo", {}),
+  );
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.level, "full");
+  assert.equal(parsed.contextLevel, "read");
+  assert.equal(parsed.destination, "simpsonm09-org/other-repo");
+  assert.equal(parsed.kind, "org");
+});
+
+test("a cross-repository denial names the destination level, not the local clone's", () => {
+  const api = destinationLevelApi();
+  const decision = decideShell(
+    { command: "gh pr merge 1 -R simpsonm09-org/other-repo" },
+    {
+      cwd,
+      workspaceRoot: ws,
+      resolve: (
+        repo: string,
+        observation: import("../lib/observation.mjs").Observation,
+      ) => resolveAccess(api, "unused", repo, observation),
+      git: () => null,
+      env: [],
+    },
+  );
+  assert.equal(decision.action, "deny");
+  assert.equal(decision.level, "full");
+  assert.match(decision.reason ?? "", /denies this command at level "full"/);
+});
+
+test("an ambiguous gh destination is denied with the -R hint, never an unknown-repository claim", () => {
+  const api = {
+    ...destinationLevelApi(),
+    resolveDestination: () => ({
+      kind: "unknown",
+      owner: null,
+      repo: null,
+      level: "none",
+      source: "unknown",
+    }),
+    decideTarget: () => ({ capability: "openPr", allowed: false }),
+  };
+  const decision = decideShell(
+    { command: "gh pr create --title x" },
+    {
+      cwd,
+      workspaceRoot: ws,
+      resolve: (
+        repo: string,
+        observation: import("../lib/observation.mjs").Observation,
+      ) => resolveAccess(api, "unused", repo, observation),
+      git: () => null,
+      env: [],
+    },
+  );
+  assert.equal(decision.action, "deny");
+  assert.match(
+    decision.reason ?? "",
+    /specify -R owner\/repo for a new operation/,
+  );
+  assert.doesNotMatch(decision.reason ?? "", /unknown/i);
 });

@@ -1,0 +1,199 @@
+{
+  "recordedFrom": "HEAD 05f22c14794e34d62c0fa861181c18e37aad4395",
+  "note": "The cells the destination-aware gate changes, and the cells it keeps, in a real fleet clone whose origin is a personal fork and whose upstream is the organization repository. The historical golden file (tests/fixtures/parity-golden.json) models a single-remote clone, so these cells are declared here instead of being regenerated into it. tests/two-remote-parity.test.ts runs each cell through both adapters and checks it against the recorded HEAD action below.",
+  "baseline": "HEAD's gate decided a gh command by its first word and never read the clone's remotes, so each cell's HEAD action is the golden file's recorded action for the same command without the two-remote ambiguity (baselineCommand) at the same level. A gh write missing -R was injected at the levels that grant its capability and denied below them; the destination-aware gate denies it at every level because the clone names two GitHub repositories and the command names neither.",
+  "rationale": {
+    "ambiguous-gh-write": "A gh write in a clone whose origin is a personal fork and whose upstream is the organization repository names two GitHub destinations and no -R, so the destination is ambiguous. gh resolves a missing -R through the API, so the gate denies the write at every level instead of guessing, and the denial asks for -R owner/repo rather than calling the repository unknown. HEAD injected it at the levels that granted the capability.",
+    "explicit-org-destination": "An explicit -R naming the organization repository pins one destination, so the organization roster level governs it exactly as it governs the single-remote clone: inject where the level grants the capability, deny below it.",
+    "explicit-personal-fork": "An explicit -R naming the personal fork of the clone's governed repository collapses to that repository at the roster level, but the destination is the personal account, so the gate mints no organization App token and the command passes under the caller's ambient authentication."
+  },
+  "cells": [
+    {
+      "id": "two-remote-repo|posix|propose|gh pr create --title x",
+      "cwd": "two-remote-repo",
+      "level": "propose",
+      "command": "gh pr create --title x",
+      "baselineCommand": "gh pr create --title x",
+      "head": "inject",
+      "now": "deny",
+      "declared": true,
+      "category": "ambiguous-gh-write"
+    },
+    {
+      "id": "two-remote-repo|posix|merge|gh pr create --title x",
+      "cwd": "two-remote-repo",
+      "level": "merge",
+      "command": "gh pr create --title x",
+      "baselineCommand": "gh pr create --title x",
+      "head": "inject",
+      "now": "deny",
+      "declared": true,
+      "category": "ambiguous-gh-write"
+    },
+    {
+      "id": "two-remote-repo|posix|full|gh pr create --title x",
+      "cwd": "two-remote-repo",
+      "level": "full",
+      "command": "gh pr create --title x",
+      "baselineCommand": "gh pr create --title x",
+      "head": "inject",
+      "now": "deny",
+      "declared": true,
+      "category": "ambiguous-gh-write"
+    },
+    {
+      "id": "two-remote-repo|posix|merge|gh pr merge 1",
+      "cwd": "two-remote-repo",
+      "level": "merge",
+      "command": "gh pr merge 1",
+      "baselineCommand": "gh pr merge 1",
+      "head": "inject",
+      "now": "deny",
+      "declared": true,
+      "category": "ambiguous-gh-write"
+    },
+    {
+      "id": "two-remote-repo|posix|full|gh pr merge 1",
+      "cwd": "two-remote-repo",
+      "level": "full",
+      "command": "gh pr merge 1",
+      "baselineCommand": "gh pr merge 1",
+      "head": "inject",
+      "now": "deny",
+      "declared": true,
+      "category": "ambiguous-gh-write"
+    },
+    {
+      "id": "two-remote-repo|posix|read|gh release create v1",
+      "cwd": "two-remote-repo",
+      "level": "read",
+      "command": "gh release create v1",
+      "baselineCommand": "gh release create v1",
+      "head": "inject",
+      "now": "deny",
+      "declared": true,
+      "category": "ambiguous-gh-write"
+    },
+    {
+      "id": "two-remote-repo|posix|full|gh release create v1",
+      "cwd": "two-remote-repo",
+      "level": "full",
+      "command": "gh release create v1",
+      "baselineCommand": "gh release create v1",
+      "head": "inject",
+      "now": "deny",
+      "declared": true,
+      "category": "ambiguous-gh-write"
+    },
+    {
+      "id": "two-remote-repo|posix|merge|gh pr comment 1 --body x",
+      "cwd": "two-remote-repo",
+      "level": "merge",
+      "command": "gh pr comment 1 --body x",
+      "baselineCommand": "gh pr comment 1 --body x",
+      "head": "inject",
+      "now": "deny",
+      "declared": true,
+      "category": "ambiguous-gh-write"
+    },
+    {
+      "id": "two-remote-repo|posix|full|gh api -X POST repos/o/r",
+      "cwd": "two-remote-repo",
+      "level": "full",
+      "command": "gh api -X POST repos/o/r",
+      "baselineCommand": "gh api -X POST repos/o/r",
+      "head": "inject",
+      "now": "deny",
+      "declared": true,
+      "category": "ambiguous-gh-write"
+    },
+    {
+      "id": "two-remote-repo|posix|read|gh pr list",
+      "cwd": "two-remote-repo",
+      "level": "read",
+      "command": "gh pr list",
+      "baselineCommand": "gh pr list",
+      "head": "inject",
+      "now": "inject",
+      "declared": false,
+      "category": "ambiguous-gh-write"
+    },
+    {
+      "id": "two-remote-repo|posix|propose|gh pr create --title x -R simpsonm09-org/two-remote-repo",
+      "cwd": "two-remote-repo",
+      "level": "propose",
+      "command": "gh pr create --title x -R simpsonm09-org/two-remote-repo",
+      "baselineCommand": "gh pr create --title x",
+      "head": "inject",
+      "now": "inject",
+      "declared": false,
+      "category": "explicit-org-destination"
+    },
+    {
+      "id": "two-remote-repo|posix|merge|gh pr create --title x -R simpsonm09-org/two-remote-repo",
+      "cwd": "two-remote-repo",
+      "level": "merge",
+      "command": "gh pr create --title x -R simpsonm09-org/two-remote-repo",
+      "baselineCommand": "gh pr create --title x",
+      "head": "inject",
+      "now": "inject",
+      "declared": false,
+      "category": "explicit-org-destination"
+    },
+    {
+      "id": "two-remote-repo|posix|read|gh pr create --title x -R simpsonm09-org/two-remote-repo",
+      "cwd": "two-remote-repo",
+      "level": "read",
+      "command": "gh pr create --title x -R simpsonm09-org/two-remote-repo",
+      "baselineCommand": "gh pr create --title x",
+      "head": "deny",
+      "now": "deny",
+      "declared": false,
+      "category": "explicit-org-destination"
+    },
+    {
+      "id": "two-remote-repo|posix|propose|gh pr merge 1 -R simpsonm09-org/two-remote-repo",
+      "cwd": "two-remote-repo",
+      "level": "propose",
+      "command": "gh pr merge 1 -R simpsonm09-org/two-remote-repo",
+      "baselineCommand": "gh pr merge 1",
+      "head": "deny",
+      "now": "deny",
+      "declared": false,
+      "category": "explicit-org-destination"
+    },
+    {
+      "id": "two-remote-repo|posix|merge|gh pr merge 1 -R simpsonm09-org/two-remote-repo",
+      "cwd": "two-remote-repo",
+      "level": "merge",
+      "command": "gh pr merge 1 -R simpsonm09-org/two-remote-repo",
+      "baselineCommand": "gh pr merge 1",
+      "head": "inject",
+      "now": "inject",
+      "declared": false,
+      "category": "explicit-org-destination"
+    },
+    {
+      "id": "two-remote-repo|posix|propose|gh pr create --title x -R simpsonm09/two-remote-repo",
+      "cwd": "two-remote-repo",
+      "level": "propose",
+      "command": "gh pr create --title x -R simpsonm09/two-remote-repo",
+      "baselineCommand": "gh pr create --title x",
+      "head": "inject",
+      "now": "pass",
+      "declared": true,
+      "category": "explicit-personal-fork"
+    },
+    {
+      "id": "two-remote-repo|posix|full|gh pr merge 1 -R simpsonm09/two-remote-repo",
+      "cwd": "two-remote-repo",
+      "level": "full",
+      "command": "gh pr merge 1 -R simpsonm09/two-remote-repo",
+      "baselineCommand": "gh pr merge 1",
+      "head": "inject",
+      "now": "pass",
+      "declared": true,
+      "category": "explicit-personal-fork"
+    }
+  ]
+}

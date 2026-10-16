@@ -90,10 +90,24 @@ test("a denied push to the organization main is denied at a propose level", asyn
   assert.equal(out?.hookSpecificOutput.permissionDecision, "deny");
 });
 
-test("a push to a fork remote is out of scope and passes untouched", async () => {
+test("a push to a personal fork collapses to its governed repository and stays level-bound", async () => {
+  // The clone's own fork (origin simpsonm09/fork-repo) is not a free pass: the catalog records
+  // the personal owner, so the destination collapses to the governed repository's level and a
+  // default-branch push is denied at propose.
+  const out = await bashPre(
+    "git push origin main",
+    "projects/repos/fork-repo",
+    "propose",
+  );
+  assert.equal(out?.hookSpecificOutput.permissionDecision, "deny");
+  assert.match(
+    out?.hookSpecificOutput.permissionDecisionReason ?? "",
+    /fork-repo denies this command at level "propose"/,
+  );
+  // A non-default branch on the same fork is allowed, exactly as at the clone.
   assert.equal(
     await bashPre(
-      "git push origin main",
+      "git push origin feat/x",
       "projects/repos/fork-repo",
       "propose",
     ),

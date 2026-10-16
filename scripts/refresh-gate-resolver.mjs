@@ -26,9 +26,12 @@ if (
       !["--check", "--repo"].includes(arg) && args[index - 1] !== "--repo",
   ) ||
   args.filter((arg) => arg === "--check").length > 1 ||
-  (repoArg >= 0 && (!args[repoArg + 1] || args.indexOf("--repo", repoArg + 1) >= 0))
+  (repoArg >= 0 &&
+    (!args[repoArg + 1] || args.indexOf("--repo", repoArg + 1) >= 0))
 ) {
-  fail("usage: node scripts/refresh-gate-resolver.mjs [--check] [--repo <clone-path>]");
+  fail(
+    "usage: node scripts/refresh-gate-resolver.mjs [--check] [--repo <clone-path>]",
+  );
 } else if (!/^[0-9a-f]{40}$/.test(RESOLVER_PIN.commit)) {
   fail("the pinned commit must be a full lowercase SHA");
 } else {
@@ -39,11 +42,18 @@ if (
       { encoding: "utf8", windowsHide: true },
     ).trim();
     if (actualCommit !== RESOLVER_PIN.commit)
-      throw new Error("the source object did not resolve to the pinned full commit");
+      throw new Error(
+        "the source object did not resolve to the pinned full commit",
+      );
 
     const bytes = execFileSync(
       "git",
-      ["-C", sourceRepo, "show", `${RESOLVER_PIN.commit}:${RESOLVER_PIN.sourcePath}`],
+      [
+        "-C",
+        sourceRepo,
+        "show",
+        `${RESOLVER_PIN.commit}:${RESOLVER_PIN.sourcePath}`,
+      ],
       { encoding: null, windowsHide: true, maxBuffer: 8 * 1024 * 1024 },
     );
     const digest = createHash("sha256").update(bytes).digest("hex");
@@ -53,15 +63,23 @@ if (
     const metadata = `${JSON.stringify(pinMetadata(), null, 2)}\n`;
     if (check) {
       if (!readFileSync(artifact).equals(bytes))
-        throw new Error("packaged resolver differs from the pinned source object");
+        throw new Error(
+          "packaged resolver differs from the pinned source object",
+        );
       if (readFileSync(metadataFile, "utf8") !== metadata)
-        throw new Error("pin metadata differs from the pinned resolver constants");
-      process.stdout.write(`gate resolver pin ok: ${RESOLVER_PIN.commit} ${digest}\n`);
+        throw new Error(
+          "pin metadata differs from the pinned resolver constants",
+        );
+      process.stdout.write(
+        `gate resolver pin ok: ${RESOLVER_PIN.commit} ${digest}\n`,
+      );
     } else {
       mkdirSync(dirname(artifact), { recursive: true });
       writeFileSync(artifact, bytes);
       writeFileSync(metadataFile, metadata);
-      process.stdout.write(`refreshed gate resolver: ${RESOLVER_PIN.commit} ${digest}\n`);
+      process.stdout.write(
+        `refreshed gate resolver: ${RESOLVER_PIN.commit} ${digest}\n`,
+      );
     }
   } catch (error) {
     fail(error instanceof Error ? error.message : String(error));

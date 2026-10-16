@@ -47,6 +47,12 @@ one.
   a repository we do not own needs the user's explicit review first. `gh pr create` targets
   a fork's parent by default, so always pass `-R <owner>/<repo>` naming an owned repository,
   and push only to `origin`.
+- To pin a GitHub account for one command, use a single command: the Bash assignment prefix
+  `GH_TOKEN="$(gh auth token --user <account>)" gh …`, or the git credential helper. A
+  multi-statement pin (`export …; gh …`, or `$env:GH_TOKEN = …; gh …`) is a compound command and
+  the gate denies it, and PowerShell has no inline prefix form at all. When the gate denies a
+  command, that denial is final for that command: do not re-run it through another shell, tool,
+  wrapper, or identity.
 - Respect branch protection. Use `gh pr merge --admin` only on an owned repository, only
   when the user has granted it for the current thread, and only after every check on the
   pull request's current head is green. Ask again in a new thread.

@@ -296,31 +296,34 @@ function realFleetClone(name: string, remotes: Record<string, string>) {
   return { dir, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
 }
 
-test("a fork push is allowed through the live plugin wiring at a propose repo", async () => {
-  const clone = realFleetClone("u8-fork-probe", {
-    origin: "https://github.com/simpsonm09/simpsonm09-repo-standard.git",
-    upstream: "https://github.com/simpsonm09-org/simpsonm09-repo-standard.git",
-  });
-  try {
-    await withFixture(async (scripts) => {
-      const { shellBefore } = await setupWithStubs({
-        location: clone.dir,
-        scripts,
-      });
-
-      const input = {
-        command: "git push --dry-run origin main",
-        cwd: clone.dir,
-        env: {},
-      };
-      await shellBefore(input);
-
-      assert.equal(input.command, "git push --dry-run origin main");
-      assert.doesNotMatch(input.command, /exit 1/);
+test("an approved owned-fork branch push is allowed through the live plugin wiring", async () => {
+  const ownedFork = join(reposRoot, "pstack-max");
+  await withFixture(async (scripts) => {
+    const { shellBefore } = await setupWithStubs({
+      location: ownedFork,
+      scripts,
     });
-  } finally {
-    clone.cleanup();
-  }
+
+    const branch = {
+      command: "git push --dry-run origin feat/x",
+      cwd: ownedFork,
+      env: {},
+    };
+    await shellBefore(branch);
+    assert.equal(branch.command, "git push --dry-run origin feat/x");
+    assert.doesNotMatch(branch.command, /exit 1/);
+
+    // The same owned fork denies its default branch: the owned-fork grant is a branch push
+    // and a same-repository pull request, never `main`.
+    const main = {
+      command: "git push --dry-run origin main",
+      cwd: ownedFork,
+      env: {},
+    };
+    await shellBefore(main);
+    assert.match(main.command, /agent-access: denied/);
+    assert.match(main.command, /simpsonm09\/pstack-max denies pushMain/);
+  });
 });
 
 test("an organization main push is denied through the live plugin wiring at a propose repo", async () => {

@@ -6,8 +6,12 @@ decision can name a destination and a ref instead of scanning the command text f
 `git push`.
 
 `lib/intent.mjs` is the dispatcher. It reads the shell words, decides which program the
-command runs, and routes it to two domain parsers: `lib/gitpush.mjs` for the `git push`
-observation, and `lib/ghcommand.mjs` for the `gh` observation. `lib/observation.mjs` is the
+command runs, and routes it to two domain parsers: the `git push` domain (`lib/gitpush.mjs`,
+over `lib/gitflags.mjs` for the git global options and the push flag grammar and
+`lib/gitrefspec.mjs` for the refspec reading) and the `gh` domain (`lib/ghcommand.mjs`, over
+`lib/ghoptions.mjs` for the option tables and `lib/ghargv.mjs` for the argument reader).
+`lib/shellscan.mjs` cuts the command text into commands and reads heredoc bodies, over the
+lexical forms in `lib/shelllex.mjs`. `lib/observation.mjs` is the
 normalized observation both return, and `lib/gitstate.mjs` is the only module that touches
 git: it supplies the read-only reader (`(args) => stdout or null`) over the real `git` with
 argument arrays, so nothing from a command is ever interpolated into a shell string. The

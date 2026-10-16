@@ -1,5 +1,6 @@
 // The command observer (lib/intent.mjs and its domain modules lib/gitpush.mjs,
-// lib/ghcommand.mjs, lib/observation.mjs, over lib/gitstate.mjs) against real temporary git
+// lib/ghcommand.mjs, lib/observation.mjs, over lib/gitstate.mjs, with the flag, refspec,
+// option, argv, and shell-scan modules they factor out) against real temporary git
 // repositories. The remotes are only names and github URLs in a fixture's git config: nothing
 // here reaches the network, runs `git push`, or calls gh. The observation must name the
 // destination from real git plumbing, so these tests build real clones, worktrees, pushurls,

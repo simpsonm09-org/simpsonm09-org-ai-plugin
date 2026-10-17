@@ -25,6 +25,10 @@ run = "flint run --fix"
 description = "Run the tests"
 run = "npm test"
 
+[tasks."test-portable"]
+description = "Run the focused cross-platform regression on the host OS"
+run = "npm run test:portable"
+
 [tasks.coverage]
 description = "Run the tests and write coverage/lcov.info"
 run = "node scripts/coverage.mjs"

@@ -7,9 +7,9 @@
 import assert from "node:assert/strict";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
-import { commandDirectory } from "../lib/gitflags.mjs";
-import { observeCommand, observationDestination } from "../lib/intent.mjs";
 import { decideShell } from "../gate.mjs";
+import { commandDirectory } from "../lib/gitflags.mjs";
+import { observationDestination, observeCommand } from "../lib/intent.mjs";
 import type { Observation } from "../lib/observation.mjs";
 
 const ws = resolve("ws-root");
@@ -59,28 +59,23 @@ function gitReaderFor(clone: {
   defaultBranch: string;
   branches: string[];
 }): FakeGit {
+  const answers = new Map<string, string>([
+    ["remote", "origin"],
+    ["remote get-url --push --all origin", clone.origin],
+    ["remote get-url origin", clone.origin],
+    [
+      "symbolic-ref --quiet refs/remotes/origin/HEAD",
+      `refs/remotes/origin/${clone.defaultBranch}`,
+    ],
+    ...clone.branches.map((branch): [string, string] => [
+      `show-ref --verify refs/heads/${branch}`,
+      "f".repeat(40),
+    ]),
+  ]);
   return (args: string[]) => {
     let index = 0;
     while (args[index] === "-C" || args[index] === "-c") index += 2;
-    const question = args.slice(index).join(" ");
-    if (question === "remote") return "origin";
-    if (
-      question === "remote get-url --push --all origin" ||
-      question === "remote get-url origin"
-    )
-      return clone.origin;
-    if (question === "symbolic-ref --quiet refs/remotes/origin/HEAD")
-      return `refs/remotes/origin/${clone.defaultBranch}`;
-    const ref = /^show-ref --verify (refs\/(?:heads|tags)\/.+)$/.exec(question);
-    if (ref) {
-      const name = ref[1];
-      const branch = name.startsWith("refs/heads/")
-        ? name.slice("refs/heads/".length)
-        : null;
-      if (branch && clone.branches.includes(branch)) return "f".repeat(40);
-      return null;
-    }
-    return null;
+    return answers.get(args.slice(index).join(" ")) ?? null;
   };
 }
 
@@ -119,10 +114,10 @@ test("a push through -C is classified against the clone the command names", () =
   );
   assert.equal(spy.calls.length, 1);
   assert.equal(spy.calls[0].repo, "repo-b", "the -C clone's name decides");
-  assert.deepEqual(
-    observationDestination(spy.calls[0].observation),
-    { host: "github.com", destination: "simpsonm09/repo-b" },
-  );
+  assert.deepEqual(observationDestination(spy.calls[0].observation), {
+    host: "github.com",
+    destination: "simpsonm09/repo-b",
+  });
   assert.equal(spy.calls[0].observation.capability, "pushBranch");
   assert.equal(decision.action, "pass");
   assert.equal(decision.repo, "repo-b");
@@ -246,10 +241,10 @@ test("a push without -C keeps the cwd's repository", () => {
   assert.equal(spy.calls.length, 1);
   assert.equal(spy.calls[0].repo, "repo-a");
   assert.equal(spy.calls[0].observation.commandDirectory, null);
-  assert.deepEqual(
-    observationDestination(spy.calls[0].observation),
-    { host: "github.com", destination: "simpsonm09/repo-a" },
-  );
+  assert.deepEqual(observationDestination(spy.calls[0].observation), {
+    host: "github.com",
+    destination: "simpsonm09/repo-a",
+  });
   assert.equal(decision.action, "pass");
   assert.equal(decision.repo, "repo-a");
 });

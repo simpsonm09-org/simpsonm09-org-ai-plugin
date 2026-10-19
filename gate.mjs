@@ -355,11 +355,14 @@ function denyReason(resolved, repo, level, observation) {
 }
 
 // The decision for one command, with no side effects: no token, no environment, no
-// rewrite. The repository comes from deps.lookup(cwd), which never throws: it answers
+// rewrite. The repository comes from deps.lookup(), which never throws: it answers
 // { repo } for a fleet directory, { repo: null } for any other directory, and
-// { repo: null, unresolved: true } when the lookup could not run. Without a lookup, the
-// repos-only path rule answers. A cwd outside a fleet repository passes without a resolver
-// call, preserving the documented fleet-only scope.
+// { repo: null, unresolved: true } when the lookup could not run. The directory it is
+// asked for is the one the command itself reaches: a `git -C <path>` command observes the
+// `<path>` clone's git state, so its local repository is looked up there too; every other
+// command is looked up from the cwd as before. Without a lookup, the repos-only path rule
+// answers. A cwd outside a fleet repository passes without a resolver call, preserving the
+// documented fleet-only scope.
 /**
  * @param {{ command: string, shell?: "bash" | "powershell", runtime?: "codex" }} input the dialect defaults to bash
  * @param {{
@@ -375,10 +378,15 @@ function denyReason(resolved, repo, level, observation) {
 export function decideShell(input, deps) {
   const command = canonicalCommand(programCommand(input.command, input.shell));
   const shell = input.shell === "powershell" ? "powershell" : "bash";
-  const found = deps.lookup
-    ? deps.lookup(deps.cwd)
-    : { repo: repoFromCwd(deps.cwd, deps.workspaceRoot ?? "") };
   const observation = observeFor(command, { cwd: deps.cwd, shell }, deps);
+  // The local repository is the clone the command reaches, not always the tool's cwd: a
+  // `git -C <path>` push reaches the `<path>` clone, whose git state the observation already
+  // read, so the destination's fork must be classified against that clone's fleet name.
+  // With no `-C` this is the cwd, and the decision is the one the gate always made.
+  const directory = observation.commandDirectory ?? deps.cwd;
+  const found = deps.lookup
+    ? deps.lookup(directory)
+    : { repo: repoFromCwd(directory, deps.workspaceRoot ?? "") };
   const governed = isGovernedWrite(observation);
   const environment = observation.environment ?? [];
   const codex = input.runtime === "codex";
@@ -386,7 +394,13 @@ export function decideShell(input, deps) {
   if (found.unresolved)
     return unresolvedDecision(observation, governed, environment, codex);
   const repo = found.repo;
-  if (!repo) return unknownRepoDecision(governed, codex);
+  if (!repo)
+    return unknownRepoDecision(
+      observation.commandDirectory,
+      governed,
+      environment,
+      codex,
+    );
 
   // An inherited variable that changes which repository the command reaches makes the
   // observation untrustworthy for a governed write: refuse it rather than observe the wrong
@@ -412,16 +426,31 @@ function unresolvedDecision(observation, governed, environment, codex) {
   return unresolvedAnswer(observation);
 }
 
-// The answer when the directory is not a fleet repository at all: Codex still blocks a
-// governed write, and every other command passes.
+// The answer when the directory is not a fleet repository at all. A command without a `git
+// -C` is entirely outside the fleet-only scope, so every command passes (Codex still blocks
+// a governed write). A command that names its own directory with `-C` reaches a clone whose
+// local repository cannot be named, so the same write observed there fails closed instead of
+// passing: the write is denied, since it would leave the caller's directory for a clone the
+// fleet does not know.
 /**
+ * @param {string | null} commandDirectory the directory the command names with `-C`, or null
  * @param {boolean} governed
+ * @param {string[]} environment
  * @param {boolean} codex
  * @returns {Decision}
  */
-function unknownRepoDecision(governed, codex) {
+function unknownRepoDecision(commandDirectory, governed, environment, codex) {
   if (codex && governed) return codexWriteDenial();
-  return { action: "pass", repo: null, level: FALLBACK_LEVEL };
+  if (!commandDirectory || !governed)
+    return { action: "pass", repo: null, level: FALLBACK_LEVEL };
+  if (environment.length > 0) return denyEnvironment(null, environment);
+  return {
+    action: "deny",
+    repo: null,
+    level: FALLBACK_LEVEL,
+    reason:
+      "the directory this command names with git -C could not be resolved to a fleet repository, so the write is denied",
+  };
 }
 
 // The denial for a governed write observed under a destination-changing environment variable.

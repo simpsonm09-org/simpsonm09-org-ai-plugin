@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node hooks/antigravity.mjs",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

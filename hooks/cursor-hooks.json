@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [
+      {
+        "command": "node hooks/cursor.mjs",
+        "timeout": 30,
+        "failClosed": true
+      }
+    ]
+  }
+}

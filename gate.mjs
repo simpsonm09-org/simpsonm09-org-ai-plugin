@@ -88,6 +88,27 @@ export function shouldInject(command) {
   return /^gh(\s|$)/.test(canonicalCommand(command));
 }
 
+// An App token is safe only when the observed gh invocation is pinned to github.com. Host
+// overrides are names and parsed words only; no GH_HOST value is read.
+/**
+ * @param {string} command
+ * @param {import("./lib/observation.mjs").Observation} observation
+ * @returns {boolean}
+ */
+function targetsGithubCom(command, observation) {
+  return (
+    shouldInject(command) &&
+    observation.program === "gh" &&
+    observation.ghHostAssignment !== true &&
+    !observation.environment.includes("GH_HOST") &&
+    observation.destination?.host?.toLowerCase() === "github.com" &&
+    observation.ghHostnames.every(
+      (hostname) =>
+        hostname.literal && hostname.value?.toLowerCase() === "github.com",
+    )
+  );
+}
+
 // Split a shell command on whitespace and quotes, the same light parse the resolver
 // uses. Only enough to reach the command and its git push remote. A PowerShell command is
 // split by the PowerShell reading of its words (lib/program.mjs), so a doubled quote and a
@@ -522,7 +543,7 @@ function resolveDecision(command, repo, observation, governed, codex, deps) {
   // destination the App serves. A destination outside the organization (an owned fork, a
   // personal push fork) runs under the caller's own ambient authentication: the gate does not
   // mint or hand out a token for it.
-  if (shouldInject(command) && resolved?.auth?.route === "app")
+  if (targetsGithubCom(command, observation) && resolved?.auth?.route === "app")
     return { action: "inject", repo, level, auth: resolved.auth };
   return { action: "pass", repo, level };
 }

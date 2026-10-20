@@ -49,7 +49,13 @@ function deps(
         calls.push({ repo, observation });
         return result;
       },
-      git: () => null,
+      git: () => (args: string[]) => {
+        const query = args.join(" ");
+        if (query === "remote") return "origin";
+        if (query === "remote get-url origin")
+          return "https://github.com/simpsonm09-org/demo-repo.git";
+        return null;
+      },
       env: [],
       ...extra,
     },

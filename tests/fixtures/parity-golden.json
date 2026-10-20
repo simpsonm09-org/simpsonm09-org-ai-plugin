@@ -5739,6 +5739,128 @@
         },
         "action": "inject"
       }
+    },
+    {
+      "id": "demo-root|posix|none|gh repo sync simpsonm09/demo-repo",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh repo sync simpsonm09/demo-repo",
+      "level": "none",
+      "head": {
+        "command": "denied",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh repo sync simpsonm09/demo-repo --force",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh repo sync simpsonm09/demo-repo --force",
+      "level": "none",
+      "head": {
+        "command": "denied",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh repo sync simpsonm09/demo-repo",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh repo sync simpsonm09/demo-repo",
+      "level": "read",
+      "head": {
+        "command": "denied",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh repo sync simpsonm09/demo-repo --force",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh repo sync simpsonm09/demo-repo --force",
+      "level": "read",
+      "head": {
+        "command": "denied",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh repo sync simpsonm09/demo-repo",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh repo sync simpsonm09/demo-repo",
+      "level": "propose",
+      "head": {
+        "command": "denied",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh repo sync simpsonm09/demo-repo --force",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh repo sync simpsonm09/demo-repo --force",
+      "level": "propose",
+      "head": {
+        "command": "denied",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh repo sync simpsonm09/demo-repo",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh repo sync simpsonm09/demo-repo",
+      "level": "merge",
+      "head": {
+        "command": "denied",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh repo sync simpsonm09/demo-repo --force",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh repo sync simpsonm09/demo-repo --force",
+      "level": "merge",
+      "head": {
+        "command": "denied",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh repo sync simpsonm09/demo-repo",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh repo sync simpsonm09/demo-repo",
+      "level": "full",
+      "head": {
+        "command": "gh repo sync simpsonm09/demo-repo",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh repo sync simpsonm09/demo-repo --force",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh repo sync simpsonm09/demo-repo --force",
+      "level": "full",
+      "head": {
+        "command": "denied",
+        "env": {},
+        "action": "deny"
+      }
     }
   ]
 }

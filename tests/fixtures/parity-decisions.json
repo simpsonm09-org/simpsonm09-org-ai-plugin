@@ -11,7 +11,8 @@
     "compound": "A compound command that contains a governed write is an unsupported shape, so the whole command is denied instead of decided by its first word.",
     "assignment-prefix": "A benign leading `NAME=value` assignment is skipped to find the program word, so the command is observed as the `git push` it runs and its capability applies.",
     "pr-ready": "`gh pr ready` and `gh pr ready --undo` are `openPr` operations, not the conservative `admin` fallback, so a ready-state change is granted at propose and above and denied below it. The `gh pr ready 1` cells are the ledger's record of that decision; the literal `gh api graphql` read cell declares no change because HEAD already allowed it, and it is present so the read classification stays covered.",
-    "gh-host": "A compound command has no single resolved `gh` destination, so the gate passes it without injecting the organization App token."
+    "gh-host": "A compound command has no single resolved `gh` destination, so the gate passes it without injecting the organization App token.",
+    "personal-fork-sync": "A literal gh repo sync of the clone's personal fork is allowed at propose and above because the server syncs from its organization parent and the roster level grants pushBranch."
   },
   "changes": [
     {
@@ -607,6 +608,33 @@
       "head": "inject",
       "now": "pass",
       "category": "gh-host"
+    },
+    {
+      "id": "demo-root|posix|propose|gh repo sync simpsonm09/demo-repo",
+      "cwd": "demo-root",
+      "level": "propose",
+      "command": "gh repo sync simpsonm09/demo-repo",
+      "head": "deny",
+      "now": "pass",
+      "category": "personal-fork-sync"
+    },
+    {
+      "id": "demo-root|posix|merge|gh repo sync simpsonm09/demo-repo",
+      "cwd": "demo-root",
+      "level": "merge",
+      "command": "gh repo sync simpsonm09/demo-repo",
+      "head": "deny",
+      "now": "pass",
+      "category": "personal-fork-sync"
+    },
+    {
+      "id": "demo-root|posix|full|gh repo sync simpsonm09/demo-repo",
+      "cwd": "demo-root",
+      "level": "full",
+      "command": "gh repo sync simpsonm09/demo-repo",
+      "head": "inject",
+      "now": "pass",
+      "category": "personal-fork-sync"
     }
   ]
 }

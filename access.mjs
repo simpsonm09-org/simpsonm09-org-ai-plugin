@@ -238,6 +238,8 @@ function accessFromApi(api, catalogDir, repo, observation) {
       capability: outcome.capability ?? null,
       allowed: outcome.allowed,
       kind: target.kind ?? "unknown",
+      source: target.source ?? null,
+      org: typeof roster.org === "string" ? roster.org : null,
       destination,
       auth,
     }),

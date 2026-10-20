@@ -242,7 +242,7 @@ export function classifyResolver(result) {
 // informational inputs to the message and the token step; they never change the verdict.
 /**
  * @param {string} stdout
- * @returns {{ level: string, capability: string | null, kind: string | null, destination: string | null, auth: AuthRoute | null } | null}
+ * @returns {{ level: string, capability: string | null, kind: string | null, source: string | null, org: string | null, destination: string | null, auth: AuthRoute | null } | null}
  */
 export function parseResolverOutput(stdout) {
   if (!stdout) return null;
@@ -255,6 +255,8 @@ export function parseResolverOutput(stdout) {
       capability:
         typeof parsed.capability === "string" ? parsed.capability : null,
       kind: typeof parsed.kind === "string" ? parsed.kind : null,
+      ...(typeof parsed.source === "string" ? { source: parsed.source } : {}),
+      ...(typeof parsed.org === "string" ? { org: parsed.org } : {}),
       destination:
         typeof parsed.destination === "string" ? parsed.destination : null,
       auth:
@@ -399,6 +401,65 @@ function denyReason(resolved, repo, level, observation) {
   return `the destination ${resolved.destination ?? "unknown"} denies ${capability} for this repository`;
 }
 
+// The owner decision allows only this literal personal-fork sync shape when its roster level
+// grants an ordinary branch push. The server selects the parent; no local ref is trusted.
+/**
+ * @param {import("./lib/observation.mjs").Observation} observation
+ * @param {ReturnType<typeof parseResolverOutput>} resolved
+ * @returns {boolean}
+ */
+function allowsPersonalForkSync(observation, resolved) {
+  const sync = observation.ghRepoSync;
+  if (
+    observation.program !== "gh" ||
+    observation.operation !== "repoSync" ||
+    observation.capability !== "pushMain" ||
+    observation.ghArgumentsLiteral !== true ||
+    observation.ghArgumentsStrict !== true ||
+    !sync ||
+    sync.positionals.length !== 1 ||
+    !observation.destination ||
+    observation.destinationSource !== "explicit" ||
+    observation.destination.host.toLowerCase() !== "github.com" ||
+    sync.positionals[0].toLowerCase() !==
+      `${observation.destination.owner}/${observation.destination.repo}`.toLowerCase()
+  )
+    return false;
+
+  const options = sync.options;
+  const permitted = new Set([
+    "-b",
+    "--branch",
+    "--source",
+    "--force",
+    "-h",
+    "--help",
+  ]);
+  if (options.some((option) => !permitted.has(option.name))) return false;
+  if (options.some((option) => option.name === "--force")) return false;
+  const branches = options.filter(
+    (option) => option.name === "-b" || option.name === "--branch",
+  );
+  if (branches.length > 1 || branches.some((option) => option.value !== "main"))
+    return false;
+  const sources = options.filter((option) => option.name === "--source");
+  if (sources.length > 1) return false;
+  if (
+    sources.length === 1 &&
+    sources[0].value?.toLowerCase() !==
+      `${resolved?.org}/${observation.destination.repo}`.toLowerCase()
+  )
+    return false;
+
+  return (
+    resolved?.kind === "org" &&
+    resolved.source === "personal-fork" &&
+    resolved.destination?.toLowerCase() ===
+      `${observation.destination.owner}/${observation.destination.repo}`.toLowerCase() &&
+    ["propose", "merge", "full"].includes(resolved.level)
+  );
+}
+
 // The decision for one command, with no side effects: no token, no environment, no
 // rewrite. The repository comes from deps.lookup(), which never throws: it answers
 // { repo } for a fleet directory, { repo: null } for any other directory, and
@@ -533,6 +594,20 @@ function resolveDecision(command, repo, observation, governed, codex, deps) {
   // Codex does not report which folder a command runs in, so every governed GitHub write from
   // Codex is denied regardless of the destination.
   if (codex && governed) return codexWriteDenial(repo, level);
+  if (
+    observation.operation === "repoSync" &&
+    resolved?.kind === "org" &&
+    resolved.source === "personal-fork"
+  ) {
+    if (allowsPersonalForkSync(observation, resolved))
+      return { action: "pass", repo, level };
+    return {
+      action: "deny",
+      repo,
+      level,
+      reason: denyReason(resolved, repo, level, observation),
+    };
+  }
   if (classification === "deny")
     return {
       action: "deny",

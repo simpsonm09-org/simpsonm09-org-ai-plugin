@@ -141,11 +141,13 @@ export default Plugin.define({
     }
 
     await ctx.shell.hook("create.before", async (input) => {
-      // A directory git cannot resolve is not a pass: the gate applies its unknown-answer rule.
+      // Every command goes to the gate: outside the fleet it still decides a gh write that
+      // names its destination, and a directory git cannot resolve gets its unknown-answer rule.
       const found = fleetLookup(input.cwd, workspaceRoot);
-      if (!found.repo && !found.unresolved) return;
-      input.env ??= {};
-      await gateShellEdit(input, input.env, {
+      // Inside the fleet the env is always attached, as before; outside it only when the gate
+      // writes to it, so an outside pass leaves the input as it was.
+      const env = input.env ?? {};
+      await gateShellEdit(input, env, {
         cwd: input.cwd,
         lookup: () => found,
         resolve: (name, observation) =>
@@ -155,6 +157,8 @@ export default Plugin.define({
         tokenFor: (owner, name) =>
           tokenFor(tokenApi, scripts.token, owner, name),
       });
+      if (found.repo || found.unresolved || Object.keys(env).length > 0)
+        input.env = env;
     });
 
     await ctx.session.hook("context", (event) => {

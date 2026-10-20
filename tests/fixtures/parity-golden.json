@@ -5861,6 +5861,186 @@
         "env": {},
         "action": "deny"
       }
+    },
+    {
+      "id": "outside|posix|none|gh pr merge 52 -R simpsonm09-org/demo-repo --admin --merge",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "gh pr merge 52 -R simpsonm09-org/demo-repo --admin --merge",
+      "level": "none",
+      "head": {
+        "command": "gh pr merge 52 -R simpsonm09-org/demo-repo --admin --merge",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|none|gh label create gate-probe -R simpsonm09-org/demo-repo",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "gh label create gate-probe -R simpsonm09-org/demo-repo",
+      "level": "none",
+      "head": {
+        "command": "gh label create gate-probe -R simpsonm09-org/demo-repo",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|none|gh repo delete simpsonm09-org/demo-repo --yes",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "gh repo delete simpsonm09-org/demo-repo --yes",
+      "level": "none",
+      "head": {
+        "command": "gh repo delete simpsonm09-org/demo-repo --yes",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|read|gh pr merge 52 -R simpsonm09-org/demo-repo --admin --merge",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "gh pr merge 52 -R simpsonm09-org/demo-repo --admin --merge",
+      "level": "read",
+      "head": {
+        "command": "gh pr merge 52 -R simpsonm09-org/demo-repo --admin --merge",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|read|gh label create gate-probe -R simpsonm09-org/demo-repo",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "gh label create gate-probe -R simpsonm09-org/demo-repo",
+      "level": "read",
+      "head": {
+        "command": "gh label create gate-probe -R simpsonm09-org/demo-repo",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|read|gh repo delete simpsonm09-org/demo-repo --yes",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "gh repo delete simpsonm09-org/demo-repo --yes",
+      "level": "read",
+      "head": {
+        "command": "gh repo delete simpsonm09-org/demo-repo --yes",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|propose|gh pr merge 52 -R simpsonm09-org/demo-repo --admin --merge",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "gh pr merge 52 -R simpsonm09-org/demo-repo --admin --merge",
+      "level": "propose",
+      "head": {
+        "command": "gh pr merge 52 -R simpsonm09-org/demo-repo --admin --merge",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|propose|gh label create gate-probe -R simpsonm09-org/demo-repo",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "gh label create gate-probe -R simpsonm09-org/demo-repo",
+      "level": "propose",
+      "head": {
+        "command": "gh label create gate-probe -R simpsonm09-org/demo-repo",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|propose|gh repo delete simpsonm09-org/demo-repo --yes",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "gh repo delete simpsonm09-org/demo-repo --yes",
+      "level": "propose",
+      "head": {
+        "command": "gh repo delete simpsonm09-org/demo-repo --yes",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|merge|gh pr merge 52 -R simpsonm09-org/demo-repo --admin --merge",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "gh pr merge 52 -R simpsonm09-org/demo-repo --admin --merge",
+      "level": "merge",
+      "head": {
+        "command": "gh pr merge 52 -R simpsonm09-org/demo-repo --admin --merge",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|merge|gh label create gate-probe -R simpsonm09-org/demo-repo",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "gh label create gate-probe -R simpsonm09-org/demo-repo",
+      "level": "merge",
+      "head": {
+        "command": "gh label create gate-probe -R simpsonm09-org/demo-repo",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|merge|gh repo delete simpsonm09-org/demo-repo --yes",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "gh repo delete simpsonm09-org/demo-repo --yes",
+      "level": "merge",
+      "head": {
+        "command": "gh repo delete simpsonm09-org/demo-repo --yes",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|full|gh pr merge 52 -R simpsonm09-org/demo-repo --admin --merge",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "gh pr merge 52 -R simpsonm09-org/demo-repo --admin --merge",
+      "level": "full",
+      "head": {
+        "command": "gh pr merge 52 -R simpsonm09-org/demo-repo --admin --merge",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|full|gh label create gate-probe -R simpsonm09-org/demo-repo",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "gh label create gate-probe -R simpsonm09-org/demo-repo",
+      "level": "full",
+      "head": {
+        "command": "gh label create gate-probe -R simpsonm09-org/demo-repo",
+        "env": null,
+        "action": "pass"
+      }
+    },
+    {
+      "id": "outside|posix|full|gh repo delete simpsonm09-org/demo-repo --yes",
+      "cwd": "outside",
+      "cwdPath": "projects/other/x",
+      "command": "gh repo delete simpsonm09-org/demo-repo --yes",
+      "level": "full",
+      "head": {
+        "command": "gh repo delete simpsonm09-org/demo-repo --yes",
+        "env": null,
+        "action": "pass"
+      }
     }
   ]
 }

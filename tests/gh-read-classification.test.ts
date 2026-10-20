@@ -177,7 +177,10 @@ test("the gate grants the graphql read and gh pr ready through the pinned resolv
   assert.equal(decide("merge", "gh pr ready 1").action, "inject");
   const denied = decide("read", "gh pr ready 1");
   assert.equal(denied.action, "deny");
-  assert.match(denied.reason ?? "", /demo-repo denies this command at level "read"/);
+  assert.match(
+    denied.reason ?? "",
+    /demo-repo denies this command at level "read"/,
+  );
 
   // The writing GraphQL document keeps the admin classification the resolver already had.
   assert.equal(

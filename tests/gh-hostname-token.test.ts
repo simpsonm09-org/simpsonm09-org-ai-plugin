@@ -140,6 +140,8 @@ test("destination-changing environment names prevent injection", () => {
 
 test("unknown gh commands and unmodeled arguments pass without injection", () => {
   assert.equal(decide("gh leak").action, "pass");
+  assert.equal(decide("gh leak view").action, "pass");
+  assert.equal(decide("gh extension exec leak").action, "pass");
   assert.equal(decide("gh run view --log").action, "pass");
 });
 

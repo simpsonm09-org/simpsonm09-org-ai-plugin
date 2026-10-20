@@ -69,5 +69,5 @@ test("a Claude junction resolves to the existing OpenCode trusted layout", () =>
   mkdirSync(openCodeRoot, { recursive: true });
   mkdirSync(join(fixture, ".claude", "plugins"), { recursive: true });
   symlinkSync(openCodeRoot, claudeRoot, "junction");
-  assert.equal(workspaceForPluginRoot(realPath(claudeRoot)), fixture);
+  assert.equal(workspaceForPluginRoot(realPath(claudeRoot)), realPath(fixture));
 });

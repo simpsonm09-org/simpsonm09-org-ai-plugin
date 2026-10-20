@@ -30,7 +30,8 @@
     "workspace-instructions.md"
   ],
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "test:portable": "node --test tests/portable.test.ts tests/gate.test.ts tests/shared-decision.test.ts tests/location.test.ts tests/fleet.test.ts tests/hook-entry.test.ts tests/codex-hooks.test.ts"
   },
   "dependencies": {
     "@opencode/plugin": "2.0.23"

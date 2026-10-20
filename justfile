@@ -28,6 +28,11 @@ aislop:
 test:
     mise run test
 
+# Run the focused cross-platform regression on this host. The Windows and macOS CI jobs
+# run this recipe; the full suite stays in `test`.
+test-portable:
+    mise run test-portable
+
 # Run the tests and write an lcov report to coverage/lcov.info.
 coverage:
     npm ci

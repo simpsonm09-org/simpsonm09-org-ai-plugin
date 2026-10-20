@@ -65,20 +65,47 @@ export const OWNED_FORKS = {
 };
 
 /**
- * Write the catalog working tree: demo-repo and fork-repo at the given level.
+ * Write the catalog working tree: every catalog repository at the given level.
  * @param {string} workspace
  * @param {string} level
  */
 export function writeCatalog(workspace, level) {
+  writeCatalogLevels(workspace, {
+    "demo-repo": level,
+    "fork-repo": level,
+    "two-remote-repo": level,
+  });
+}
+
+/**
+ * Write the catalog working tree with one level per repository, so a cell can tell the level
+ * of the clone it runs in from the level of the repository a `-R` destination names. A
+ * repository the map does not name takes the catalog's default level.
+ * @param {string} workspace
+ * @param {Record<string, string>} levels repository name to agentAccess level
+ */
+export function writeCatalogLevels(workspace, levels) {
   const dir = join(workspace, "projects", "repos", "simpsonm09-repo-catalog");
   mkdirSync(dir, { recursive: true });
   const catalog = {
     org: "simpsonm09-org",
     agentAccessDefaults: { standard: "read" },
     repos: [
-      { name: "demo-repo", tier: "standard", agentAccess: level },
-      { name: "fork-repo", tier: "standard", agentAccess: level },
-      { name: "two-remote-repo", tier: "standard", agentAccess: level },
+      {
+        name: "demo-repo",
+        tier: "standard",
+        agentAccess: levels["demo-repo"] ?? "read",
+      },
+      {
+        name: "fork-repo",
+        tier: "standard",
+        agentAccess: levels["fork-repo"] ?? "read",
+      },
+      {
+        name: "two-remote-repo",
+        tier: "standard",
+        agentAccess: levels["two-remote-repo"] ?? "read",
+      },
     ],
   };
   const path = join(dir, "repos.json");

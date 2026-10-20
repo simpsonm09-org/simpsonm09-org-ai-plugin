@@ -37,6 +37,8 @@ export const COMMANDS = [
   "gh api -X get repos/o/r",
   "gh api graphql -f query='query { viewer { login } }'",
   "gh repo delete o/r --yes",
+  "gh repo sync simpsonm09/demo-repo",
+  "gh repo sync simpsonm09/demo-repo --force",
   "gh repo view",
   "gh release create v1",
   "gh release list",

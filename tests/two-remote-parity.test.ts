@@ -172,7 +172,9 @@ test("the Claude hook agrees with the OpenCode adapter for every two-remote cell
 test("an ambiguous gh write is denied with the -R hint and never says unknown", () => {
   const ambiguous = rows.filter(
     (row) =>
-      row.cell.category === "ambiguous-gh-write" && row.cell.now === "deny",
+      row.cell.category === "ambiguous-gh-write" &&
+      row.cell.now === "deny" &&
+      !row.cell.command.startsWith("gh api "),
   );
   assert.ok(ambiguous.length > 0, "the matrix declares ambiguous gh writes");
   for (const row of ambiguous) {
@@ -184,6 +186,16 @@ test("an ambiguous gh write is denied with the -R hint and never says unknown", 
     );
     assert.doesNotMatch(row.openCode.command, /unknown/, row.cell.id);
   }
+});
+
+test("an API endpoint overrides the clone remotes and is judged as its own repository", () => {
+  const endpoint = rows.find(
+    (row) => row.cell.category === "gh-api-endpoint-destination",
+  );
+  assert.ok(endpoint);
+  assert.equal(endpoint.openCode.action, "deny");
+  assert.match(endpoint.openCode.command, /destination o\/r denies/);
+  assert.doesNotMatch(endpoint.openCode.command, /specify -R owner\/repo/);
 });
 
 test("a pass keeps the command and sets no token; an inject sets the fixture token", () => {

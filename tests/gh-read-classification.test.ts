@@ -268,26 +268,38 @@ test("a literal GraphQL field stays a read, including real variable syntax", () 
   }
 });
 
-test("a gh pr URL for another repository is not judged against the destination", () => {
+test("a GitHub PR URL supplies its destination and conflicts with a different -R", () => {
   const other = "https://github.com/other-org/other-repo/pull/7";
-  for (const command of [
-    `gh pr ready ${other}`,
-    `gh pr ready ${other} -R simpsonm09-org/demo-repo`,
-  ]) {
+  for (const [command, resolved] of [
+    [`gh pr ready ${other}`, true],
+    [`gh pr ready ${other} -R simpsonm09-org/demo-repo`, false],
+  ] as const) {
     const observed = observe("propose", command);
     assert.equal(observed.operation, "openPr", command);
-    assert.equal(observed.resolved, false, command);
-    assert.equal(observed.destination, null, command);
+    assert.equal(observed.resolved, resolved, command);
+    assert.deepEqual(
+      observed.destination,
+      resolved
+        ? { host: "github.com", owner: "other-org", repo: "other-repo" }
+        : null,
+      command,
+    );
     assert.equal(decide("propose", command).action, "deny", command);
   }
-  for (const command of [
-    `gh pr merge ${other}`,
-    `gh pr merge ${other} -R simpsonm09-org/demo-repo`,
-  ]) {
+  for (const [command, resolved] of [
+    [`gh pr merge ${other}`, true],
+    [`gh pr merge ${other} -R simpsonm09-org/demo-repo`, false],
+  ] as const) {
     const observed = observe("merge", command);
     assert.equal(observed.operation, "mergePr", command);
-    assert.equal(observed.resolved, false, command);
-    assert.equal(observed.destination, null, command);
+    assert.equal(observed.resolved, resolved, command);
+    assert.deepEqual(
+      observed.destination,
+      resolved
+        ? { host: "github.com", owner: "other-org", repo: "other-repo" }
+        : null,
+      command,
+    );
     assert.equal(decide("merge", command).action, "deny", command);
   }
 

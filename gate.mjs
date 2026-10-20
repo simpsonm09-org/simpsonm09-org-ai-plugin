@@ -500,13 +500,16 @@ export function decideShell(input, deps) {
   if (found.unresolved)
     return unresolvedDecision(observation, governed, environment, codex);
   const repo = found.repo;
-  if (!repo)
+  if (
+    !repo &&
+    !observation.commandDirectory &&
+    isOutsideFleetGhWrite(observation, governed)
+  ) {
     if (
-      !observation.commandDirectory &&
       observation.program === "gh" &&
       observation.destinationSource === "explicit" &&
-      observation.destination?.host.toLowerCase() === "github.com" &&
-      governed
+      observation.resolved &&
+      observation.destination?.host.toLowerCase() === "github.com"
     )
       return outsideFleetDestinationDecision(
         command,
@@ -515,6 +518,8 @@ export function decideShell(input, deps) {
         codex,
         deps,
       );
+    return outsideFleetUnpinnedWriteDecision(observation, environment, codex);
+  }
   if (!repo)
     return unknownRepoDecision(
       observation.commandDirectory,
@@ -529,6 +534,24 @@ export function decideShell(input, deps) {
   if (governed && environment.length > 0)
     return denyEnvironment(repo, environment);
   return resolveDecision(command, repo, observation, governed, codex, deps);
+}
+
+function isOutsideFleetGhWrite(observation, governed) {
+  return (
+    (observation.program === "gh" && governed) ||
+    observation.ghWriteSignal === true
+  );
+}
+
+function outsideFleetUnpinnedWriteDecision(observation, environment, codex) {
+  if (codex) return codexWriteDenial();
+  if (environment.length > 0) return denyEnvironment(null, environment);
+  return {
+    action: "deny",
+    repo: null,
+    level: FALLBACK_LEVEL,
+    reason: `${observation.reason || "this gh write"}; outside the fleet, run the write from the fleet clone or pin -R OWNER/REPO to a GitHub repository`,
+  };
 }
 
 // An explicit destination can be governed without treating the caller's folder as a clone.

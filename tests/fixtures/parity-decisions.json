@@ -14,7 +14,8 @@
     "gh-host": "A compound command has no single resolved `gh` destination, so the gate passes it without injecting the organization App token.",
     "personal-fork-sync": "A literal gh repo sync of the clone's personal fork is allowed at propose and above because the server syncs from its organization parent and the roster level grants pushBranch. Its positional repository is now the destination, so at full any other sync shape (such as --force) is the admin write full grants on the personal fork, run on ambient auth.",
     "outside-fleet-pinned-destination": "An explicitly pinned GitHub gh write is resolved against its destination outside the fleet, with no local clone identity; a denial follows that destination policy and an allowed command uses ambient authentication. An unpinned write remains outside scope.",
-    "positional-destination": "`gh repo delete OWNER/REPO` names its destination by position, so that repository is the destination; one the catalog does not know (`o/r`) is denied even at full."
+    "positional-destination": "`gh repo delete OWNER/REPO` names its destination by position, so that repository is the destination; one the catalog does not know (`o/r`) is denied even at full.",
+    "gh-api-endpoint-destination": "A literal `repos/OWNER/REPO` API endpoint is the repository reached by `gh api`. The fixture endpoint `repos/o/r` is outside the catalog, so governed writes are denied even at full and reads pass without an organization token; the recorded HEAD action remains unchanged in the golden file."
   },
   "changes": [
     {
@@ -754,6 +755,132 @@
       "head": "pass",
       "now": "deny",
       "category": "outside-fleet-pinned-destination"
+    },
+    {
+      "id": "demo-root|posix|full|gh api repos/o/r",
+      "cwd": "demo-root",
+      "level": "full",
+      "command": "gh api repos/o/r",
+      "head": "inject",
+      "now": "pass",
+      "category": "gh-api-endpoint-destination"
+    },
+    {
+      "id": "demo-root|posix|full|gh api repos/o/r --method PATCH",
+      "cwd": "demo-root",
+      "level": "full",
+      "command": "gh api repos/o/r --method PATCH",
+      "head": "inject",
+      "now": "deny",
+      "category": "gh-api-endpoint-destination"
+    },
+    {
+      "id": "demo-root|posix|full|gh api -X POST repos/o/r",
+      "cwd": "demo-root",
+      "level": "full",
+      "command": "gh api -X POST repos/o/r",
+      "head": "inject",
+      "now": "deny",
+      "category": "gh-api-endpoint-destination"
+    },
+    {
+      "id": "demo-root|posix|full|gh api -X get repos/o/r",
+      "cwd": "demo-root",
+      "level": "full",
+      "command": "gh api -X get repos/o/r",
+      "head": "inject",
+      "now": "pass",
+      "category": "gh-api-endpoint-destination"
+    },
+    {
+      "id": "demo-sub|posix|full|gh api -X POST repos/o/r",
+      "cwd": "demo-sub",
+      "level": "full",
+      "command": "gh api -X POST repos/o/r",
+      "head": "inject",
+      "now": "deny",
+      "category": "gh-api-endpoint-destination"
+    },
+    {
+      "id": "demo-root|pwsh|full|gh api -X POST repos/o/r",
+      "cwd": "demo-root",
+      "level": "full",
+      "command": "gh api -X POST repos/o/r",
+      "head": "inject",
+      "now": "deny",
+      "category": "gh-api-endpoint-destination"
+    },
+    {
+      "id": "demo-root|posix|merge|gh api repos/o/r",
+      "cwd": "demo-root",
+      "level": "merge",
+      "command": "gh api repos/o/r",
+      "head": "inject",
+      "now": "pass",
+      "category": "gh-api-endpoint-destination"
+    },
+    {
+      "id": "demo-root|posix|merge|gh api -X get repos/o/r",
+      "cwd": "demo-root",
+      "level": "merge",
+      "command": "gh api -X get repos/o/r",
+      "head": "inject",
+      "now": "pass",
+      "category": "gh-api-endpoint-destination"
+    },
+    {
+      "id": "demo-root|posix|none|gh api repos/o/r",
+      "cwd": "demo-root",
+      "level": "none",
+      "command": "gh api repos/o/r",
+      "head": "inject",
+      "now": "pass",
+      "category": "gh-api-endpoint-destination"
+    },
+    {
+      "id": "demo-root|posix|none|gh api -X get repos/o/r",
+      "cwd": "demo-root",
+      "level": "none",
+      "command": "gh api -X get repos/o/r",
+      "head": "inject",
+      "now": "pass",
+      "category": "gh-api-endpoint-destination"
+    },
+    {
+      "id": "demo-root|posix|propose|gh api repos/o/r",
+      "cwd": "demo-root",
+      "level": "propose",
+      "command": "gh api repos/o/r",
+      "head": "inject",
+      "now": "pass",
+      "category": "gh-api-endpoint-destination"
+    },
+    {
+      "id": "demo-root|posix|propose|gh api -X get repos/o/r",
+      "cwd": "demo-root",
+      "level": "propose",
+      "command": "gh api -X get repos/o/r",
+      "head": "inject",
+      "now": "pass",
+      "category": "gh-api-endpoint-destination"
+    },
+    {
+      "id": "demo-root|posix|read|gh api repos/o/r",
+      "cwd": "demo-root",
+      "level": "read",
+      "command": "gh api repos/o/r",
+      "head": "inject",
+      "now": "pass",
+      "category": "gh-api-endpoint-destination"
+    },
+    {
+      "id": "demo-root|posix|read|gh api -X get repos/o/r",
+      "cwd": "demo-root",
+      "level": "read",
+      "command": "gh api -X get repos/o/r",
+      "head": "inject",
+      "now": "pass",
+      "category": "gh-api-endpoint-destination"
     }
   ]
 }

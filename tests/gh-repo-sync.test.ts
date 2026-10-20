@@ -115,3 +115,15 @@ for (const [name, command, shell] of [
     assert.equal(decide(command, shell).action, "deny");
   });
 }
+
+test("an out-of-shape sync keeps its pushMain verdict: allowed at full, denied at merge", () => {
+  for (const command of [
+    "gh repo sync simpsonm09/fork-repo --force",
+    "gh repo sync simpsonm09/fork-repo --branch feature",
+  ]) {
+    setLevel("full");
+    assert.notEqual(decide(command).action, "deny", command);
+    setLevel("merge");
+    assert.equal(decide(command).action, "deny", command);
+  }
+});

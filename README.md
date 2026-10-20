@@ -31,7 +31,7 @@ The decision is the resolver's, from the observer's destination and structured i
 
 The App token is injected only when the observed `gh` command is a fully literal, strictly parsed, recognized command pinned to `github.com`, with no external URL or destination-changing environment override.
 
-From a fleet clone, `gh repo sync <personal-fork>` may fast-forward that clone's personal fork from its organization parent at `propose` or higher, with only an optional `--branch main` and matching `--source <org>/<repo>`; the server chooses the parent and force syncs are denied.
+From a fleet clone, `gh repo sync <personal-fork>` may fast-forward that clone's personal fork from its organization parent at `propose` or higher, with only an optional `--branch main` and matching `--source <org>/<repo>`; the server chooses the parent. Any other sync shape, including `--force`, stays an `admin` write that only `full` grants.
 
 - **OpenCode** calls `gateShellEdit` from `gate.mjs` in the `create.before` shell hook. It rewrites a denied command and sets `GH_TOKEN` directly.
 - **Claude Code** calls `decideShell` from `gate.mjs` in a `PreToolUse` hook for the `Bash` and `PowerShell` tools. A deny is a deny. An allowed `gh` command in the Bash tool is rewritten to run through the launcher, as `allow` when it is clearly a read (`pr view|list|checks|diff|status`, `issue view|list|status`, `run view|list|watch`, `repo view`, `release view|list`, `workflow view|list`, `search`, `status`, and `api` with no method, field, or input flag) and as `ask` otherwise. The `updatedInput` keeps every original tool input field. A `gh` command in the PowerShell tool is denied with a hint to use the Bash tool, because the launcher runs under Git Bash.

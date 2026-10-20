@@ -412,8 +412,8 @@ function allowsPersonalForkSync(observation, resolved) {
   const sync = observation.ghRepoSync;
   if (
     observation.program !== "gh" ||
-    observation.operation !== "repoSync" ||
-    observation.capability !== "pushMain" ||
+    observation.operation !== "admin" ||
+    observation.capability !== "admin" ||
     observation.ghArgumentsLiteral !== true ||
     observation.ghArgumentsStrict !== true ||
     !sync ||
@@ -427,16 +427,8 @@ function allowsPersonalForkSync(observation, resolved) {
     return false;
 
   const options = sync.options;
-  const permitted = new Set([
-    "-b",
-    "--branch",
-    "--source",
-    "--force",
-    "-h",
-    "--help",
-  ]);
+  const permitted = new Set(["-b", "--branch", "--source", "-h", "--help"]);
   if (options.some((option) => !permitted.has(option.name))) return false;
-  if (options.some((option) => option.name === "--force")) return false;
   const branches = options.filter(
     (option) => option.name === "-b" || option.name === "--branch",
   );
@@ -594,20 +586,9 @@ function resolveDecision(command, repo, observation, governed, codex, deps) {
   // Codex does not report which folder a command runs in, so every governed GitHub write from
   // Codex is denied regardless of the destination.
   if (codex && governed) return codexWriteDenial(repo, level);
-  if (
-    observation.operation === "repoSync" &&
-    resolved?.kind === "org" &&
-    resolved.source === "personal-fork"
-  ) {
-    if (allowsPersonalForkSync(observation, resolved))
-      return { action: "pass", repo, level };
-    return {
-      action: "deny",
-      repo,
-      level,
-      reason: denyReason(resolved, repo, level, observation),
-    };
-  }
+  // Any other sync shape falls through and is decided as the pushMain write it is.
+  if (allowsPersonalForkSync(observation, resolved))
+    return { action: "pass", repo, level };
   if (classification === "deny")
     return {
       action: "deny",

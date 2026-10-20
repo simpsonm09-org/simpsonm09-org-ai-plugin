@@ -5599,6 +5599,146 @@
         },
         "action": "inject"
       }
+    },
+    {
+      "id": "demo-root|posix|none|gh pr ready 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr ready 1",
+      "level": "none",
+      "head": {
+        "command": "gh pr ready 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh api graphql -f query='query { viewer { login } }'",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api graphql -f query='query { viewer { login } }'",
+      "level": "none",
+      "head": {
+        "command": "gh api graphql -f query='query { viewer { login } }'",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh pr ready 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr ready 1",
+      "level": "read",
+      "head": {
+        "command": "gh pr ready 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh api graphql -f query='query { viewer { login } }'",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api graphql -f query='query { viewer { login } }'",
+      "level": "read",
+      "head": {
+        "command": "gh api graphql -f query='query { viewer { login } }'",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh pr ready 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr ready 1",
+      "level": "propose",
+      "head": {
+        "command": "gh pr ready 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh api graphql -f query='query { viewer { login } }'",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api graphql -f query='query { viewer { login } }'",
+      "level": "propose",
+      "head": {
+        "command": "gh api graphql -f query='query { viewer { login } }'",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh pr ready 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr ready 1",
+      "level": "merge",
+      "head": {
+        "command": "gh pr ready 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh api graphql -f query='query { viewer { login } }'",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api graphql -f query='query { viewer { login } }'",
+      "level": "merge",
+      "head": {
+        "command": "gh api graphql -f query='query { viewer { login } }'",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh pr ready 1",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr ready 1",
+      "level": "full",
+      "head": {
+        "command": "gh pr ready 1",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh api graphql -f query='query { viewer { login } }'",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh api graphql -f query='query { viewer { login } }'",
+      "level": "full",
+      "head": {
+        "command": "gh api graphql -f query='query { viewer { login } }'",
+        "env": {
+          "GH_TOKEN": "fixture-token-not-real"
+        },
+        "action": "inject"
+      }
     }
   ]
 }

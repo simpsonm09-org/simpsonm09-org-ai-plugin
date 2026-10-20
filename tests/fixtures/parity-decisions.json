@@ -9,7 +9,8 @@
     "personal-fork-push": "The clone's own fork of a governed repository is the governed destination at the roster level, so its default branch is denied; this replaces the previous out-of-scope-by-URL allowance.",
     "personal-fork-auth": "A destination owned by the personal account uses that account's ambient authentication, so the gate does not mint an organization App token for it; the command still passes.",
     "compound": "A compound command that contains a governed write is an unsupported shape, so the whole command is denied instead of decided by its first word.",
-    "assignment-prefix": "A benign leading `NAME=value` assignment is skipped to find the program word, so the command is observed as the `git push` it runs and its capability applies."
+    "assignment-prefix": "A benign leading `NAME=value` assignment is skipped to find the program word, so the command is observed as the `git push` it runs and its capability applies.",
+    "pr-ready": "`gh pr ready` and `gh pr ready --undo` are `openPr` operations, not the conservative `admin` fallback, so a ready-state change is granted at propose and above and denied below it. The `gh pr ready 1` cells are the ledger's record of that decision; the literal `gh api graphql` read cell declares no change because HEAD already allowed it, and it is present so the read classification stays covered."
   },
   "changes": [
     {
@@ -497,6 +498,24 @@
       "head": "pass",
       "now": "deny",
       "category": "compound"
+    },
+    {
+      "id": "demo-root|posix|none|gh pr ready 1",
+      "cwd": "demo-root",
+      "level": "none",
+      "command": "gh pr ready 1",
+      "head": "inject",
+      "now": "deny",
+      "category": "pr-ready"
+    },
+    {
+      "id": "demo-root|posix|read|gh pr ready 1",
+      "cwd": "demo-root",
+      "level": "read",
+      "command": "gh pr ready 1",
+      "head": "inject",
+      "now": "deny",
+      "category": "pr-ready"
     }
   ]
 }

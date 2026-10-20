@@ -272,7 +272,7 @@ test("an unresolved directory denies a governed write and passes a local command
   }
 });
 
-test("an inherited destination-changing variable denies a governed write and leaves a read alone", () => {
+test("an inherited destination-changing variable denies a governed write and passes a read without a token", () => {
   const ok = {
     code: 0,
     stdout: JSON.stringify({
@@ -288,7 +288,7 @@ test("an inherited destination-changing variable denies a governed write and lea
   assert.equal(write.action, "deny");
   assert.match(write.reason ?? "", /GH_REPO changes which repository/);
   const read = decideShell({ command: "gh pr view 1" }, withEnv);
-  assert.equal(read.action, "inject");
+  assert.equal(read.action, "pass");
 
   const clean = deps(ok).deps;
   assert.notEqual(

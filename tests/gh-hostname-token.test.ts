@@ -1,5 +1,5 @@
-// App-token injection is restricted to gh commands that the observer can show target
-// github.com. These checks use decideShell with the real fixture resolver and git state.
+// GH_TOKEN injection must stop when the observed gh invocation could reach another host or
+// cannot be pinned to the literal command the observer parsed.
 
 import assert from "node:assert/strict";
 import { join } from "node:path";
@@ -11,24 +11,23 @@ import {
   resolveAccess,
 } from "../access.mjs";
 import { decideShell } from "../gate.mjs";
-import { fleetLookup } from "../lib/fleet.mjs";
 import type { Observation } from "../lib/observation.mjs";
 import {
   buildWorkspace,
   removeDir,
   tempDir,
+  writeCatalogLevels,
 } from "./support/fixture-workspace.mjs";
 
 let workspace = "";
 let catalog = "";
-let demo = "";
 /** @type {Awaited<ReturnType<typeof loadAccessApi>>} */
 let api = null;
 
 before(async () => {
-  workspace = tempDir("gh-hostname-token-");
-  buildWorkspace(workspace, { level: "propose" });
-  demo = join(workspace, "projects", "repos", "demo-repo");
+  workspace = tempDir("gate-gh-hostname-");
+  buildWorkspace(workspace, { level: "full" });
+  writeCatalogLevels(workspace, { "demo-repo": "full" });
   const scripts = defaultScripts(workspace);
   catalog = scripts.catalog;
   api = await loadAccessApi(scripts.access);
@@ -39,74 +38,133 @@ after(() => {
   if (workspace) removeDir(workspace);
 });
 
-/**
- * @param {string} command
- * @param {"bash" | "powershell"} [shell]
- * @param {string[]} [env]
- */
 function decide(
   command: string,
-  shell: "bash" | "powershell" = "bash",
-  env: string[] = [],
+  options: {
+    shell?: "bash" | "powershell";
+    env?: string[];
+  } = {},
 ) {
   return decideShell(
-    { command, shell },
+    { command, ...(options.shell ? { shell: options.shell } : {}) },
     {
-      cwd: demo,
+      cwd: join(workspace, "projects", "repos", "demo-repo"),
       workspaceRoot: workspace,
-      lookup: (dir: string) => fleetLookup(dir, workspace),
+      lookup: () => ({ repo: "demo-repo" }),
       resolve: (repo: string, observation: Observation) =>
         resolveAccess(api, catalog, repo, observation),
       git: gitReader,
-      env,
+      env: options.env ?? [],
     },
   );
 }
 
-test("an explicit github.com hostname keeps injection in Bash and PowerShell", () => {
+test("full-level gh writes with a non-GitHub hostname pass without injection", () => {
+  const decision = decide("gh api --hostname some.ghe.com --method POST /user");
+  assert.equal(decision.action, "pass");
+});
+
+test("literal github.com hostnames inject in both shells and option forms", () => {
   for (const shell of ["bash", "powershell"] as const) {
-    assert.equal(
-      decide("gh api --hostname github.com /user", shell).action,
-      "inject",
-    );
-    assert.equal(
-      decide("gh api --hostname=GitHub.COM /user", shell).action,
-      "inject",
-    );
+    for (const hostname of ["github.com", "GitHub.COM"]) {
+      assert.equal(
+        decide(`gh api --hostname ${hostname} /user`, { shell }).action,
+        "inject",
+      );
+      assert.equal(
+        decide(`gh api --hostname=${hostname} /user`, { shell }).action,
+        "inject",
+      );
+    }
   }
 });
 
-test("a non-github or expanded hostname passes without the App token", () => {
+test("external and expanded hostname values never inject", () => {
   for (const shell of ["bash", "powershell"] as const) {
-    assert.equal(
-      decide("gh api --hostname some.ghe.com /user", shell).action,
-      "pass",
-    );
-    assert.equal(
-      decide("gh api --hostname=some.ghe.com /user", shell).action,
-      "pass",
-    );
-    assert.equal(decide("gh api --hostname $HOST /user", shell).action, "pass");
-    assert.equal(decide("gh api --hostname=$HOST /user", shell).action, "pass");
+    for (const option of [
+      "--hostname some.ghe.com",
+      "--hostname=some.ghe.com",
+      "--hostname $HOST",
+      "--hostname=$HOST",
+    ]) {
+      assert.equal(decide(`gh api ${option} /user`, { shell }).action, "pass");
+    }
   }
 });
 
-test("an inline GH_HOST assignment does not receive the App token", () => {
-  const decision = decide("GH_HOST=some.ghe.com gh api /user");
-  assert.equal(decision.action, "deny");
+test("inline and inherited GH_HOST overrides do not receive the App token", () => {
+  assert.equal(decide("GH_HOST=some.ghe.com gh api /user").action, "deny");
+  assert.equal(decide("gh api /user", { env: ["GH_HOST"] }).action, "pass");
 });
 
-test("an inherited GH_HOST name does not receive the App token", () => {
-  assert.equal(decide("gh api /user", "bash", ["GH_HOST"]).action, "pass");
-});
-
-test("a non-github.com -R destination does not receive the App token", () => {
+test("a non-GitHub repository host does not receive the App token", () => {
   assert.equal(
     decide("gh api /user -R some.ghe.com/owner/repo").action,
     "pass",
   );
 });
 
-test("gh api without a host signal keeps injection", () => {
-  assert.equal(decide("gh api /user").action, "inject");
+test("an absolute non-GitHub gh api URL passes without injection", () => {
+  const decision = decide(
+    "gh api --hostname github.com https://some.ghe.com/api/v3/user",
+  );
+  assert.equal(decision.action, "pass");
+});
+
+test("an absolute non-GitHub gh pr URL passes without injection", () => {
+  const decision = decide("gh pr view https://some.ghe.com/owner/repo/pull/1");
+  assert.equal(decision.action, "pass");
+});
+
+test("an unparseable absolute URL is treated as a non-GitHub host", () => {
+  assert.equal(decide("gh pr view https://[not-valid").action, "pass");
+});
+
+test("Bash expansion in gh arguments passes without injection", () => {
+  assert.equal(decide("gh api $ARGS").action, "pass");
+});
+
+test("PowerShell splatting and variables pass without injection", () => {
+  assert.equal(
+    decide("gh api @requestArgs", { shell: "powershell" }).action,
+    "pass",
+  );
+  assert.equal(decide("gh api $args", { shell: "powershell" }).action, "pass");
+});
+
+test("destination-changing environment names prevent injection", () => {
+  for (const name of ["GH_REPO", "GH_CONFIG_DIR"]) {
+    assert.equal(decide("gh pr list", { env: [name] }).action, "pass", name);
+  }
+});
+
+test("unknown gh commands and unmodeled arguments pass without injection", () => {
+  assert.equal(decide("gh leak").action, "pass");
+  assert.equal(decide("gh run view --log").action, "pass");
+});
+
+test("literal GitHub-targeted gh commands still inject", () => {
+  for (const command of [
+    "gh api /user",
+    "gh api --hostname github.com /user",
+    "gh pr view 1",
+    "gh pr list",
+  ]) {
+    assert.equal(decide(command).action, "inject", command);
+  }
+});
+
+test("hostname literal parsing works in PowerShell", () => {
+  assert.equal(
+    decide("gh api --hostname github.com /user", {
+      shell: "powershell",
+    }).action,
+    "inject",
+  );
+  assert.equal(
+    decide("gh api --hostname some.ghe.com /user", {
+      shell: "powershell",
+    }).action,
+    "pass",
+  );
 });

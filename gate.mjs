@@ -100,7 +100,11 @@ function targetsGithubCom(command, observation) {
     shouldInject(command) &&
     observation.program === "gh" &&
     observation.ghHostAssignment !== true &&
-    !observation.environment.includes("GH_HOST") &&
+    observation.environment.length === 0 &&
+    observation.ghArgumentsLiteral === true &&
+    observation.ghArgumentsStrict === true &&
+    observation.ghCommandKnown === true &&
+    observation.ghExternalUrl !== true &&
     observation.destination?.host?.toLowerCase() === "github.com" &&
     observation.ghHostnames.every(
       (hostname) =>

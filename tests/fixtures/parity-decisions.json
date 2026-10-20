@@ -13,7 +13,8 @@
     "pr-ready": "`gh pr ready` and `gh pr ready --undo` are `openPr` operations, not the conservative `admin` fallback, so a ready-state change is granted at propose and above and denied below it. The `gh pr ready 1` cells are the ledger's record of that decision; the literal `gh api graphql` read cell declares no change because HEAD already allowed it, and it is present so the read classification stays covered.",
     "gh-host": "A compound command has no single resolved `gh` destination, so the gate passes it without injecting the organization App token.",
     "personal-fork-sync": "A literal gh repo sync of the clone's personal fork is allowed at propose and above because the server syncs from its organization parent and the roster level grants pushBranch. Its positional repository is now the destination, so at full any other sync shape (such as --force) is the admin write full grants on the personal fork, run on ambient auth.",
-    "outside-fleet-pinned-destination": "An explicitly pinned GitHub gh write is resolved against its destination outside the fleet, with no local clone identity; a denial follows that destination policy and an allowed command uses ambient authentication. An unpinned write remains outside scope."
+    "outside-fleet-pinned-destination": "An explicitly pinned GitHub gh write is resolved against its destination outside the fleet, with no local clone identity; a denial follows that destination policy and an allowed command uses ambient authentication. An unpinned write remains outside scope.",
+    "positional-destination": "`gh repo delete OWNER/REPO` names its destination by position, so that repository is the destination; one the catalog does not know (`o/r`) is denied even at full."
   },
   "changes": [
     {
@@ -647,73 +648,109 @@
       "category": "personal-fork-sync"
     },
     {
-      "id": "outside|posix|none|git push origin main",
-      "cwd": "outside",
-      "level": "none",
-      "command": "git push origin main",
-      "head": "pass",
+      "id": "demo-root|posix|full|gh repo delete o/r --yes",
+      "cwd": "demo-root",
+      "level": "full",
+      "command": "gh repo delete o/r --yes",
+      "head": "inject",
       "now": "deny",
-      "category": "outside-fleet-pinned-destination"
+      "category": "positional-destination"
     },
     {
-      "id": "outside|posix|none|gh pr view 1",
-      "cwd": "outside",
-      "level": "none",
-      "command": "gh pr view 1",
-      "head": "pass",
-      "now": "deny",
-      "category": "outside-fleet-pinned-destination"
-    },
-    {
-      "id": "outside|posix|read|git push origin main",
-      "cwd": "outside",
-      "level": "read",
-      "command": "git push origin main",
-      "head": "pass",
-      "now": "deny",
-      "category": "outside-fleet-pinned-destination"
-    },
-    {
-      "id": "outside|posix|read|gh pr view 1",
-      "cwd": "outside",
-      "level": "read",
-      "command": "gh pr view 1",
-      "head": "pass",
-      "now": "deny",
-      "category": "outside-fleet-pinned-destination"
-    },
-    {
-      "id": "outside|posix|propose|git push origin main",
-      "cwd": "outside",
-      "level": "propose",
-      "command": "git push origin main",
-      "head": "pass",
-      "now": "deny",
-      "category": "outside-fleet-pinned-destination"
-    },
-    {
-      "id": "outside|posix|propose|gh pr view 1",
-      "cwd": "outside",
-      "level": "propose",
-      "command": "gh pr view 1",
-      "head": "pass",
-      "now": "deny",
-      "category": "outside-fleet-pinned-destination"
-    },
-    {
-      "id": "outside|posix|merge|git push origin main",
+      "id": "outside|posix|merge|gh label create gate-probe -R simpsonm09-org/demo-repo",
       "cwd": "outside",
       "level": "merge",
-      "command": "git push origin main",
+      "command": "gh label create gate-probe -R simpsonm09-org/demo-repo",
       "head": "pass",
       "now": "deny",
       "category": "outside-fleet-pinned-destination"
     },
     {
-      "id": "outside|posix|merge|gh pr view 1",
+      "id": "outside|posix|merge|gh repo delete simpsonm09-org/demo-repo --yes",
       "cwd": "outside",
       "level": "merge",
-      "command": "gh pr view 1",
+      "command": "gh repo delete simpsonm09-org/demo-repo --yes",
+      "head": "pass",
+      "now": "deny",
+      "category": "outside-fleet-pinned-destination"
+    },
+    {
+      "id": "outside|posix|none|gh label create gate-probe -R simpsonm09-org/demo-repo",
+      "cwd": "outside",
+      "level": "none",
+      "command": "gh label create gate-probe -R simpsonm09-org/demo-repo",
+      "head": "pass",
+      "now": "deny",
+      "category": "outside-fleet-pinned-destination"
+    },
+    {
+      "id": "outside|posix|none|gh pr merge 52 -R simpsonm09-org/demo-repo --admin --merge",
+      "cwd": "outside",
+      "level": "none",
+      "command": "gh pr merge 52 -R simpsonm09-org/demo-repo --admin --merge",
+      "head": "pass",
+      "now": "deny",
+      "category": "outside-fleet-pinned-destination"
+    },
+    {
+      "id": "outside|posix|none|gh repo delete simpsonm09-org/demo-repo --yes",
+      "cwd": "outside",
+      "level": "none",
+      "command": "gh repo delete simpsonm09-org/demo-repo --yes",
+      "head": "pass",
+      "now": "deny",
+      "category": "outside-fleet-pinned-destination"
+    },
+    {
+      "id": "outside|posix|propose|gh label create gate-probe -R simpsonm09-org/demo-repo",
+      "cwd": "outside",
+      "level": "propose",
+      "command": "gh label create gate-probe -R simpsonm09-org/demo-repo",
+      "head": "pass",
+      "now": "deny",
+      "category": "outside-fleet-pinned-destination"
+    },
+    {
+      "id": "outside|posix|propose|gh pr merge 52 -R simpsonm09-org/demo-repo --admin --merge",
+      "cwd": "outside",
+      "level": "propose",
+      "command": "gh pr merge 52 -R simpsonm09-org/demo-repo --admin --merge",
+      "head": "pass",
+      "now": "deny",
+      "category": "outside-fleet-pinned-destination"
+    },
+    {
+      "id": "outside|posix|propose|gh repo delete simpsonm09-org/demo-repo --yes",
+      "cwd": "outside",
+      "level": "propose",
+      "command": "gh repo delete simpsonm09-org/demo-repo --yes",
+      "head": "pass",
+      "now": "deny",
+      "category": "outside-fleet-pinned-destination"
+    },
+    {
+      "id": "outside|posix|read|gh label create gate-probe -R simpsonm09-org/demo-repo",
+      "cwd": "outside",
+      "level": "read",
+      "command": "gh label create gate-probe -R simpsonm09-org/demo-repo",
+      "head": "pass",
+      "now": "deny",
+      "category": "outside-fleet-pinned-destination"
+    },
+    {
+      "id": "outside|posix|read|gh pr merge 52 -R simpsonm09-org/demo-repo --admin --merge",
+      "cwd": "outside",
+      "level": "read",
+      "command": "gh pr merge 52 -R simpsonm09-org/demo-repo --admin --merge",
+      "head": "pass",
+      "now": "deny",
+      "category": "outside-fleet-pinned-destination"
+    },
+    {
+      "id": "outside|posix|read|gh repo delete simpsonm09-org/demo-repo --yes",
+      "cwd": "outside",
+      "level": "read",
+      "command": "gh repo delete simpsonm09-org/demo-repo --yes",
       "head": "pass",
       "now": "deny",
       "category": "outside-fleet-pinned-destination"

@@ -970,6 +970,69 @@ test("the injected git port is the only source of git state", () => {
   assert.ok(calls.length > 0);
 });
 
+// The owned-fork clone's git state as a read-only port, so the tokenizer regressions below do
+// not need a real repository: origin is the owned fork, its remote HEAD is main, and feat/x is
+// a non-default branch.
+/**
+ * @param {string[]} args
+ * @returns {string | null}
+ */
+function ownedForkPort(args: string[]): string | null {
+  const key = args.join(" ");
+  if (key === "remote") return "origin";
+  if (key === "remote get-url --push --all origin") return OWNED_FORK;
+  if (key === "remote get-url origin") return OWNED_FORK;
+  if (key === "symbolic-ref --quiet refs/remotes/origin/HEAD")
+    return "refs/remotes/origin/main";
+  if (key === "symbolic-ref --quiet --short HEAD") return "feat/x";
+  if (key === "show-ref --verify refs/heads/feat/x") return "1111111";
+  if (key === "show-ref --verify refs/heads/main") return "2222222";
+  return null;
+}
+
+test("shell redirections are not refspecs", () => {
+  for (const command of [
+    "git push origin feat/x 2>&1",
+    "git push origin feat/x > out.txt",
+    "git push origin feat/x 2> err.txt",
+    "git push origin feat/x >> out.txt",
+    "git push origin feat/x &> out.txt",
+    "git push origin feat/x &>> out.txt",
+    "git push origin feat/x < in.txt",
+    "git push origin feat/x 2< in.txt",
+    "git push origin feat/x >out.txt",
+    "git push origin feat/x 2>>err.txt",
+    "git push origin feat/x <in.txt",
+    "git push origin feat/x >&2",
+    "git push origin feat/x > out.txt 2>&1",
+  ]) {
+    const observed = observeCommand(command, {
+      cwd: "/nowhere",
+      git: ownedForkPort,
+    });
+    assert.equal(observed.capability, "pushBranch", command);
+    assert.equal(observed.resolved, true, command);
+  }
+});
+
+test("a quoted redirection-looking word stays an argument", () => {
+  const observed = observeCommand('git push origin feat/x "2>&1"', {
+    cwd: "/nowhere",
+    git: ownedForkPort,
+  });
+  assert.equal(observed.capability, "pushMain");
+  assert.equal(observed.resolved, false);
+});
+
+test("a redirection does not change a default-branch push", () => {
+  const observed = observeCommand("git push origin main 2>&1", {
+    cwd: "/nowhere",
+    git: ownedForkPort,
+  });
+  assert.equal(observed.capability, "pushMain");
+  assert.equal(observed.resolved, true);
+});
+
 test("a command observed with no git port cannot resolve a governed write", () => {
   const observed = observeCommand("git push origin feat/x", {
     cwd: "/nowhere",

@@ -395,6 +395,14 @@ function denyReason(resolved, repo, level, observation) {
     !resolved.destination
   )
     return "the destination for this gh command is ambiguous, so specify -R owner/repo for a new operation";
+  if (
+    observation?.program === "gh" &&
+    observation.destinationSource === "explicit" &&
+    observation.destination?.host === "github.com" &&
+    resolved?.kind !== "org" &&
+    resolved?.destination
+  )
+    return `the destination ${resolved.destination} denies ${resolved.capability ?? "this command"} at level "${level}"`;
   if (!resolved || resolved.kind === "org")
     return `${denialRepository(repo, resolved, observation)} denies this command at level "${level}"`;
   const capability = resolved.capability ?? "this command";
@@ -459,8 +467,8 @@ function allowsPersonalForkSync(observation, resolved) {
 // asked for is the one the command itself reaches: a `git -C <path>` command observes the
 // `<path>` clone's git state, so its local repository is looked up there too; every other
 // command is looked up from the cwd as before. Without a lookup, the repos-only path rule
-// answers. A cwd outside a fleet repository passes without a resolver call, preserving the
-// documented fleet-only scope.
+// answers. Outside a fleet repository, an explicitly pinned GitHub gh destination is still
+// resolved without a local clone; other commands keep the fleet-only scope.
 /**
  * @param {{ command: string, shell?: "bash" | "powershell", runtime?: "codex" }} input the dialect defaults to bash
  * @param {{
@@ -493,6 +501,21 @@ export function decideShell(input, deps) {
     return unresolvedDecision(observation, governed, environment, codex);
   const repo = found.repo;
   if (!repo)
+    if (
+      !observation.commandDirectory &&
+      observation.program === "gh" &&
+      observation.destinationSource === "explicit" &&
+      observation.destination?.host.toLowerCase() === "github.com" &&
+      governed
+    )
+      return outsideFleetDestinationDecision(
+        command,
+        observation,
+        environment,
+        codex,
+        deps,
+      );
+  if (!repo)
     return unknownRepoDecision(
       observation.commandDirectory,
       governed,
@@ -506,6 +529,32 @@ export function decideShell(input, deps) {
   if (governed && environment.length > 0)
     return denyEnvironment(repo, environment);
   return resolveDecision(command, repo, observation, governed, codex, deps);
+}
+
+// An explicit destination can be governed without treating the caller's folder as a clone.
+// Empty localRepo disables the resolver's clone-relative personal-fork rule. Allowed writes
+// use ambient authentication outside the fleet, so this path never injects a token.
+/**
+ * @param {string} command
+ * @param {import("./lib/observation.mjs").Observation} observation
+ * @param {string[]} environment
+ * @param {boolean} codex
+ * @param {{ resolve: Resolver }} deps
+ * @returns {Decision}
+ */
+function outsideFleetDestinationDecision(
+  command,
+  observation,
+  environment,
+  codex,
+  deps,
+) {
+  if (codex) return codexWriteDenial();
+  if (environment.length > 0) return denyEnvironment(null, environment);
+  const decision = resolveDecision(command, "", observation, true, false, deps);
+  if (decision.action === "inject")
+    return { action: "pass", repo: null, level: decision.level };
+  return { ...decision, repo: null };
 }
 
 // The answer when the working directory could not be resolved: a governed write is refused
@@ -525,8 +574,9 @@ function unresolvedDecision(observation, governed, environment, codex) {
 }
 
 // The answer when the directory is not a fleet repository at all. A command without a `git
-// -C` is entirely outside the fleet-only scope, so every command passes (Codex still blocks
-// a governed write). A command that names its own directory with `-C` reaches a clone whose
+// -C` is outside the fleet-only scope unless it is a governed gh write with an explicit
+// destination (handled by outsideFleetDestinationDecision); Codex still blocks every governed
+// write. A command that names its own directory with `-C` reaches a clone whose
 // local repository cannot be named, so the same write observed there fails closed instead of
 // passing: the write is denied, since it would leave the caller's directory for a clone the
 // fleet does not know.

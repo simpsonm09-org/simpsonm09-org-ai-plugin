@@ -1,6 +1,6 @@
 {
   "recordedFrom": "HEAD 05f22c14794e34d62c0fa861181c18e37aad4395",
-  "note": "The cells whose decision the destination-aware gate intentionally changes, with the recorded HEAD action and the new action. tests/parity.test.ts asserts exactly these cells change and no others. This fixture's topology is the single-remote clone the golden file models; the cells a real two-remote clone (origin = personal fork, upstream = organization repository) changes are declared separately in tests/fixtures/parity-two-remote.json.",
+  "note": "The cells whose decision the destination-aware gate intentionally changes, with the recorded HEAD action and the new action. tests/parity.test.ts asserts exactly these cells change and no others. This fixture's topology is the single-remote clone the golden file models; the cells a real two-remote clone (origin = personal fork, upstream = organization repository) changes are declared separately in tests/fixtures/parity-two-remote.json. The outside-fleet fixture directory is also represented in the parity matrix for explicitly pinned gh destinations.",
   "rationale": {
     "bare-push": "A bare `git push` (and `git push origin` with no refspec) is resolved through git's own default push remote and the current branch, so it is a pushMain on `main` rather than the pushBranch its lack of a refspec suggested.",
     "head-ref": "`HEAD` resolves to the checked-out branch, so `git push origin HEAD` on `main` is a pushMain.",
@@ -12,7 +12,8 @@
     "assignment-prefix": "A benign leading `NAME=value` assignment is skipped to find the program word, so the command is observed as the `git push` it runs and its capability applies.",
     "pr-ready": "`gh pr ready` and `gh pr ready --undo` are `openPr` operations, not the conservative `admin` fallback, so a ready-state change is granted at propose and above and denied below it. The `gh pr ready 1` cells are the ledger's record of that decision; the literal `gh api graphql` read cell declares no change because HEAD already allowed it, and it is present so the read classification stays covered.",
     "gh-host": "A compound command has no single resolved `gh` destination, so the gate passes it without injecting the organization App token.",
-    "personal-fork-sync": "A literal gh repo sync of the clone's personal fork is allowed at propose and above because the server syncs from its organization parent and the roster level grants pushBranch. Its positional repository is now the destination, so at full any other sync shape (such as --force) is the admin write full grants on the personal fork, run on ambient auth."
+    "personal-fork-sync": "A literal gh repo sync of the clone's personal fork is allowed at propose and above because the server syncs from its organization parent and the roster level grants pushBranch. Its positional repository is now the destination, so at full any other sync shape (such as --force) is the admin write full grants on the personal fork, run on ambient auth.",
+    "outside-fleet-pinned-destination": "An explicitly pinned GitHub gh write is resolved against its destination outside the fleet, with no local clone identity; a denial follows that destination policy and an allowed command uses ambient authentication. An unpinned write remains outside scope."
   },
   "changes": [
     {
@@ -644,6 +645,78 @@
       "head": "deny",
       "now": "pass",
       "category": "personal-fork-sync"
+    },
+    {
+      "id": "outside|posix|none|git push origin main",
+      "cwd": "outside",
+      "level": "none",
+      "command": "git push origin main",
+      "head": "pass",
+      "now": "deny",
+      "category": "outside-fleet-pinned-destination"
+    },
+    {
+      "id": "outside|posix|none|gh pr view 1",
+      "cwd": "outside",
+      "level": "none",
+      "command": "gh pr view 1",
+      "head": "pass",
+      "now": "deny",
+      "category": "outside-fleet-pinned-destination"
+    },
+    {
+      "id": "outside|posix|read|git push origin main",
+      "cwd": "outside",
+      "level": "read",
+      "command": "git push origin main",
+      "head": "pass",
+      "now": "deny",
+      "category": "outside-fleet-pinned-destination"
+    },
+    {
+      "id": "outside|posix|read|gh pr view 1",
+      "cwd": "outside",
+      "level": "read",
+      "command": "gh pr view 1",
+      "head": "pass",
+      "now": "deny",
+      "category": "outside-fleet-pinned-destination"
+    },
+    {
+      "id": "outside|posix|propose|git push origin main",
+      "cwd": "outside",
+      "level": "propose",
+      "command": "git push origin main",
+      "head": "pass",
+      "now": "deny",
+      "category": "outside-fleet-pinned-destination"
+    },
+    {
+      "id": "outside|posix|propose|gh pr view 1",
+      "cwd": "outside",
+      "level": "propose",
+      "command": "gh pr view 1",
+      "head": "pass",
+      "now": "deny",
+      "category": "outside-fleet-pinned-destination"
+    },
+    {
+      "id": "outside|posix|merge|git push origin main",
+      "cwd": "outside",
+      "level": "merge",
+      "command": "git push origin main",
+      "head": "pass",
+      "now": "deny",
+      "category": "outside-fleet-pinned-destination"
+    },
+    {
+      "id": "outside|posix|merge|gh pr view 1",
+      "cwd": "outside",
+      "level": "merge",
+      "command": "gh pr view 1",
+      "head": "pass",
+      "now": "deny",
+      "category": "outside-fleet-pinned-destination"
     }
   ]
 }

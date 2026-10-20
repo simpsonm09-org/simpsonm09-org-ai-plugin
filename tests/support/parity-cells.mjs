@@ -110,7 +110,13 @@ const SUBSET_BY_CWD = {
   ],
   nogit: ["git push origin main", "gh pr merge 1", "npm test"],
   unlisted: ["git push origin main", "gh pr merge 1", "npm test"],
-  outside: ["git push origin main", "gh pr view 1"],
+  outside: [
+    "git push origin main",
+    "gh pr view 1",
+    "gh pr merge 52 -R simpsonm09-org/demo-repo --admin --merge",
+    "gh label create gate-probe -R simpsonm09-org/demo-repo",
+    "gh repo delete simpsonm09-org/demo-repo --yes",
+  ],
   worktree: [
     "git push origin main",
     "git push origin feat/x",

@@ -85,12 +85,13 @@ function gitPort(cwd: string) {
 /**
  * @param {string} level
  * @param {string} command
+ * @param {"bash" | "powershell"} [shell]
  * @returns {import("../gate.mjs").Decision}
  */
-function decide(level: string, command: string) {
+function decide(level: string, command: string, shell?: "bash" | "powershell") {
   const found = fixture(level);
   return decideShell(
-    { command },
+    { command, ...(shell ? { shell } : {}) },
     {
       cwd: found.demo,
       workspaceRoot: found.workspace,
@@ -101,6 +102,23 @@ function decide(level: string, command: string) {
       env: [],
     },
   );
+}
+
+/**
+ * @param {string} level
+ * @param {string} command
+ * @param {"bash" | "powershell"} [shell]
+ */
+function observe(
+  level: string,
+  command: string,
+  shell?: "bash" | "powershell",
+) {
+  const found = fixture(level);
+  return observeShellCommand(found.demo, command, {
+    shell,
+    git: gitPort(found.demo),
+  });
 }
 
 test("a read-only gh api graphql query is a read", () => {
@@ -187,4 +205,125 @@ test("the gate grants the graphql read and gh pr ready through the pinned resolv
     decide("propose", "gh api graphql -f query='mutation { addStar }'").action,
     "deny",
   );
+});
+
+test("a GraphQL field the shell would expand is a conservative admin write", () => {
+  const bash = [
+    'gh api graphql -f query="$(echo bXV0YXRpb24= | base64 -d)"',
+    'gh api graphql -f query="`cat q.graphql`"',
+    'gh api graphql -f query="$MUT"',
+    String.raw`gh api graphql -f query=$'\x6dutation{addStar(input:{starrableId:"x"}){clientMutationId}}'`,
+    'gh api graphql -F query="$(cat q.graphql)"',
+    'gh api graphql --field query="$(cat q.graphql)"',
+    "gh api graphql -f query='query { viewer { login } }' -f variables=\"$VARS\"",
+    "gh api graphql -f query='query { a }' -f operationName=\"$OP\"",
+    "gh api graphql -f query=query{viewer{login}}",
+  ];
+  for (const command of bash) {
+    const observed = observe("propose", command);
+    assert.equal(observed.capability, "admin", command);
+    assert.equal(observed.operation, "admin", command);
+    assert.equal(observed.readOnly, false, command);
+    assert.equal(decide("propose", command).action, "deny", command);
+  }
+
+  const powershell = [
+    'gh api graphql -f query="$(Get-Content q.graphql)"',
+    'gh api graphql -f query="$env:MUT"',
+  ];
+  for (const command of powershell) {
+    const observed = observe("propose", command, "powershell");
+    assert.equal(observed.capability, "admin", command);
+    assert.equal(observed.operation, "admin", command);
+    assert.equal(observed.readOnly, false, command);
+    assert.equal(
+      decide("propose", command, "powershell").action,
+      "deny",
+      command,
+    );
+  }
+});
+
+test("a literal GraphQL field stays a read, including real variable syntax", () => {
+  // A real query uses `$var` references and the `{owner}` placeholder; both are inside single
+  // quotes, so the shell hands the text over unchanged in either dialect.
+  const read = [
+    "gh api graphql -F owner=x -f query='query($owner: String!) { repository(owner: $owner, name: \"r\") { id } }'",
+    "gh api graphql -F owner='{owner}' -f query='query { viewer { login } }'",
+    "gh api graphql -f query='query { viewer { login } }' -f operationName='Viewer'",
+    "gh api graphql -t '{{.data.viewer.login}}' -f query='query{viewer{login}}'",
+  ];
+  for (const command of read) {
+    const observed = observe("propose", command);
+    assert.equal(observed.capability, null, command);
+    assert.equal(observed.readOnly, true, command);
+    assert.equal(decide("propose", command).action, "inject", command);
+    const powershell = observe("propose", command, "powershell");
+    assert.equal(powershell.capability, null, command);
+    assert.equal(
+      decide("propose", command, "powershell").action,
+      "inject",
+      command,
+    );
+  }
+});
+
+test("a gh pr URL for another repository is not judged against the destination", () => {
+  const other = "https://github.com/other-org/other-repo/pull/7";
+  for (const command of [
+    `gh pr ready ${other}`,
+    `gh pr ready ${other} -R simpsonm09-org/demo-repo`,
+  ]) {
+    const observed = observe("propose", command);
+    assert.equal(observed.operation, "openPr", command);
+    assert.equal(observed.resolved, false, command);
+    assert.equal(observed.destination, null, command);
+    assert.equal(decide("propose", command).action, "deny", command);
+  }
+  for (const command of [
+    `gh pr merge ${other}`,
+    `gh pr merge ${other} -R simpsonm09-org/demo-repo`,
+  ]) {
+    const observed = observe("merge", command);
+    assert.equal(observed.operation, "mergePr", command);
+    assert.equal(observed.resolved, false, command);
+    assert.equal(observed.destination, null, command);
+    assert.equal(decide("merge", command).action, "deny", command);
+  }
+
+  // A URL to the destination itself, in any letter case, keeps the resolved destination.
+  const same = "https://GitHub.com/SimpsonM09-Org/Demo-Repo/pull/7";
+  assert.equal(decide("propose", `gh pr ready ${same}`).action, "inject");
+  assert.equal(decide("merge", `gh pr merge ${same}`).action, "inject");
+
+  // A command with no URL positional is unchanged.
+  assert.equal(decide("propose", "gh pr ready 7").action, "inject");
+  assert.equal(decide("merge", "gh pr merge 7").action, "inject");
+});
+
+test("gh pr ready --undo is openPr by owner decision", () => {
+  // Un-marking ready is a state change on an open pull request, so the owner keeps it at the
+  // openPr capability the pull request create/ready path already uses.
+  for (const command of ["gh pr ready --undo 1", "gh pr ready 1 --undo"]) {
+    const observed = observe("propose", command);
+    assert.equal(observed.operation, "openPr", command);
+    assert.equal(observed.capability, "openPr", command);
+    assert.equal(decide("propose", command).action, "inject", command);
+    assert.equal(decide("merge", command).action, "inject", command);
+    assert.equal(decide("read", command).action, "deny", command);
+  }
+});
+
+test("gh api keeps -t, -p, and --allow-escape-sequences in the modeled table", () => {
+  const read = [
+    "gh api graphql -t '{{.data.viewer.login}}' -f query='query{viewer{login}}'",
+    "gh api graphql -p machine-man --allow-escape-sequences -f query='query { viewer { login } }'",
+    "gh api graphql --cache 60s -f query='query { viewer { login } }'",
+  ];
+  for (const command of read) {
+    const observed = observe("propose", command);
+    assert.equal(observed.capability, null, command);
+    assert.equal(observed.readOnly, true, command);
+    assert.equal(decide("propose", command).action, "inject", command);
+  }
 });

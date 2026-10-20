@@ -72,6 +72,10 @@ The destination is derived from git, never from a remote *name*:
   and asks for `-R owner/repo`; it does not claim the repository is unknown. A real fleet clone
   has two remotes (`origin` = the personal fork, `upstream` = the organization repository), so
   the organization's working agreements require `-R <owner>/<repo>` for this reason.
+- `gh pr <verb> <number>|<url>|<branch>`: a github.com pull request or issue URL names the
+  repository it belongs to. When that repository is not the resolved destination
+  (case-insensitively), the destination is dropped and a governed write fails closed; a URL
+  to the destination itself, a number, and a branch leave the destination unchanged.
 
 The refs come from the refspecs, which are the positionals *after* the repository. git's
 grammar is `git push [<repository> [<refspec>…]]`, so the first positional is always the
@@ -131,17 +135,22 @@ would suggest.
   spelling (the last method wins, as it does in gh); `gh api` body flags in any spelling
   (`-f value`, `-fvalue`, `-f=value`, `-F value`, `-Fvalue`, `-F=value`, `--field=value`,
   `--raw-field=value`, `--input=value`); and the read verbs (`list`, `view`, `status`, `diff`,
-  `checks`, `show`, `watch`, `clone`, `checkout`, `download`, `browse`, `get`). One such read
-  is
-  `gh api graphql` when the endpoint is exactly `graphql`, the method is absent or `POST`,
-  there is no `--input`, exactly one `query` field is literal text (a typed `-F` field whose
-  value starts with `@` reads a file and denies), every other field is a literal `-f`/`-F`
-  value, and the document contains no `mutation` or `subscription` token. One left-to-right
-  read of the arguments decides which token is an option and which is its value: an option
-  that takes a value consumes it, so `gh pr create --title -Rsimpsonm09-org/demo-repo` reads the
-  token after `--title` as the title, not as `-R`, and the destination falls back to the clone. An option
-  the per-command table does not name makes the read untrustworthy, so the destination is
-  unresolved rather than guessed.
+  `checks`, `show`, `watch`, `clone`, `checkout`, `download`, `browse`, `get`). One such
+  read is `gh api graphql` when the endpoint is exactly `graphql`, the method is absent or
+  `POST`, there is no `--input`, exactly one `query` field is a literal word, a typed `-F`
+  field whose value starts with `@` reads a file and denies, every other field (the
+  `variables` and `operationName` fields included) is also a literal word, and the document
+  contains no `mutation` or `subscription` token. A literal word is one the shell hands over
+  unchanged. In Bash, an unescaped `$` or backtick outside single quotes, or an unquoted `*`,
+  `?`, `[`, or `{`, makes the field non-literal. This includes ANSI-C `$'...'` quoting. In
+  PowerShell, `$` or a backtick inside double quotes also makes the field non-literal. The
+  command then stays the conservative `admin` write instead of trusting text the observer
+  cannot see. A real query keeps its `$var` references and `{owner}` placeholders inside
+  single quotes, so it stays a read. One left-to-right read of the arguments decides which
+  token is an option and which is its value: a value option consumes the next word, so
+  `gh pr create --title -Rsimpsonm09-org/demo-repo` reads that word as the title, not as `-R`,
+  and the destination falls back to the clone. An option the per-command table does not name
+  makes the read untrustworthy, so the destination is unresolved rather than guessed.
 - A heredoc body (`<<`, `<<-`, or a quoted, unquoted, or escaped delimiter) is data, not
   commands: the body is skipped to its terminator line, so a script or a document written
   through bash is not decided as the commands it contains. A quoted or escaped delimiter makes

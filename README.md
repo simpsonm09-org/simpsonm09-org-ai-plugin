@@ -157,6 +157,7 @@ The gate resolves a working directory to its real path before it names the repos
   - a first positional after `git push` that is neither a URL nor a configured remote leaves the destination unresolved, and a governed write with an unresolved destination is denied rather than allowed as an out-of-scope URL;
   - a gh verb with no precise capability (`pr comment`, `repo delete`, `release create`, `workflow run`) is a conservative `admin` write, denied below `full`;
   - the clone's own fork of a governed repository is that governed destination at the roster level, so its default branch is denied;
+  - a `git -C <path> push` observes the `<path>` clone's remotes and refs, so its local repository is looked up in `<path>` too and the push is classified against that clone's own fork at the same roster level — the same push run with its cwd in that clone is decided the same way; a `-C` directory the lookup cannot resolve to a fleet repository denies a governed write instead of letting it pass as an out-of-scope command;
   - a destination outside the organization uses the caller's ambient authentication, so the gate mints no App token for it;
   - a compound command that contains a governed write is an unsupported shape and is denied, rather than decided by its first word, and the denial names that shape rather than an unknown destination;
   - a heredoc body is data: a script or a document written through bash is not decided as the commands in it, while an unquoted body's `$(...)` and backtick substitutions are still decided as the commands they run;

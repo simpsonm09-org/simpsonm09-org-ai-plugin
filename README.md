@@ -82,7 +82,7 @@ copilot --plugin-dir <workspace>/projects/worktrees/simpsonm09-org-ai-plugin-cop
 copilot --plugin-dir <workspace>/projects/worktrees/simpsonm09-org-ai-plugin-copilot
 ```
 
-The gate trusts only the layouts in `lib/location.mjs`: a checkout under `projects/repos` or `projects/worktrees`, an installed `.opencode/plugins/<name>` copy, or a direct `.claude/plugins/<name>` copy. A Claude junction to the OpenCode copy resolves to the `.opencode/plugins` layout. A copy in another directory trusts no workspace, so the gate denies every write it cannot check.
+The gate trusts only the layouts in `lib/location.mjs`: a checkout under `projects/repos` or `projects/worktrees`, an installed `.opencode/plugins/<name>` copy, a direct `.claude/plugins/<name>` copy, or the pinned fetch in `.claude/cache/<name>` that Pi loads as a package. A Claude junction to the OpenCode copy resolves to the `.opencode/plugins` layout. A copy in another directory trusts no workspace, so the gate denies every write it cannot check.
 
 The hooks file (`hooks/copilot-hooks.json`) uses the camelCase event keys, flat entries, and `version: 1`. Each entry has `bash` and `powershell` command keys. The `preToolUse` entry has `"matcher": "powershell|bash"`, and the `sessionStart` entry has none. The contract below was measured on Copilot CLI 1.0.93 on Windows with a probe plugin, and the tests use those payloads verbatim (`tests/copilot-hooks.test.ts`).
 
@@ -135,7 +135,7 @@ The Copilot limits are listed under Known limits.
 **rpc mode.** A live probe of `pi --mode rpc` (how T3 Code drives Pi) found that `ctx.hasUI` is true, `ctx.mode` is `"rpc"`, and `ctx.ui.confirm` exists. With nobody answering, Pi emits an `extension_ui_request` and resolves the confirm to `false` after 3000 ms. Without the switch, every ask in that session is therefore refused after a 3 s stall. With the switch, the ask is rewritten at once and no confirm is sent.
 
 **Child agents.** A child `pi --mode rpc` does not inherit a parent's `-e` extension. Install this package through Pi's saved settings `packages` list, so each child loads the gate too.
-- The workspace is the one this plugin is installed in, never `ctx.cwd` or the environment. Only `.opencode/plugins/<name>`, `.claude/plugins/<name>`, and development checkouts under `projects/repos` or `projects/worktrees` are trusted. A copy elsewhere trusts no workspace, so it denies every gh call it cannot check.
+- The workspace is the one this plugin is installed in, never `ctx.cwd` or the environment. Only `.opencode/plugins/<name>`, `.claude/plugins/<name>`, `.claude/cache/<name>` (the pinned fetch Pi loads), and development checkouts under `projects/repos` or `projects/worktrees` are trusted. A copy elsewhere trusts no workspace, so it denies every gh call it cannot check.
 - An error in the gate blocks the call.
 
 **Known limits (Pi)**

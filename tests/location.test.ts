@@ -34,6 +34,13 @@ test("plugin workspace recognition accepts direct Claude copies and existing tru
     workspaceForPluginRoot(`${workspace}/projects/worktrees/plugin-worktree`),
     workspace,
   );
+  // Pi loads the pinned org plugin as a package from the maxstack cache.
+  assert.equal(
+    workspaceForPluginRoot(
+      `${workspace}/.claude/cache/simpsonm09-org-ai-plugin`,
+    ),
+    workspace,
+  );
 });
 
 test("plugin workspace recognition accepts alternate Claude workspace roots", () => {
@@ -56,6 +63,7 @@ test("plugin workspace recognition rejects nested copies and cache lookalikes", 
   for (const root of [
     `${workspace}/.claude/plugins/plugin/nested`,
     `${workspace}/.claude/cache/plugins/plugin`,
+    `${workspace}/.claude/cache/simpsonm09-org-ai-plugin/nested`,
     `${workspace}/.claude/plugins-cache/plugin`,
   ]) {
     assert.equal(workspaceForPluginRoot(root), null, root);

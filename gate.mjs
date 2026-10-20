@@ -325,6 +325,26 @@ function unresolvedAnswer(observation) {
   return { action: "pass", repo: null, level: FALLBACK_LEVEL };
 }
 
+// The repository a denial names. The local clone's name is the answer for a command whose
+// repository the clone decides, but a gh command may name another repository with an explicit
+// -R/--repo. That destination's catalog entry is the one the resolver denies, so the message
+// names the destination rather than the clone the caller happened to run from. Only the name in
+// the message changes: the decision and the repository a token is minted for come from the
+// resolver, and are exactly what they were. A destination on another host, an unresolved -R, or
+// any non-gh command keeps the clone's name.
+/**
+ * @param {string} repo the local clone's repository name
+ * @param {ReturnType<typeof parseResolverOutput>} resolved
+ * @param {import("./lib/observation.mjs").Observation} observation
+ * @returns {string}
+ */
+function denialRepository(repo, resolved, observation) {
+  if (observation?.program !== "gh") return repo;
+  if (observation.destinationSource !== "explicit") return repo;
+  if (observation.destination?.host !== "github.com") return repo;
+  return resolved?.destination ?? repo;
+}
+
 // The message for a resolver denial. An unsupported observation reports the shape the observer
 // refused, rather than the misleading "destination unknown". A gh write whose destination the
 // observer could not pin to one repository says so and points at the explicit `-R` form rather
@@ -349,7 +369,7 @@ function denyReason(resolved, repo, level, observation) {
   )
     return "the destination for this gh command is ambiguous, so specify -R owner/repo for a new operation";
   if (!resolved || resolved.kind === "org")
-    return `${repo} denies this command at level "${level}"`;
+    return `${denialRepository(repo, resolved, observation)} denies this command at level "${level}"`;
   const capability = resolved.capability ?? "this command";
   return `the destination ${resolved.destination ?? "unknown"} denies ${capability} for this repository`;
 }

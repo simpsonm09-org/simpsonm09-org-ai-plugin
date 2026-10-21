@@ -60,7 +60,7 @@ function decide(
 before(async () => {
   workspace = tempDir("gate-outside-fleet-workspace-");
   outside = tempDir("gate-outside-fleet-caller-");
-  execFileSync("git", ["init", "--quiet", outside]);
+  execFileSync("git", ["init", "--quiet", outside], { windowsHide: true });
   buildWorkspace(workspace, { level: "read" });
   writeCatalogLevels(workspace, {
     "demo-repo": "propose",

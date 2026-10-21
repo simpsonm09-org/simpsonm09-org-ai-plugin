@@ -47,6 +47,9 @@ const ENTRIES = [
   "hooks/pre-tool-use.mjs",
   "hooks/session-start.mjs",
   "hooks/worker.mjs",
+  // Run by the Cursor and Antigravity hook definitions (hooks/*-hooks.json).
+  "hooks/cursor.mjs",
+  "hooks/antigravity.mjs",
   "bin/with-gh-token.mjs",
   // The pin loader imports this reviewed source from its verified bytes at runtime.
   "runtime/agent-access.mjs",

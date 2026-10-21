@@ -4,6 +4,7 @@
   "baseline": "HEAD's gate decided a gh command by its first word and never read the clone's remotes, so each cell's HEAD action is the golden file's recorded action for the same command without the two-remote ambiguity (baselineCommand) at the same level. A gh write missing -R was injected at the levels that grant its capability and denied below them; the destination-aware gate denies it at every level because the clone names two GitHub repositories and the command names neither.",
   "rationale": {
     "ambiguous-gh-write": "A gh write in a clone whose origin is a personal fork and whose upstream is the organization repository names two GitHub destinations and no -R, so the destination is ambiguous. gh resolves a missing -R through the API, so the gate denies the write at every level instead of guessing, and the denial asks for -R owner/repo rather than calling the repository unknown. HEAD injected it at the levels that granted the capability.",
+    "gh-api-endpoint-destination": "A literal `repos/OWNER/REPO` API endpoint is the target, even in a clone with two remotes. The undeclared `o/r` endpoint is judged on its own and denied; no local clone repository is substituted.",
     "explicit-org-destination": "An explicit -R naming the organization repository pins one destination, so the organization roster level governs it exactly as it governs the single-remote clone: inject where the level grants the capability, deny below it.",
     "explicit-personal-fork": "An explicit -R naming the personal fork of the clone's governed repository collapses to that repository at the roster level, but the destination is the personal account, so the gate mints no organization App token and the command passes under the caller's ambient authentication.",
     "gh-host-auth": "The two-remote read has no explicit repository and the destination is ambiguous, so the gate cannot prove the gh command targets github.com and passes without injecting the App token."
@@ -106,7 +107,7 @@
       "head": "inject",
       "now": "deny",
       "declared": true,
-      "category": "ambiguous-gh-write"
+      "category": "gh-api-endpoint-destination"
     },
     {
       "id": "two-remote-repo|posix|read|gh pr list",

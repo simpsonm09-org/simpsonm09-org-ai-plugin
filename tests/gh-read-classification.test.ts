@@ -30,7 +30,7 @@ interface Fixture {
   demo: string;
 }
 
-const LEVELS = ["read", "propose", "merge"];
+const LEVELS = ["none", "read", "propose", "merge", "full"];
 const fixtures = new Map<string, Fixture>();
 let api: Api = null;
 
@@ -339,3 +339,122 @@ test("gh api keeps -t, -p, and --allow-escape-sequences in the modeled table", (
     assert.equal(decide("propose", command).action, "inject", command);
   }
 });
+
+for (const group of ["pr", "issue"]) {
+  test(`gh ${group} comment uses openPr at the destination's access level`, () => {
+    for (const suffix of [
+      "32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "32 --body x",
+    ]) {
+      const command = `gh ${group} comment ${suffix}`;
+      const observed = observe("propose", command);
+      assert.equal(observed.operation, "openPr", command);
+      assert.equal(observed.capability, "openPr", command);
+      assert.equal(observed.reason, `gh ${group} comment`, command);
+      assert.equal(observed.readOnly, false, command);
+      assert.equal(observed.resolved, true, command);
+      assert.equal(observed.base, null, command);
+      assert.equal(observed.head, null, command);
+      for (const level of LEVELS) {
+        const decision = decide(level, command);
+        const allowed = ["propose", "merge", "full"].includes(level);
+        assert.equal(decision.action, allowed ? "inject" : "deny", level);
+      }
+    }
+  });
+
+  test(`gh ${group} comment denies a repository missing from the catalog`, () => {
+    const command = `gh ${group} comment 32 -R simpsonm09-org/unlisted-repo --body x`;
+    assert.equal(observe("full", command).resolved, true);
+    assert.equal(decide("full", command).action, "deny");
+  });
+
+  test(`gh ${group} comment resolves URL positionals like pr ready`, () => {
+    const path = group === "pr" ? "pull" : "issues";
+    const other = `https://github.com/other-org/other-repo/${path}/32`;
+    const conflict = `gh ${group} comment ${other} -R simpsonm09-org/demo-repo --body x`;
+    assert.equal(observe("propose", conflict).resolved, false);
+    assert.equal(observe("propose", conflict).destination, null);
+    assert.equal(decide("propose", conflict).action, "deny");
+    const unlisted = `gh ${group} comment ${other} --body x`;
+    assert.deepEqual(observe("propose", unlisted).destination, {
+      host: "github.com",
+      owner: "other-org",
+      repo: "other-repo",
+    });
+    assert.equal(decide("propose", unlisted).action, "deny");
+    const same = `https://github.com/simpsonm09-org/demo-repo/${path}/32`;
+    for (const suffix of ["", " -R simpsonm09-org/demo-repo"]) {
+      assert.equal(
+        decide("propose", `gh ${group} comment ${same} --body x${suffix}`)
+          .action,
+        "inject",
+      );
+    }
+  });
+
+  test(`gh ${group} comment treats quoted body metacharacters as literal data`, () => {
+    for (const shell of ["bash", "powershell"] as const) {
+      const command = `gh ${group} comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase; echo x | cat && $(whoami) > out'`;
+      const observed = observe("propose", command, shell);
+      assert.equal(observed.ghArgumentsLiteral, true, command);
+      assert.equal(observed.ghArgumentsStrict, true, command);
+      assert.equal(observed.resolved, true, command);
+      assert.equal(decide("propose", command, shell).action, "inject", command);
+    }
+  });
+
+  test(`gh ${group} comment consumes value options without changing destination`, () => {
+    for (const option of ["-b", "--body", "-F", "--body-file"]) {
+      for (const value of [
+        "-Rsimpsonm09-org/unlisted-repo",
+        "https://github.com/other-org/other-repo/pull/32",
+      ]) {
+        const command = `gh ${group} comment 32 ${option} '${value}'`;
+        const observed = observe("propose", command);
+        assert.equal(observed.destinationSource, "cwd", command);
+        assert.equal(observed.destination?.repo, "demo-repo", command);
+        assert.equal(decide("propose", command).action, "inject", command);
+      }
+    }
+  });
+
+  test(`gh ${group} comment models its flags and both repo spellings`, () => {
+    for (const flag of [
+      "-e",
+      "--editor",
+      "-w",
+      "--web",
+      "--edit-last",
+      "--delete-last",
+      "--create-if-none",
+      "--yes",
+    ]) {
+      for (const repo of ["-R", "--repo"]) {
+        const command = `gh ${group} comment ${flag} 32 ${repo} simpsonm09-org/demo-repo`;
+        assert.equal(
+          observe("propose", command).ghArgumentsStrict,
+          true,
+          command,
+        );
+        assert.equal(decide("propose", command).action, "inject", command);
+      }
+    }
+    for (const flag of ["-h", "--help"]) {
+      assert.equal(
+        observe("propose", `gh ${group} comment ${flag}`).ghArgumentsStrict,
+        true,
+      );
+    }
+  });
+
+  test(`gh ${group} comment keeps token injection literal, strict, and GitHub-only`, () => {
+    for (const command of [
+      `gh ${group} comment 32 --body "$BODY"`,
+      `gh ${group} comment 32 --body x --unknown`,
+      `gh ${group} comment https://some.ghe.com/owner/repo/issues/32 --body x`,
+    ]) {
+      assert.notEqual(decide("propose", command).action, "inject", command);
+    }
+  });
+}

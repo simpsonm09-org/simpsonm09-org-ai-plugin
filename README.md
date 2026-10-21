@@ -31,6 +31,8 @@ The decision is the resolver's, from the observer's destination and structured i
 
 The App token is injected only when the observed `gh` command is a fully literal, strictly parsed, recognized command pinned to `github.com`, with no external URL or destination-changing environment override.
 
+`gh pr comment` and `gh issue comment` require `openPr`, like `gh pr create` and `gh pr ready`: `propose` and above allow them; `read` and `none` deny them.
+
 From a fleet clone, `gh repo sync <personal-fork>` may fast-forward that clone's personal fork from its organization parent at `propose` or higher, with only an optional `--branch main` and matching `--source <org>/<repo>`; the server chooses the parent. Any other sync shape, including `--force`, stays an `admin` write that only `full` grants.
 
 - **OpenCode** calls `gateShellEdit` from `gate.mjs` in the `create.before` shell hook. It rewrites a denied command and sets `GH_TOKEN` directly.
@@ -161,7 +163,7 @@ The gate resolves a working directory to its real path before it names the repos
 - **A destination-aware decision replaces the write scan.** The gate observes the command once and sends the destination and the structured intent to the pinned resolver. The declared changes are grouped in `tests/fixtures/parity-decisions.json`:
   - a bare `git push` resolves git's real default push remote and the current branch, so a push on `main` is a `pushMain`;
   - a first positional after `git push` that is neither a URL nor a configured remote leaves the destination unresolved, and a governed write with an unresolved destination is denied rather than allowed as an out-of-scope URL;
-  - a gh verb with no precise capability (`pr comment`, `repo delete`, `release create`, `workflow run`) is a conservative `admin` write, denied below `full`;
+  - a gh verb with no precise capability (`repo delete`, `release create`, `workflow run`) is a conservative `admin` write, denied below `full`;
   - the clone's own fork of a governed repository is that governed destination at the roster level, so its default branch is denied;
   - a `git -C <path> push` observes the `<path>` clone's remotes and refs, so its local repository is looked up in `<path>` too and the push is classified against that clone's own fork at the same roster level — the same push run with its cwd in that clone is decided the same way; a `-C` directory the lookup cannot resolve to a fleet repository denies a governed write instead of letting it pass as an out-of-scope command;
   - a destination outside the organization uses the caller's ambient authentication, so the gate mints no App token for it;
@@ -182,7 +184,7 @@ The gate resolves a working directory to its real path before it names the repos
 - **An owned fork uses the caller's own authentication.** A destination the catalog records as an owned fork, or the clone's own personal push fork, is not served by the organization App. The gate mints no token for it and the `gh` command runs under the ambient login; the App installation and its ruleset cover organization repositories only.
 - **Codex cannot identify the command's repository.** In Codex 0.162.1, unified `exec_command` drops its `workdir` before building the hook payload (`codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs:514-525`, tag `rust-v0.162.1`), so the hook's `cwd` is the session folder and may not be the command folder. The gate blocks its classified GitHub writes everywhere; reads still use the reported `cwd`. This restriction can be relaxed if Codex reports the folder where each command runs.
 - **A space or a tab before `gh` removes the token.** The token test is on the first word after the spelling is normalised, as it was on `main`, so ` gh pr merge 1` or a tab before it gets no token and no launcher. Where the resolver allows the write it runs under the user's own login, in both harnesses. A tab and a space behave identically. The parity golden pins ` gh pr list` to this behaviour, so it is not changed here.
-- **Administrative gh verbs are denied below `full`.** `gh repo delete`, `gh secret set`, `gh pr comment`, `gh release create`, `gh workflow run`, and any `gh api` write are conservative `admin` writes, so a destination that does not grant `admin` denies them. This is a declared change from `main` for the organization, where the resolver allowed them at every level (`tests/fixtures/parity-decisions.json`).
+- **Administrative gh verbs are denied below `full`.** `gh repo delete`, `gh secret set`, `gh release create`, `gh workflow run`, and any `gh api` write are conservative `admin` writes, so a destination that does not grant `admin` denies them. This is a declared change from `main` for the organization, where the resolver allowed them at every level (`tests/fixtures/parity-decisions.json`).
 - **The ask prompt shows at most 300 characters of a command.** A longer command is cut with `...`, so the person approving it does not see all of it.
 - **A same-user process can reach the token broker.** The broker and its App key are in the user's profile, and the hook denies only a direct run of the launcher. Anything else running as the same user can mint a token.
 - **The token is in the launched command's environment**, so that command can print it. The launcher never prints it, and it is never written to a file or put in the command text.

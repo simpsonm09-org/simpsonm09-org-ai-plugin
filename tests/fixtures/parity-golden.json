@@ -6041,6 +6041,306 @@
         "env": null,
         "action": "pass"
       }
+    },
+    {
+      "id": "demo-root|posix|none|gh pr comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: simpsonm09-org/demo-repo denies this command at level \"none\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh issue comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh issue comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: simpsonm09-org/demo-repo denies this command at level \"none\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh issue comment 1 --body x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh issue comment 1 --body x",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: the destination for this gh command is ambiguous, so specify -R owner/repo for a new operation' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh pr comment https://github.com/other-org/other-repo/pull/32 -R simpsonm09-org/demo-repo --body x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr comment https://github.com/other-org/other-repo/pull/32 -R simpsonm09-org/demo-repo --body x",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: the destination for this gh command is ambiguous, so specify -R owner/repo for a new operation' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|none|gh issue comment https://github.com/other-org/other-repo/issues/32 -R simpsonm09-org/demo-repo --body x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh issue comment https://github.com/other-org/other-repo/issues/32 -R simpsonm09-org/demo-repo --body x",
+      "level": "none",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: the destination for this gh command is ambiguous, so specify -R owner/repo for a new operation' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh pr comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: simpsonm09-org/demo-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh issue comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh issue comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: simpsonm09-org/demo-repo denies this command at level \"read\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh issue comment 1 --body x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh issue comment 1 --body x",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: the destination for this gh command is ambiguous, so specify -R owner/repo for a new operation' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh pr comment https://github.com/other-org/other-repo/pull/32 -R simpsonm09-org/demo-repo --body x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr comment https://github.com/other-org/other-repo/pull/32 -R simpsonm09-org/demo-repo --body x",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: the destination for this gh command is ambiguous, so specify -R owner/repo for a new operation' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|read|gh issue comment https://github.com/other-org/other-repo/issues/32 -R simpsonm09-org/demo-repo --body x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh issue comment https://github.com/other-org/other-repo/issues/32 -R simpsonm09-org/demo-repo --body x",
+      "level": "read",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: the destination for this gh command is ambiguous, so specify -R owner/repo for a new operation' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh pr comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: simpsonm09-org/demo-repo denies this command at level \"propose\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh issue comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh issue comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: simpsonm09-org/demo-repo denies this command at level \"propose\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh issue comment 1 --body x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh issue comment 1 --body x",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: the destination for this gh command is ambiguous, so specify -R owner/repo for a new operation' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh pr comment https://github.com/other-org/other-repo/pull/32 -R simpsonm09-org/demo-repo --body x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr comment https://github.com/other-org/other-repo/pull/32 -R simpsonm09-org/demo-repo --body x",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: the destination for this gh command is ambiguous, so specify -R owner/repo for a new operation' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|propose|gh issue comment https://github.com/other-org/other-repo/issues/32 -R simpsonm09-org/demo-repo --body x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh issue comment https://github.com/other-org/other-repo/issues/32 -R simpsonm09-org/demo-repo --body x",
+      "level": "propose",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: the destination for this gh command is ambiguous, so specify -R owner/repo for a new operation' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh pr comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "level": "merge",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: simpsonm09-org/demo-repo denies this command at level \"merge\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh issue comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh issue comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "level": "merge",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: simpsonm09-org/demo-repo denies this command at level \"merge\"' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh issue comment 1 --body x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh issue comment 1 --body x",
+      "level": "merge",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: the destination for this gh command is ambiguous, so specify -R owner/repo for a new operation' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh pr comment https://github.com/other-org/other-repo/pull/32 -R simpsonm09-org/demo-repo --body x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr comment https://github.com/other-org/other-repo/pull/32 -R simpsonm09-org/demo-repo --body x",
+      "level": "merge",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: the destination for this gh command is ambiguous, so specify -R owner/repo for a new operation' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|merge|gh issue comment https://github.com/other-org/other-repo/issues/32 -R simpsonm09-org/demo-repo --body x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh issue comment https://github.com/other-org/other-repo/issues/32 -R simpsonm09-org/demo-repo --body x",
+      "level": "merge",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: the destination for this gh command is ambiguous, so specify -R owner/repo for a new operation' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh pr comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "level": "full",
+      "head": {
+        "command": "gh pr comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh issue comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh issue comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "level": "full",
+      "head": {
+        "command": "gh issue comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+        "env": {},
+        "action": "pass"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh issue comment 1 --body x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh issue comment 1 --body x",
+      "level": "full",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: the destination for this gh command is ambiguous, so specify -R owner/repo for a new operation' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh pr comment https://github.com/other-org/other-repo/pull/32 -R simpsonm09-org/demo-repo --body x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh pr comment https://github.com/other-org/other-repo/pull/32 -R simpsonm09-org/demo-repo --body x",
+      "level": "full",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: the destination for this gh command is ambiguous, so specify -R owner/repo for a new operation' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
+    },
+    {
+      "id": "demo-root|posix|full|gh issue comment https://github.com/other-org/other-repo/issues/32 -R simpsonm09-org/demo-repo --body x",
+      "cwd": "demo-root",
+      "cwdPath": "projects/repos/demo-repo",
+      "command": "gh issue comment https://github.com/other-org/other-repo/issues/32 -R simpsonm09-org/demo-repo --body x",
+      "level": "full",
+      "head": {
+        "command": "printf '%s\\n' 'agent-access: denied: the destination for this gh command is ambiguous, so specify -R owner/repo for a new operation' >&2; exit 1",
+        "env": {},
+        "action": "deny"
+      }
     }
   ]
 }

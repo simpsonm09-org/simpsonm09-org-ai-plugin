@@ -5,7 +5,7 @@
     "bare-push": "A bare `git push` (and `git push origin` with no refspec) is resolved through git's own default push remote and the current branch, so it is a pushMain on `main` rather than the pushBranch its lack of a refspec suggested.",
     "head-ref": "`HEAD` resolves to the checked-out branch, so `git push origin HEAD` on `main` is a pushMain.",
     "unresolved-remote": "The first positional after `git push` is the repository. A token that is neither a URL nor a configured remote leaves the destination unresolved, so a governed write is denied rather than allowed as an out-of-scope URL.",
-    "admin-verb": "A gh verb with no precise capability (`pr comment`, `repo delete`, `release create`, `workflow run`) is a conservative `admin` write, denied below `full` instead of allowed at every level.",
+    "admin-verb": "A gh verb with no precise capability (`repo delete`, `release create`, `workflow run`) is a conservative `admin` write, denied below `full` instead of allowed at every level.",
     "personal-fork-push": "The clone's own fork of a governed repository is the governed destination at the roster level, so its default branch is denied; this replaces the previous out-of-scope-by-URL allowance.",
     "personal-fork-auth": "A destination owned by the personal account uses that account's ambient authentication, so the gate does not mint an organization App token for it; the command still passes.",
     "compound": "A compound command that contains a governed write is an unsupported shape, so the whole command is denied instead of decided by its first word.",
@@ -15,7 +15,8 @@
     "personal-fork-sync": "A literal gh repo sync of the clone's personal fork is allowed at propose and above because the server syncs from its organization parent and the roster level grants pushBranch. Its positional repository is now the destination, so at full any other sync shape (such as --force) is the admin write full grants on the personal fork, run on ambient auth.",
     "outside-fleet-pinned-destination": "An explicitly pinned GitHub gh write is resolved against its destination outside the fleet, with no local clone identity; a denial follows that destination policy and an allowed command uses ambient authentication. An unpinned write remains outside scope.",
     "positional-destination": "`gh repo delete OWNER/REPO` names its destination by position, so that repository is the destination; one the catalog does not know (`o/r`) is denied even at full.",
-    "gh-api-endpoint-destination": "A literal `repos/OWNER/REPO` API endpoint is the repository reached by `gh api`. The fixture endpoint `repos/o/r` is outside the catalog, so governed writes are denied even at full and reads pass without an organization token; the recorded HEAD action remains unchanged in the golden file."
+    "gh-api-endpoint-destination": "A literal `repos/OWNER/REPO` API endpoint is the repository reached by `gh api`. The fixture endpoint `repos/o/r` is outside the catalog, so governed writes are denied even at full and reads pass without an organization token; the recorded HEAD action remains unchanged in the golden file.",
+    "gh-comment": "PR and issue comments are collaboration at the openPr trust level: propose, merge, and full allow them; read and none deny them. The new comment cells were recorded from base 21c3b8a7582b1d3e47a4230dc6039e9801ff4294 before implementing this change. Existing PR-comment snapshots keep their historical HEAD action: propose and above now match that action, so only read and none remain declared changes. Conflicting URL and -R destinations stay denied."
   },
   "changes": [
     {
@@ -35,15 +36,6 @@
       "head": "pass",
       "now": "deny",
       "category": "unresolved-remote"
-    },
-    {
-      "id": "demo-root|posix|full|gh pr comment 1 --body x",
-      "cwd": "demo-root",
-      "level": "full",
-      "command": "gh pr comment 1 --body x",
-      "head": "inject",
-      "now": "deny",
-      "category": "admin-verb"
     },
     {
       "id": "demo-root|posix|full|cd x && git push origin main",
@@ -107,15 +99,6 @@
       "head": "pass",
       "now": "deny",
       "category": "head-ref"
-    },
-    {
-      "id": "demo-root|posix|merge|gh pr comment 1 --body x",
-      "cwd": "demo-root",
-      "level": "merge",
-      "command": "gh pr comment 1 --body x",
-      "head": "inject",
-      "now": "deny",
-      "category": "admin-verb"
     },
     {
       "id": "demo-root|posix|merge|gh repo delete o/r --yes",
@@ -214,7 +197,7 @@
       "command": "gh pr comment 1 --body x",
       "head": "inject",
       "now": "deny",
-      "category": "admin-verb"
+      "category": "gh-comment"
     },
     {
       "id": "demo-root|posix|none|gh repo delete o/r --yes",
@@ -325,15 +308,6 @@
       "category": "head-ref"
     },
     {
-      "id": "demo-root|posix|propose|gh pr comment 1 --body x",
-      "cwd": "demo-root",
-      "level": "propose",
-      "command": "gh pr comment 1 --body x",
-      "head": "inject",
-      "now": "deny",
-      "category": "admin-verb"
-    },
-    {
       "id": "demo-root|posix|propose|gh repo delete o/r --yes",
       "cwd": "demo-root",
       "level": "propose",
@@ -421,7 +395,7 @@
       "command": "gh pr comment 1 --body x",
       "head": "inject",
       "now": "deny",
-      "category": "admin-verb"
+      "category": "gh-comment"
     },
     {
       "id": "demo-root|posix|read|gh repo delete o/r --yes",
@@ -881,6 +855,87 @@
       "head": "inject",
       "now": "pass",
       "category": "gh-api-endpoint-destination"
+    },
+    {
+      "id": "demo-root|posix|propose|gh pr comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "cwd": "demo-root",
+      "level": "propose",
+      "command": "gh pr comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "head": "deny",
+      "now": "inject",
+      "category": "gh-comment"
+    },
+    {
+      "id": "demo-root|posix|propose|gh issue comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "cwd": "demo-root",
+      "level": "propose",
+      "command": "gh issue comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "head": "deny",
+      "now": "inject",
+      "category": "gh-comment"
+    },
+    {
+      "id": "demo-root|posix|propose|gh issue comment 1 --body x",
+      "cwd": "demo-root",
+      "level": "propose",
+      "command": "gh issue comment 1 --body x",
+      "head": "deny",
+      "now": "inject",
+      "category": "gh-comment"
+    },
+    {
+      "id": "demo-root|posix|merge|gh pr comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "cwd": "demo-root",
+      "level": "merge",
+      "command": "gh pr comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "head": "deny",
+      "now": "inject",
+      "category": "gh-comment"
+    },
+    {
+      "id": "demo-root|posix|merge|gh issue comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "cwd": "demo-root",
+      "level": "merge",
+      "command": "gh issue comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "head": "deny",
+      "now": "inject",
+      "category": "gh-comment"
+    },
+    {
+      "id": "demo-root|posix|merge|gh issue comment 1 --body x",
+      "cwd": "demo-root",
+      "level": "merge",
+      "command": "gh issue comment 1 --body x",
+      "head": "deny",
+      "now": "inject",
+      "category": "gh-comment"
+    },
+    {
+      "id": "demo-root|posix|full|gh pr comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "cwd": "demo-root",
+      "level": "full",
+      "command": "gh pr comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "head": "pass",
+      "now": "inject",
+      "category": "gh-comment"
+    },
+    {
+      "id": "demo-root|posix|full|gh issue comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "cwd": "demo-root",
+      "level": "full",
+      "command": "gh issue comment 32 -R simpsonm09-org/demo-repo --body '@dependabot rebase'",
+      "head": "pass",
+      "now": "inject",
+      "category": "gh-comment"
+    },
+    {
+      "id": "demo-root|posix|full|gh issue comment 1 --body x",
+      "cwd": "demo-root",
+      "level": "full",
+      "command": "gh issue comment 1 --body x",
+      "head": "deny",
+      "now": "inject",
+      "category": "gh-comment"
     }
   ]
 }

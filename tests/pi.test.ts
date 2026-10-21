@@ -371,13 +371,19 @@ test("a call whose working directory is unknown is blocked for a write and passe
   assert.equal(read.result, undefined);
 });
 
-test("a directory outside the fleet is not gated", async () => {
-  const { result, command } = await run("gh pr merge 1", {
+test("outside the fleet, a gh write that names no destination is denied and a command passes", async () => {
+  const write = await run("gh pr merge 1", {
     cwd: cwdOf("projects/other/x"),
     level: "read",
   });
-  assert.equal(result, undefined);
-  assert.equal(command, "gh pr merge 1");
+  assert.equal(write.result?.block, true);
+  assert.match(write.result?.reason ?? "", /outside the fleet/);
+  const other = await run("npm test", {
+    cwd: cwdOf("projects/other/x"),
+    level: "read",
+  });
+  assert.equal(other.result, undefined);
+  assert.equal(other.command, "npm test");
 });
 
 test("the tool name is matched without regard to case, so Bash is gated too", async () => {

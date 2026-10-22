@@ -1,8 +1,8 @@
 {
   "repository": "simpsonm09-org/simpsonm09-repo-standard",
-  "commit": "b108c6b339903e075fd757dfd5880a9325a18b5b",
+  "commit": "c0829a2f83636f9374fb079bdd3e2d34a56f5c42",
   "sourcePath": "scripts/agent-access.mjs",
-  "sha256": "d068dc5a7c8a86077fc8c5fc90d8096b3c1419f2a3a6feb7a1c68a71d1d9a442",
-  "apiVersion": 2,
+  "sha256": "68f24574a9b7f0653972d4cf59010a9b9a2e8e3f88b4cfef970b85915ed414c0",
+  "apiVersion": 3,
   "artifactPath": "runtime/agent-access.mjs"
 }

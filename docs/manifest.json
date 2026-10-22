@@ -2,6 +2,7 @@
   "readme": true,
   "features": [
     "docs/features/pinned-gate-resolver.md",
-    "docs/features/owned-fork-observer.md"
+    "docs/features/owned-fork-observer.md",
+    "docs/features/standalone-owned-gate.md"
   ]
 }

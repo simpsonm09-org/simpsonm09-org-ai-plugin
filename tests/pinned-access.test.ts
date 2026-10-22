@@ -12,10 +12,17 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import {
   defaultScripts,
+  gitReader,
   loadAccessApi,
   observeShellCommand,
   resolveAccess,
 } from "../access.mjs";
+import { decideShell, gateShellEdit } from "../gate.mjs";
+import { handleAntigravity } from "../hooks/lib/antigravity.mjs";
+import { handlePreToolUse } from "../hooks/lib/claude.mjs";
+import { handlePreToolUse as handleCodexPreToolUse } from "../hooks/lib/codex.mjs";
+import { handlePreToolUse as handleCopilotPreToolUse } from "../hooks/lib/copilot.mjs";
+import { handleCursor } from "../hooks/lib/cursor.mjs";
 import {
   hasPinnedAccessApi,
   hasSupportedPinMetadata,
@@ -23,6 +30,12 @@ import {
   pinMetadata,
   RESOLVER_PIN,
 } from "../lib/pinned-access.mjs";
+import type {
+  ToolCallContext,
+  ToolCallEvent,
+  ToolCallResult,
+} from "../pi/index.ts";
+import { install as installPi } from "../pi/index.ts";
 import {
   buildWorkspace,
   removeDir,
@@ -34,6 +47,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const apiShape = {
   loadCommittedCatalog() {},
   loadCommittedOwnedForks() {},
+  loadCommittedOwnedRepositories() {},
   resolveLevel() {},
   resolveDestination() {},
   decideTarget() {},
@@ -44,18 +58,19 @@ test("the packaged resolver pin names the reviewed artifact and API contract", (
     RESOLVER_PIN.repository,
     "simpsonm09-org/simpsonm09-repo-standard",
   );
-  assert.equal(RESOLVER_PIN.commit, "b108c6b339903e075fd757dfd5880a9325a18b5b");
+  assert.equal(RESOLVER_PIN.commit, "c0829a2f83636f9374fb079bdd3e2d34a56f5c42");
   assert.equal(RESOLVER_PIN.sourcePath, "scripts/agent-access.mjs");
   assert.match(RESOLVER_PIN.sha256, /^[0-9a-f]{64}$/);
   assert.equal(
     RESOLVER_PIN.sha256,
-    "d068dc5a7c8a86077fc8c5fc90d8096b3c1419f2a3a6feb7a1c68a71d1d9a442",
+    "68f24574a9b7f0653972d4cf59010a9b9a2e8e3f88b4cfef970b85915ed414c0",
   );
-  assert.equal(RESOLVER_PIN.apiVersion, 2);
+  assert.equal(RESOLVER_PIN.apiVersion, 3);
   assert.equal(hasPinnedAccessApi(apiShape), true);
   // Every destination export is required: an older bundle without them cannot load.
   for (const missing of [
     "loadCommittedOwnedForks",
+    "loadCommittedOwnedRepositories",
     "resolveDestination",
     "decideTarget",
   ]) {
@@ -84,6 +99,7 @@ test("pin provenance in the readme and docs manifest matches the runtime", () =>
   assert.deepEqual(manifest.features, [
     "docs/features/pinned-gate-resolver.md",
     "docs/features/owned-fork-observer.md",
+    "docs/features/standalone-owned-gate.md",
   ]);
   for (const feature of manifest.features)
     assert.ok(existsSync(join(root, ...feature.split("/"))), feature);
@@ -250,5 +266,252 @@ test("standard checkout edits and branch changes do not replace the pinned resol
     );
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the exact standalone target is gated from committed policy across shipped adapters", async () => {
+  const dir = tempDir("pinned-resolver-owned-repository-");
+  try {
+    const { workspace, cwd } = buildWorkspace(dir, { level: "propose" });
+    const scripts = defaultScripts(workspace);
+    const catalog = scripts.catalog;
+    const clone = cwd("projects/repos/demo-repo");
+    execFileSync(
+      "git",
+      [
+        "-C",
+        clone,
+        "remote",
+        "set-url",
+        "origin",
+        "https://github.com/simpsonm09/simpsonm09.git",
+      ],
+      { windowsHide: true },
+    );
+    writeFileSync(
+      join(catalog, "owned-repositories.json"),
+      JSON.stringify({
+        repositories: [
+          { repository: "simpsonm09/simpsonm09", agentAccess: "propose" },
+        ],
+      }),
+    );
+    const api = await loadAccessApi(scripts.access);
+    assert.ok(api);
+    assert.equal(
+      resolveAccess(
+        api,
+        catalog,
+        "demo-repo",
+        observeShellCommand(clone, "git push origin feat/x"),
+      ).code,
+      1,
+      "an uncommitted standalone policy cannot grant the target",
+    );
+    const fixtureGit = (args: string[]) =>
+      execFileSync("git", ["-C", catalog, ...args], {
+        windowsHide: true,
+        env: {
+          ...process.env,
+          GIT_AUTHOR_NAME: "fixture",
+          GIT_AUTHOR_EMAIL: "fixture@example.invalid",
+          GIT_COMMITTER_NAME: "fixture",
+          GIT_COMMITTER_EMAIL: "fixture@example.invalid",
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+    writeFileSync(
+      join(catalog, "owned-repositories.json"),
+      JSON.stringify({
+        repositories: [
+          { repository: "simpsonm09/simpsonm09", agentAccess: "propose" },
+        ],
+      }),
+    );
+    fixtureGit(["add", "owned-repositories.json"]);
+    fixtureGit([
+      "-c",
+      "commit.gpgsign=false",
+      "commit",
+      "--quiet",
+      "-m",
+      "fixture owned repository policy",
+    ]);
+    fixtureGit(["update-ref", "refs/remotes/upstream/main", "HEAD"]);
+    const cases = [
+      ["branch push", "git push origin feat/x", true],
+      [
+        "same-repository PR",
+        "gh pr create -R simpsonm09/simpsonm09 --base main --head feat/x",
+        true,
+      ],
+      ["main push", "git push origin main", false],
+      ["force push", "git push --force origin feat/x", false],
+      ["deletion", "git push origin :main", false],
+      ["tag push", "git push origin v1", false],
+      [
+        "cross-repository PR",
+        "gh pr create -R simpsonm09/simpsonm09 --base acme/other:main --head feat/x",
+        false,
+      ],
+      [
+        "owner-only PR identity",
+        "gh pr create -R simpsonm09/simpsonm09 --base michael-denyer:main --head feat/x",
+        false,
+      ],
+      ["merge", "gh pr merge 1 -R simpsonm09/simpsonm09", false],
+      ["administration", "gh repo delete simpsonm09/simpsonm09 --yes", false],
+      [
+        "third-party target",
+        "git push https://github.com/acme/other.git feat/x",
+        false,
+      ],
+      [
+        "unknown target",
+        "git push https://github.com/acme/unlisted.git feat/x",
+        false,
+      ],
+    ] as const;
+    for (const [name, command, allowed] of cases) {
+      const observed = observeShellCommand(clone, command);
+      const result = resolveAccess(api, catalog, "demo-repo", observed);
+      assert.equal(result.code === 0, allowed, `${name}: resolver result`);
+      const deps = {
+        cwd: clone,
+        workspaceRoot: workspace,
+        resolve: (_repo: string, intent: typeof observed) =>
+          resolveAccess(api, catalog, "demo-repo", intent),
+        env: [],
+        git: (path: string) => gitReader(path),
+      };
+      assert.equal(
+        decideShell({ command }, deps).action !== "deny",
+        allowed,
+        `${name}: shared gate`,
+      );
+      const edit = { command };
+      const openCode = await gateShellEdit(
+        edit,
+        {},
+        { ...deps, tokenFor: async () => null },
+      );
+      assert.equal(
+        openCode.action !== "deny",
+        allowed,
+        `${name}: OpenCode adapter`,
+      );
+      const claude = await handlePreToolUse(
+        { tool_name: "Bash", tool_input: { command }, cwd: clone },
+        {
+          workspaceRoot: workspace,
+          env: { CLAUDE_CODE_GIT_BASH_PATH: process.execPath },
+        },
+      );
+      assert.equal(
+        claude?.hookSpecificOutput?.permissionDecision !== "deny",
+        allowed,
+        `${name}: Claude adapter`,
+      );
+    }
+
+    const adapterCases = [
+      cases[0],
+      cases[1],
+      cases[2],
+      cases[6],
+      cases[8],
+      cases[9],
+    ];
+    let piHandler:
+      | ((
+          event: ToolCallEvent,
+          ctx: ToolCallContext,
+        ) => Promise<ToolCallResult>)
+      | undefined;
+    installPi(
+      {
+        on(_event, handler) {
+          piHandler = handler;
+        },
+      },
+      { workspaceRoot: workspace },
+    );
+    assert.ok(piHandler);
+    for (const [name, command, allowed] of adapterCases) {
+      const copilot = await handleCopilotPreToolUse(
+        {
+          sessionId: "fixture-session",
+          timestamp: 1791497823900,
+          cwd: clone,
+          toolName: "bash",
+          toolArgs: { command, description: "fixture command" },
+        },
+        {
+          workspaceRoot: workspace,
+          env: { CLAUDE_CODE_GIT_BASH_PATH: process.execPath },
+        },
+      );
+      assert.equal(
+        copilot?.permissionDecision !== "deny",
+        allowed,
+        `${name}: Copilot adapter`,
+      );
+
+      const cursor = await handleCursor(
+        { command, cwd: clone, shell: "bash" },
+        { workspaceRoot: workspace },
+      );
+      assert.equal(
+        cursor?.permission !== "deny",
+        allowed,
+        `${name}: Cursor shared-hook adapter`,
+      );
+
+      const antigravity = await handleAntigravity(
+        {
+          hook_event_name: "PreToolUse",
+          toolCall: {
+            name: "run_command",
+            args: { CommandLine: command, Cwd: clone, Shell: "bash" },
+          },
+        },
+        { workspaceRoot: workspace },
+      );
+      assert.equal(
+        antigravity?.decision !== "deny",
+        allowed,
+        `${name}: Antigravity shared-hook adapter`,
+      );
+
+      const pi = await piHandler(
+        { toolName: "bash", input: { command } },
+        { cwd: clone, hasUI: false },
+      );
+      assert.equal(
+        pi?.block !== true,
+        allowed,
+        `${name}: Pi extension entry point`,
+      );
+
+      const codex = await handleCodexPreToolUse(
+        {
+          hook_event_name: "PreToolUse",
+          tool_name: "Bash",
+          cwd: clone,
+          tool_input: { command },
+        },
+        {
+          workspaceRoot: workspace,
+          env: { CLAUDE_CODE_GIT_BASH_PATH: process.execPath },
+        },
+      );
+      assert.equal(
+        codex?.hookSpecificOutput?.permissionDecision,
+        "deny",
+        `${name}: Codex adapter keeps its documented deny-all-writes policy`,
+      );
+    }
+  } finally {
+    removeDir(dir);
   }
 });

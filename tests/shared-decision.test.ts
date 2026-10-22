@@ -505,6 +505,7 @@ test("a resolver module that throws is an unknown answer, not a crash", () => {
       throw new Error("no catalog");
     },
     loadCommittedOwnedForks: () => null,
+    loadCommittedOwnedRepositories: () => null,
     resolveLevel: () => ({}),
     resolveDestination: () => ({ kind: "unknown" }),
     decideTarget: () => ({ capability: null, allowed: true }),
@@ -526,6 +527,7 @@ test("an unknown answer says catalog missing only after a readable catalog confi
     {
       loadCommittedCatalog: () => ({ repos: [] }),
       loadCommittedOwnedForks: () => null,
+      loadCommittedOwnedRepositories: () => null,
       resolveLevel: () => ({ level: "read", source: "unknown" }),
       resolveDestination: () => ({ kind: "unknown" }),
       decideTarget: () => {
@@ -542,6 +544,7 @@ test("an unknown answer says catalog missing only after a readable catalog confi
     {
       loadCommittedCatalog: () => null,
       loadCommittedOwnedForks: () => null,
+      loadCommittedOwnedRepositories: () => null,
       resolveLevel: () => ({ level: "read", source: "unknown" }),
       resolveDestination: () => ({ kind: "unknown" }),
       decideTarget: () => ({ capability: null, allowed: false }),
@@ -577,6 +580,7 @@ function destinationLevelApi() {
       repos: [{ name: "demo-repo", tier: "standard", agentAccess: "read" }],
     }),
     loadCommittedOwnedForks: () => null,
+    loadCommittedOwnedRepositories: () => null,
     resolveLevel: (_catalog: unknown, name: string) => ({
       repo: name,
       level: "read",

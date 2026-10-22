@@ -36,6 +36,7 @@ const MINT_TIMEOUT_MS = 20_000;
  * @typedef {{
  *   loadCommittedCatalog: (dir: string) => unknown | null,
  *   loadCommittedOwnedForks: (dir: string) => unknown | null,
+ *   loadCommittedOwnedRepositories: (dir: string) => unknown | null,
  *   resolveLevel: (catalog: unknown, repoName: string) => { level?: unknown },
  *   resolveDestination: (input: Record<string, unknown>) => Record<string, unknown>,
  *   decideTarget: (target: unknown, intent: unknown) => { capability: string | null, allowed: boolean },
@@ -94,6 +95,7 @@ function isAccessApi(value) {
   return (
     typeof api?.loadCommittedCatalog === "function" &&
     typeof api?.loadCommittedOwnedForks === "function" &&
+    typeof api?.loadCommittedOwnedRepositories === "function" &&
     typeof api?.resolveLevel === "function" &&
     typeof api?.resolveDestination === "function" &&
     typeof api?.decideTarget === "function"
@@ -131,15 +133,24 @@ export async function loadTokenApi(script) {
  * @param {AccessApi} api
  * @param {unknown} roster
  * @param {unknown} ownedForks
+ * @param {unknown} ownedRepositories
  * @param {string} repo
  * @param {import("./lib/observation.mjs").Observation} observation
  * @returns {Record<string, unknown>}
  */
-function targetFor(api, roster, ownedForks, repo, observation) {
+function targetFor(
+  api,
+  roster,
+  ownedForks,
+  ownedRepositories,
+  repo,
+  observation,
+) {
   const observed = observationDestination(observation);
   return api.resolveDestination({
     roster,
     ownedForks,
+    ownedRepositories,
     localRepo: repo,
     host: observed?.host ?? "",
     destination: observed?.destination ?? "",
@@ -201,7 +212,15 @@ function accessFromApi(api, catalogDir, repo, observation) {
   const contextLevel =
     typeof resolved.level === "string" ? resolved.level : fallbackLevel();
   const ownedForks = api.loadCommittedOwnedForks(catalogDir);
-  const target = targetFor(api, roster, ownedForks, repo, observation);
+  const ownedRepositories = api.loadCommittedOwnedRepositories(catalogDir);
+  const target = targetFor(
+    api,
+    roster,
+    ownedForks,
+    ownedRepositories,
+    repo,
+    observation,
+  );
   let outcome;
   try {
     outcome = api.decideTarget(target, toResolverIntent(observation));

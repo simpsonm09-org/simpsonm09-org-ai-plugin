@@ -952,6 +952,35 @@ test("toResolverIntent carries only the fields the resolver validates", () => {
   });
 });
 
+test("toResolverIntent omits absent branch-only identities and preserves partial identities", () => {
+  const branchOnly = observeShellCommand(
+    clone("owned-fork"),
+    "gh pr create -R simpsonm09/simpsonm09 --base main --head feat/x",
+  );
+  assert.deepEqual(toResolverIntent(branchOnly).base, { branch: "main" });
+  assert.deepEqual(toResolverIntent(branchOnly).head, { branch: "feat/x" });
+
+  const ownerOnly = observeShellCommand(
+    clone("owned-fork"),
+    "gh pr create -R simpsonm09/simpsonm09 --base michael-denyer:main --head feat/x",
+  );
+  assert.deepEqual(toResolverIntent(ownerOnly).base, {
+    owner: "michael-denyer",
+    repo: null,
+    branch: "main",
+  });
+
+  const crossRepository = observeShellCommand(
+    clone("owned-fork"),
+    "gh pr create -R simpsonm09/simpsonm09 --base acme/other:main --head feat/x",
+  );
+  assert.deepEqual(toResolverIntent(crossRepository).base, {
+    owner: "acme",
+    repo: "other",
+    branch: "main",
+  });
+});
+
 test("the injected git port is the only source of git state", () => {
   const calls: string[][] = [];
   const observed = observeCommand("git push origin feat/x", {

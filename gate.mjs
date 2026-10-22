@@ -417,6 +417,26 @@ function denyReason(resolved, repo, level, observation) {
  * @returns {boolean}
  */
 function allowsPersonalForkSync(observation, resolved) {
+  if (!isPersonalForkSyncShape(observation, resolved)) return false;
+
+  return (
+    resolved?.kind === "org" &&
+    resolved.source === "personal-fork" &&
+    resolved.destination?.toLowerCase() ===
+      `${observation.destination.owner}/${observation.destination.repo}`.toLowerCase() &&
+    ["propose", "merge", "full"].includes(resolved.level)
+  );
+}
+
+// The syntax accepted by the personal-fork sync exception. Kept separate from the resolver
+// classification so the same narrowly recognized request can explain a missing clone context
+// without changing its denial.
+/**
+ * @param {import("./lib/observation.mjs").Observation} observation
+ * @param {ReturnType<typeof parseResolverOutput>} resolved
+ * @returns {boolean}
+ */
+function isPersonalForkSyncShape(observation, resolved, requireSource = false) {
   const sync = observation.ghRepoSync;
   if (
     observation.program !== "gh" ||
@@ -443,21 +463,69 @@ function allowsPersonalForkSync(observation, resolved) {
   if (branches.length > 1 || branches.some((option) => option.value !== "main"))
     return false;
   const sources = options.filter((option) => option.name === "--source");
-  if (sources.length > 1) return false;
   if (
-    sources.length === 1 &&
-    sources[0].value?.toLowerCase() !==
-      `${resolved?.org}/${observation.destination.repo}`.toLowerCase()
+    sources.length > 1 ||
+    (requireSource && sources.length !== 1) ||
+    (sources.length === 1 &&
+      (!resolved?.org ||
+        sources[0].value?.toLowerCase() !==
+          `${resolved.org}/${observation.destination.repo}`.toLowerCase()))
   )
     return false;
 
-  return (
-    resolved?.kind === "org" &&
-    resolved.source === "personal-fork" &&
-    resolved.destination?.toLowerCase() ===
-      `${observation.destination.owner}/${observation.destination.repo}`.toLowerCase() &&
-    ["propose", "merge", "full"].includes(resolved.level)
+  return Boolean(
+    resolved?.org &&
+      observation.destination.owner.toLowerCase() !==
+        resolved.org.toLowerCase(),
   );
+}
+
+/**
+ * @param {import("./lib/observation.mjs").Observation} observation
+ * @param {ReturnType<typeof parseResolverOutput>} resolved
+ * @returns {boolean}
+ */
+function hasUnresolvedPersonalForkSyncContext(observation, resolved, deps) {
+  if (
+    !(
+      isPersonalForkSyncShape(observation, resolved, true) &&
+      resolved?.kind === "unknown" &&
+      resolved.source === "unknown" &&
+      resolved.level === "none" &&
+      resolved.destination?.toLowerCase() ===
+        `${observation.destination.owner}/${observation.destination.repo}`.toLowerCase()
+    )
+  )
+    return false;
+
+  const org = resolved.org;
+  if (!org) return false;
+  const orgDestination = `${org}/${observation.destination.repo}`;
+  const orgObservation = {
+    ...observation,
+    destination: {
+      ...observation.destination,
+      owner: org,
+    },
+    ghRepoSync: {
+      ...observation.ghRepoSync,
+      positionals: [orgDestination],
+    },
+  };
+  const orgTarget = parseResolverOutput(
+    deps.resolve("", orgObservation).stdout,
+  );
+
+  return (
+    orgTarget?.kind === "org" &&
+    orgTarget.source === "org" &&
+    orgTarget.destination?.toLowerCase() === orgDestination.toLowerCase() &&
+    ["propose", "merge", "full"].includes(orgTarget.level)
+  );
+}
+
+function unresolvedPersonalForkSyncReason(observation) {
+  return `the destination ${observation.destination.owner}/${observation.destination.repo} is denied because its personal-fork identity cannot be determined without local repository context for the ${observation.destination.repo} clone. This denial is final and the blocked command cannot be automatically retried`;
 }
 
 // The decision for one command, with no side effects: no token, no environment, no
@@ -667,7 +735,11 @@ function resolveDecision(command, repo, observation, governed, codex, deps) {
       action: "deny",
       repo,
       level,
-      reason: denyReason(resolved, repo, level, observation),
+      reason:
+        repo === "" &&
+        hasUnresolvedPersonalForkSyncContext(observation, resolved, deps)
+          ? unresolvedPersonalForkSyncReason(observation)
+          : denyReason(resolved, repo, level, observation),
     };
   if (classification === "unknown")
     return unresolvableWrite(repo, level, governed, result);

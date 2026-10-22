@@ -25,11 +25,15 @@ let catalog = "";
 /** @type {Awaited<ReturnType<typeof loadAccessApi>>} */
 let api = null;
 
-function decide(command: string, shell: "bash" | "powershell" = "bash") {
+function decide(
+  command: string,
+  shell: "bash" | "powershell" = "bash",
+  cwd = join(workspace, "projects", "repos", "fork-repo"),
+) {
   return decideShell(
     { command, shell },
     {
-      cwd: join(workspace, "projects", "repos", "fork-repo"),
+      cwd,
       workspaceRoot: workspace,
       lookup: (dir: string) => fleetLookup(dir, workspace),
       resolve: (repo: string, observation: Observation) =>
@@ -82,6 +86,119 @@ for (const level of ["propose", "merge"]) {
 test("a read-level personal-fork sync is denied", () => {
   setLevel("read");
   assert.equal(decide("gh repo sync simpsonm09/fork-repo").action, "deny");
+});
+
+test("an unresolved clone context keeps the personal-fork sync denied with a focused reason", () => {
+  setLevel("merge");
+  const command =
+    "gh repo sync simpsonm09/fork-repo --source simpsonm09-org/fork-repo";
+  const decision = decide(command, "bash", workspace);
+
+  assert.equal(decision.action, "deny");
+  assert.equal(decision.repo, null);
+  assert.equal(decision.level, "none");
+  assert.match(decision.reason ?? "", /local repository context/);
+  assert.match(
+    decision.reason ?? "",
+    /denial is final and the blocked command cannot be automatically retried/,
+  );
+  assert.match(decision.reason ?? "", /for the fork-repo clone/);
+  assert.doesNotMatch(decision.reason ?? "", /run|retry|working directory/i);
+  assert.doesNotMatch(decision.reason ?? "", /[A-Za-z]:\\|\\\\/);
+
+  const recognized = decide(command);
+  assert.equal(recognized.action, "pass", recognized.reason);
+  assert.equal(recognized.level, "merge");
+});
+
+test("an omitted source keeps the existing root-context denial", () => {
+  setLevel("merge");
+  const decision = decide(
+    "gh repo sync simpsonm09/fork-repo",
+    "bash",
+    workspace,
+  );
+
+  assert.equal(decision.action, "deny");
+  assert.equal(
+    decision.reason,
+    'the destination simpsonm09/fork-repo denies admin at level "none"',
+  );
+});
+
+test("a different source keeps the existing denial without a context hint", () => {
+  setLevel("merge");
+  const decision = decide(
+    "gh repo sync simpsonm09/fork-repo --source other-org/fork-repo",
+    "bash",
+    workspace,
+  );
+
+  assert.equal(decision.action, "deny");
+  assert.equal(
+    decision.reason,
+    'the destination simpsonm09/fork-repo denies admin at level "none"',
+  );
+});
+
+test("a matching source for a repository outside the roster keeps the existing denial", () => {
+  setLevel("merge");
+  const decision = decide(
+    "gh repo sync simpsonm09/rogue-repo --source simpsonm09-org/rogue-repo",
+    "bash",
+    workspace,
+  );
+
+  assert.equal(decision.action, "deny");
+  assert.equal(
+    decision.reason,
+    'the destination simpsonm09/rogue-repo denies admin at level "none"',
+  );
+});
+
+test("a matching source without enough roster access keeps the existing denial", () => {
+  setLevel("read");
+  const decision = decide(
+    "gh repo sync simpsonm09/fork-repo --source simpsonm09-org/fork-repo",
+    "bash",
+    workspace,
+  );
+
+  assert.equal(decision.action, "deny");
+  assert.equal(
+    decision.reason,
+    'the destination simpsonm09/fork-repo denies admin at level "none"',
+  );
+});
+
+test("a third-party destination keeps the existing denial", () => {
+  setLevel("merge");
+  const decision = decide(
+    "gh repo sync michael-denyer/pstack-claude --source simpsonm09-org/pstack-claude",
+    "bash",
+    workspace,
+  );
+
+  assert.equal(decision.action, "deny");
+  assert.equal(
+    decision.reason,
+    'the destination michael-denyer/pstack-claude denies admin at level "none"',
+  );
+});
+
+test("a non-GitHub host keeps the existing denial", () => {
+  setLevel("merge");
+  const decision = decide(
+    "gh --hostname github.example repo sync simpsonm09/fork-repo --source simpsonm09-org/fork-repo",
+    "bash",
+    workspace,
+  );
+
+  assert.equal(decision.action, "deny");
+  assert.equal(
+    decision.reason,
+    'the gh verb "--hostname github.example" has no precise capability; it is treated as an admin write; outside the fleet, run the write from the fleet clone or pin -R OWNER/REPO to a GitHub repository',
+  );
 });
 
 for (const [name, command, shell] of [

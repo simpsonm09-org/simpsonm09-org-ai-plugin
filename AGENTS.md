@@ -1,6 +1,6 @@
 # simpsonm09-org-ai-plugin working agreements
 
-The shared OpenCode layer for the `simpsonm09-org` organization, and the Claude Code plugin that applies the same agent-access gate.
+The shared OpenCode layer for the `simpsonm09-projects` organization, and the Claude Code plugin that applies the same agent-access gate.
 
 ## Ground rules
 

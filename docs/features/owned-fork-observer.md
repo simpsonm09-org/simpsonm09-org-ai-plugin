@@ -148,7 +148,7 @@ would suggest.
   cannot see. A real query keeps its `$var` references and `{owner}` placeholders inside
   single quotes, so it stays a read. One left-to-right read of the arguments decides which
   token is an option and which is its value: a value option consumes the next word, so
-  `gh pr create --title -Rsimpsonm09-org/demo-repo` reads that word as the title, not as `-R`,
+  `gh pr create --title -Rsimpsonm09-projects/demo-repo` reads that word as the title, not as `-R`,
   and the destination falls back to the clone. An option the per-command table does not name
   makes the read untrustworthy, so the destination is unresolved rather than guessed.
 - A heredoc body (`<<`, `<<-`, or a quoted, unquoted, or escaped delimiter) is data, not

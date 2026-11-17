@@ -5,8 +5,8 @@ description: Use when a change to any fleet repository needs to land, when asked
 
 # The fleet standard
 
-Every repository in `simpsonm09-org` follows one standard. The standard lives in
-[`simpsonm09-repo-standard`](https://github.com/simpsonm09-org/simpsonm09-repo-standard).
+Every repository in `simpsonm09-projects` follows one standard. The standard lives in
+[`simpsonm09-repo-standard`](https://github.com/simpsonm09-projects/simpsonm09-repo-standard).
 
 ## The gates
 
@@ -27,7 +27,7 @@ A change is done when the standard check is green, the test check is green with 
 changed-line coverage the repository gates, the change is verified on the real artifact,
 commits are signed, no secret or machine path is committed, docs and `docs/manifest.json`
 match, and anything that ships carries a release note. The full text is in the standard's
-[`docs/definition-of-done.md`](https://github.com/simpsonm09-org/simpsonm09-repo-standard/blob/main/docs/definition-of-done.md).
+[`docs/definition-of-done.md`](https://github.com/simpsonm09-projects/simpsonm09-repo-standard/blob/main/docs/definition-of-done.md).
 
 Verification is not "it compiles". Run the feature, call the endpoint, or drive the screen,
 and state the command or the observation in the pull request.
@@ -40,9 +40,9 @@ one.
 
 - `main` is protected. Work on a branch, open a same-repo pull request on the organization,
   and let the checks run before the merge. Never push directly to `main`.
-- Open a pull request, issue, or comment only on a repository owned by the owner of the
-  personal plugin or the owner of the org plugin: `simpsonm09` and `simpsonm09-org`. Never
-  open one automatically against any other owner, including the upstream a fork came from
+- Open a pull request, issue, or comment only on a repository owned by the org plugin's
+  owner, `simpsonm09-projects`, or by `simpsonm09` for the PStack plugin source. Never
+  open one automatically against any other owner, including the upstream a dependency came from
   (`michael-denyer/pstack-claude`, `cursor/plugins`, `pingdotgg/t3code`). A contribution to
   a repository we do not own needs the user's explicit review first. `gh pr create` targets
   a fork's parent by default, so always pass `-R <owner>/<repo>` naming an owned repository,
@@ -95,5 +95,5 @@ Run this as one sequence. Follow it rather than restating the release from memor
 ## Where the standard lives
 
 - `repo-standard` owns the checks, the reusable workflows, the rulesets, and the docs.
-- `repo-catalog` owns the roster, the tiers, and the [roadmap](https://github.com/simpsonm09-org/simpsonm09-repo-catalog/blob/main/docs/roadmap.md).
+- `repo-catalog` owns the roster, the tiers, and the [roadmap](https://github.com/simpsonm09-projects/simpsonm09-repo-catalog/blob/main/docs/roadmap.md).
 - `repo-template` is the starting point for a new repository.

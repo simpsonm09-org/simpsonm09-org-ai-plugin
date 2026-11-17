@@ -1,8 +1,11 @@
 # simpsonm09-org-ai-plugin
 
-The shared OpenCode layer for the `simpsonm09-org` organization, and the Claude Code plugin that applies the same agent-access gate.
+The shared OpenCode layer for the `simpsonm09-projects` organization, and the Claude Code plugin that applies the same agent-access gate.
 
-The original lives in `simpsonm09-org/simpsonm09-org-ai-plugin`; work happens on the personal fork. See [`repo-standard`](https://github.com/simpsonm09-org/simpsonm09-repo-standard).
+This repository lives in `simpsonm09-projects/simpsonm09-org-ai-plugin`. Work happens on a branch
+with a pull request into `main`.
+See [`repo-standard`](https://github.com/simpsonm09-projects/simpsonm09-repo-standard)
+for the branch model and the protection rules.
 
 See the [documentation index](docs/README.md) for the packaged resolver and its release note.
 
@@ -33,7 +36,7 @@ The App token is injected only when the observed `gh` command is a fully literal
 
 `gh pr comment` and `gh issue comment` require `openPr`, like `gh pr create` and `gh pr ready`: `propose` and above allow them; `read` and `none` deny them.
 
-From a fleet clone, `gh repo sync <personal-fork>` may fast-forward that clone's personal fork from its organization parent at `propose` or higher, with only an optional `--branch main` and matching `--source <org>/<repo>`; the server chooses the parent. Any other sync shape, including `--force`, stays an `admin` write that only `full` grants.
+For a legacy clone that still has a personal fork remote, `gh repo sync <personal-fork>` may fast-forward that clone's personal fork from its organization parent at `propose` or higher, with only an optional `--branch main` and matching `--source <org>/<repo>`; the server chooses the parent. Any other sync shape, including `--force`, stays an `admin` write that only `full` grants.
 
 When a literal sync names the matching organization source for a rostered repository with `propose` access or higher, but the gate cannot resolve a local clone identity, it remains denied. The denial identifies the missing local repository context and the clone by repository name, and says the denial is final and the blocked command cannot be automatically retried.
 
@@ -51,7 +54,7 @@ The Claude hook also denies a command that runs the launcher as its program, so 
 
 ### Adding a repository to the fleet
 
-When a repository is not in the fleet catalog, write commands are denied with instructions to add it first. Add the repository to `repo-catalog/repos.json` in [`simpsonm09-org/simpsonm09-repo-catalog`](https://github.com/simpsonm09/simpsonm09-repo-catalog), then its configured access level will govern agent writes.
+When a repository is not in the fleet catalog, write commands are denied with instructions to add it first. Add the repository to `repo-catalog/repos.json` in [`simpsonm09-projects/simpsonm09-repo-catalog`](https://github.com/simpsonm09-projects/simpsonm09-repo-catalog), then its configured access level will govern agent writes.
 
 ## Plugin and skills
 
@@ -70,12 +73,12 @@ To add a skill, create `skills/<id>/SKILL.md` with `name` and `description` fron
 
 ## How it gets loaded
 
-This repository is not installed on its own. [`simpsonm09-maxstack`](https://github.com/simpsonm09-org/simpsonm09-maxstack)'s `scripts/Install-Workspace.ps1 -Apply` copies the files listed in `layer.json` into `<workspace>/.opencode/plugins/simpsonm09-org-ai-plugin` and `<workspace>/.claude/plugins/simpsonm09-org-ai-plugin`. `runtime/` is part of that list and contains the pinned resolver and its provenance metadata.
+This repository is not installed on its own. [`simpsonm09-maxstack`](https://github.com/simpsonm09-projects/simpsonm09-maxstack)'s `scripts/Install-Workspace.ps1 -Apply` copies the files listed in `layer.json` into `<workspace>/.opencode/plugins/simpsonm09-org-ai-plugin` and `<workspace>/.claude/plugins/simpsonm09-org-ai-plugin`. `runtime/` is part of that list and contains the pinned resolver and its provenance metadata.
 
 - OpenCode needs no setting. It finds the workspace `.opencode` folder by walking up from the repository or worktree.
 - Claude Code must be started with `--plugin-dir <workspace>/.claude/plugins`. In T3 Code that goes in the Claude provider instance's "Launch arguments". Without it a Claude Code session has neither the skills nor the access gate.
 
-maxstack's [`docs/t3-setup.md`](https://github.com/simpsonm09-org/simpsonm09-maxstack/blob/main/docs/t3-setup.md) is the full reference. A new session is needed after each install.
+maxstack's [`docs/t3-setup.md`](https://github.com/simpsonm09-projects/simpsonm09-maxstack/blob/main/docs/t3-setup.md) is the full reference. A new session is needed after each install.
 
 ## GitHub Copilot CLI build
 

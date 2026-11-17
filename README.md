@@ -36,7 +36,7 @@ The App token is injected only when the observed `gh` command is a fully literal
 
 `gh pr comment` and `gh issue comment` require `openPr`, like `gh pr create` and `gh pr ready`: `propose` and above allow them; `read` and `none` deny them.
 
-From a fleet clone, `gh repo sync <personal-fork>` may fast-forward that clone's personal fork from its organization parent at `propose` or higher, with only an optional `--branch main` and matching `--source <org>/<repo>`; the server chooses the parent. Any other sync shape, including `--force`, stays an `admin` write that only `full` grants.
+For a legacy clone that still has a personal fork remote, `gh repo sync <personal-fork>` may fast-forward that clone's personal fork from its organization parent at `propose` or higher, with only an optional `--branch main` and matching `--source <org>/<repo>`; the server chooses the parent. Any other sync shape, including `--force`, stays an `admin` write that only `full` grants.
 
 When a literal sync names the matching organization source for a rostered repository with `propose` access or higher, but the gate cannot resolve a local clone identity, it remains denied. The denial identifies the missing local repository context and the clone by repository name, and says the denial is final and the blocked command cannot be automatically retried.
 

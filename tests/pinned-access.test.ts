@@ -54,10 +54,7 @@ const apiShape = {
 };
 
 test("the packaged resolver pin names the reviewed artifact and API contract", () => {
-  assert.equal(
-    RESOLVER_PIN.repository,
-    "simpsonm09-projects/repo-standard",
-  );
+  assert.equal(RESOLVER_PIN.repository, "simpsonm09-projects/repo-standard");
   assert.equal(RESOLVER_PIN.commit, "92d58ab2b42384931d5bf994f89933fc00978332");
   assert.equal(RESOLVER_PIN.sourcePath, "scripts/agent-access.mjs");
   assert.match(RESOLVER_PIN.sha256, /^[0-9a-f]{64}$/);
@@ -217,12 +214,7 @@ test("standard checkout edits and branch changes do not replace the pinned resol
   const dir = tempDir("pinned-resolver-standard-git-");
   try {
     const { workspace, cwd } = buildWorkspace(dir, { level: "propose" });
-    const standard = join(
-      workspace,
-      "projects",
-      "repos",
-      "repo-standard",
-    );
+    const standard = join(workspace, "projects", "repos", "repo-standard");
     const source = join(standard, "scripts", "agent-access.mjs");
     writeFileSync(
       source,

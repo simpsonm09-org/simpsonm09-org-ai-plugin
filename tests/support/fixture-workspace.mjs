@@ -85,7 +85,7 @@ export function writeCatalog(workspace, level) {
  * @param {Record<string, string>} levels repository name to agentAccess level
  */
 export function writeCatalogLevels(workspace, levels) {
-  const dir = join(workspace, "projects", "repos", "simpsonm09-repo-catalog");
+  const dir = join(workspace, "projects", "repos", "repo-catalog");
   mkdirSync(dir, { recursive: true });
   const catalog = {
     org: "simpsonm09-org",
@@ -166,12 +166,7 @@ export function buildWorkspace(dir, { level = "read" } = {}) {
     `export async function mintForRepo() {\n  return { token: ${JSON.stringify(FIXTURE_TOKEN)}, expires_at: "2099-01-01T00:00:00Z" };\n}\n`,
   );
   writeCatalog(workspace, level);
-  const catalog = join(
-    workspace,
-    "projects",
-    "repos",
-    "simpsonm09-repo-catalog",
-  );
+  const catalog = join(workspace, "projects", "repos", "repo-catalog");
   git(catalog, ["init", "--quiet", "-b", "main"]);
   git(catalog, ["add", "repos.json"]);
   git(catalog, ["commit", "--quiet", "--no-verify", "-m", "fixture catalog"]);

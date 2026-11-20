@@ -58,12 +58,12 @@ test("the packaged resolver pin names the reviewed artifact and API contract", (
     RESOLVER_PIN.repository,
     "simpsonm09-projects/simpsonm09-repo-standard",
   );
-  assert.equal(RESOLVER_PIN.commit, "c0829a2f83636f9374fb079bdd3e2d34a56f5c42");
+  assert.equal(RESOLVER_PIN.commit, "92d58ab2b42384931d5bf994f89933fc00978332");
   assert.equal(RESOLVER_PIN.sourcePath, "scripts/agent-access.mjs");
   assert.match(RESOLVER_PIN.sha256, /^[0-9a-f]{64}$/);
   assert.equal(
     RESOLVER_PIN.sha256,
-    "68f24574a9b7f0653972d4cf59010a9b9a2e8e3f88b4cfef970b85915ed414c0",
+    "5867b4b9b539fc634b2951e136a41188f285463f885de7e13f74ba2a50a31be8",
   );
   assert.equal(RESOLVER_PIN.apiVersion, 3);
   assert.equal(hasPinnedAccessApi(apiShape), true);

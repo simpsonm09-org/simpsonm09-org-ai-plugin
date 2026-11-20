@@ -325,7 +325,7 @@ test("a repository missing from the catalog gets an actionable write denial", ()
   assert.equal(decision.action, "deny");
   assert.match(
     decision.reason ?? "",
-    /demo-repo is not in the fleet catalog \(simpsonm09-org\/simpsonm09-repo-catalog, repo-catalog\/repos\.json\); add it there before agents can write to it/,
+    /demo-repo is not in the fleet catalog \(simpsonm09-projects\/repo-catalog, repo-catalog\/repos\.json\); add it there before agents can write to it/,
   );
 });
 

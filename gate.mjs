@@ -769,7 +769,7 @@ function unresolvableWrite(repo, level, governed, result) {
     repo,
     level,
     reason: result.catalogMissing
-      ? `${repo} is not in the fleet catalog (simpsonm09-org/simpsonm09-repo-catalog, repo-catalog/repos.json); add it there before agents can write to it`
+      ? `${repo} is not in the fleet catalog (simpsonm09-projects/repo-catalog, repo-catalog/repos.json); add it there before agents can write to it`
       : `the access resolver could not answer for ${repo}; check that the catalog and resolver are available before running this write`,
   };
 }

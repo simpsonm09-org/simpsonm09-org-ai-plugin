@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { pinMetadata, RESOLVER_PIN } from "../lib/pinned-access.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const standard = resolve(root, "..", "simpsonm09-repo-standard");
+const standard = resolve(root, "..", "repo-standard");
 const artifact = join(root, RESOLVER_PIN.artifactPath);
 const metadataFile = join(root, "runtime", "agent-access.pin.json");
 const args = process.argv.slice(2);

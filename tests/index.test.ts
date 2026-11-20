@@ -328,8 +328,8 @@ test("an approved owned-fork branch push is allowed through the live plugin wiri
 
 test("an organization main push is denied through the live plugin wiring at a propose repo", async () => {
   const clone = realFleetClone("u8-org-probe", {
-    origin: "https://github.com/simpsonm09/simpsonm09-repo-standard.git",
-    upstream: "https://github.com/simpsonm09-org/simpsonm09-repo-standard.git",
+    origin: "https://github.com/simpsonm09/repo-standard.git",
+    upstream: "https://github.com/simpsonm09-org/repo-standard.git",
   });
   try {
     await withFixture(async (scripts) => {

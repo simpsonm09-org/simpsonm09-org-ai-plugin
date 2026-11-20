@@ -56,7 +56,7 @@ const apiShape = {
 test("the packaged resolver pin names the reviewed artifact and API contract", () => {
   assert.equal(
     RESOLVER_PIN.repository,
-    "simpsonm09-projects/simpsonm09-repo-standard",
+    "simpsonm09-projects/repo-standard",
   );
   assert.equal(RESOLVER_PIN.commit, "92d58ab2b42384931d5bf994f89933fc00978332");
   assert.equal(RESOLVER_PIN.sourcePath, "scripts/agent-access.mjs");
@@ -172,7 +172,7 @@ test("the packaged resolver uses committed catalog data for an organization dest
       workspace,
       "projects",
       "repos",
-      "simpsonm09-repo-standard",
+      "repo-standard",
       "scripts",
       "agent-access.mjs",
     );
@@ -221,7 +221,7 @@ test("standard checkout edits and branch changes do not replace the pinned resol
       workspace,
       "projects",
       "repos",
-      "simpsonm09-repo-standard",
+      "repo-standard",
     );
     const source = join(standard, "scripts", "agent-access.mjs");
     writeFileSync(

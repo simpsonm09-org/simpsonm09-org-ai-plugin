@@ -1,5 +1,5 @@
 {
-  "name": "simpsonm09-org-ai-plugin",
+  "name": "org-ai-plugin",
   "description": "Shared OpenCode layer for the simpsonm09-org organization.",
   "kind": "config",
   "config": "opencode.fragment.jsonc",

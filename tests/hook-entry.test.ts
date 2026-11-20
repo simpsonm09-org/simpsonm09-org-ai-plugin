@@ -140,6 +140,20 @@ test("a worker that cannot start fails closed for PreToolUse and is quiet for Se
   );
 });
 
+test("a worker that cannot start with no error message says so in the reason", () => {
+  const io = capture();
+  assert.equal(
+    runGuardedHook({
+      kind: "pre",
+      input: READ,
+      spawn: fakeSpawn({ status: null }).spawn,
+      ...io,
+    }),
+    2,
+  );
+  assert.match(io.err.join(""), /could not run its worker \(no exit status\)/);
+});
+
 test("a crashed PreToolUse worker (exit 1) fails closed, and a crashed SessionStart worker does not block", () => {
   const io = capture();
   assert.equal(

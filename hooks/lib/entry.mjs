@@ -131,7 +131,7 @@ export function runGuardedHook({
       stdout,
       () => {
         stderr(
-          `simpsonm09-org-ai-plugin hook could not run its worker (${result.error?.message ?? "no exit status"}).\n`,
+          `org-ai-plugin hook could not run its worker (${result.error?.message ?? "no exit status"}).\n`,
         );
         return blockOnError ? 2 : 0;
       },

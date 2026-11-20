@@ -517,11 +517,11 @@ function reportFailure(error, options) {
   const message = error instanceof Error ? error.message : String(error);
   if (options.blockOnError) {
     process.stderr.write(
-      `simpsonm09-org-ai-plugin hook: the gate could not evaluate this command (${message}), so the command is blocked.\n`,
+      `org-ai-plugin hook: the gate could not evaluate this command (${message}), so the command is blocked.\n`,
     );
     process.exitCode = 2;
   } else {
-    process.stderr.write(`simpsonm09-org-ai-plugin hook: ${message}\n`);
+    process.stderr.write(`org-ai-plugin hook: ${message}\n`);
     process.exitCode = 0;
   }
 }

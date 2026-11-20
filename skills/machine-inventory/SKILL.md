@@ -1,15 +1,15 @@
 ---
 name: machine-inventory
-description: Use when a task depends on the fleet machines, such as choosing where a build or a service runs, checking a machine's storage class, GPU, or always-on status, or explaining the workspace layout. Reads the simpsonm09-machine-inventory records.
+description: Use when a task depends on the fleet machines, such as choosing where a build or a service runs, checking a machine's storage class, GPU, or always-on status, or explaining the workspace layout. Reads the machine-inventory records.
 ---
 
 # Machine inventory
 
-The fleet machine classes live in the `simpsonm09-machine-inventory` repository, cloned in the workspace at `projects/repos/simpsonm09-machine-inventory`. Each machine is one record at `machines/<id>.json`, and the repository README renders the same records as a table.
+The fleet machine classes live in the `machine-inventory` repository, cloned in the workspace at `projects/repos/machine-inventory`. Each machine is one record at `machines/<id>.json`, and the repository README renders the same records as a table.
 
 ## Read the records
 
-Read `projects/repos/simpsonm09-machine-inventory/machines/*.json`. Each record holds:
+Read `projects/repos/machine-inventory/machines/*.json`. Each record holds:
 
 - `id`: a non-identifying label such as `desktop-primary`.
 - `role`: `workstation`, `server`, or `runner`.

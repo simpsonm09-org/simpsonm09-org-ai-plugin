@@ -29,7 +29,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const CATALOG_DIR = join(ROOT, '..', 'simpsonm09-repo-catalog');
+const CATALOG_DIR = join(ROOT, '..', 'repo-catalog');
 const DEFAULT_CATALOG = join(CATALOG_DIR, 'repos.json');
 
 export const LEVELS = ['none', 'read', 'propose', 'merge', 'full'];

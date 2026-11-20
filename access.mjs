@@ -67,7 +67,7 @@ export function defaultScripts(workspaceRoot) {
       workspaceRoot,
       "projects",
       "repos",
-      "simpsonm09-repo-catalog",
+      "repo-catalog",
     ),
   };
 }

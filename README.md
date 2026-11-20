@@ -54,7 +54,7 @@ The Claude hook also denies a command that runs the launcher as its program, so 
 
 ### Adding a repository to the fleet
 
-When a repository is not in the fleet catalog, write commands are denied with instructions to add it first. Add the repository to `repo-catalog/repos.json` in [`simpsonm09-projects/simpsonm09-repo-catalog`](https://github.com/simpsonm09-projects/simpsonm09-repo-catalog), then its configured access level will govern agent writes.
+When a repository is not in the fleet catalog, write commands are denied with instructions to add it first. Add the repository to `repo-catalog/repos.json` in [`simpsonm09-projects/repo-catalog`](https://github.com/simpsonm09-projects/repo-catalog), then its configured access level will govern agent writes.
 
 ## Plugin and skills
 
@@ -237,7 +237,7 @@ The tests run the packaged resolver against temporary catalog git repositories w
 
 ## Refresh the pinned resolver
 
-The resolver source is pinned to `simpsonm09-org/simpsonm09-repo-standard` commit `c0829a2f83636f9374fb079bdd3e2d34a56f5c42`, path `scripts/agent-access.mjs`. The plugin verifies the bundled bytes against SHA-256 `68f24574a9b7f0653972d4cf59010a9b9a2e8e3f88b4cfef970b85915ed414c0` before importing them. API version `3` also requires `loadCommittedOwnedRepositories`; that loader reads the exact-target policy from committed `upstream/main` only. The policy, when present, grants only non-default branch pushes and same-repository PR creation. Missing or invalid policy grants no standalone target.
+The resolver source is pinned to `simpsonm09-projects/simpsonm09-repo-standard` commit `92d58ab2b42384931d5bf994f89933fc00978332`, path `scripts/agent-access.mjs`. The plugin verifies the bundled bytes against SHA-256 `5867b4b9b539fc634b2951e136a41188f285463f885de7e13f74ba2a50a31be8` before importing them. API version `3` also requires `loadCommittedOwnedRepositories`; that loader reads the exact-target policy from committed `upstream/main` only. The policy, when present, grants only non-default branch pushes and same-repository PR creation. Missing or invalid policy grants no standalone target.
 
 To check the bundle, run `just check-gate-resolver`. To reproduce it, run `just refresh-gate-resolver`. The command reads the exact commit from the local standard clone and never fetches. Restart OpenCode or start a new Claude Code session after installing an updated plugin so each host loads the packaged resolver again.
 

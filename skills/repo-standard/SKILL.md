@@ -95,5 +95,5 @@ Run this as one sequence. Follow it rather than restating the release from memor
 ## Where the standard lives
 
 - `repo-standard` owns the checks, the reusable workflows, the rulesets, and the docs.
-- `repo-catalog` owns the roster, the tiers, and the [roadmap](https://github.com/simpsonm09-projects/simpsonm09-repo-catalog/blob/main/docs/roadmap.md).
+- `repo-catalog` owns the roster, the tiers, and the [roadmap](https://github.com/simpsonm09-projects/repo-catalog/blob/main/docs/roadmap.md).
 - `repo-template` is the starting point for a new repository.

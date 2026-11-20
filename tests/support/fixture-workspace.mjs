@@ -85,7 +85,7 @@ export function writeCatalog(workspace, level) {
  * @param {Record<string, string>} levels repository name to agentAccess level
  */
 export function writeCatalogLevels(workspace, levels) {
-  const dir = join(workspace, "projects", "repos", "simpsonm09-repo-catalog");
+  const dir = join(workspace, "projects", "repos", "repo-catalog");
   mkdirSync(dir, { recursive: true });
   const catalog = {
     org: "simpsonm09-org",
@@ -170,7 +170,7 @@ export function buildWorkspace(dir, { level = "read" } = {}) {
     workspace,
     "projects",
     "repos",
-    "simpsonm09-repo-catalog",
+    "repo-catalog",
   );
   git(catalog, ["init", "--quiet", "-b", "main"]);
   git(catalog, ["add", "repos.json"]);

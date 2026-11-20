@@ -73,12 +73,12 @@ To add a skill, create `skills/<id>/SKILL.md` with `name` and `description` fron
 
 ## How it gets loaded
 
-This repository is not installed on its own. [`simpsonm09-maxstack`](https://github.com/simpsonm09-projects/simpsonm09-maxstack)'s `scripts/Install-Workspace.ps1 -Apply` copies the files listed in `layer.json` into `<workspace>/.opencode/plugins/org-ai-plugin` and `<workspace>/.claude/plugins/org-ai-plugin`. `runtime/` is part of that list and contains the pinned resolver and its provenance metadata.
+This repository is not installed on its own. [`maxstack`](https://github.com/simpsonm09-projects/maxstack)'s `scripts/Install-Workspace.ps1 -Apply` copies the files listed in `layer.json` into `<workspace>/.opencode/plugins/org-ai-plugin` and `<workspace>/.claude/plugins/org-ai-plugin`. `runtime/` is part of that list and contains the pinned resolver and its provenance metadata.
 
 - OpenCode needs no setting. It finds the workspace `.opencode` folder by walking up from the repository or worktree.
 - Claude Code must be started with `--plugin-dir <workspace>/.claude/plugins`. In T3 Code that goes in the Claude provider instance's "Launch arguments". Without it a Claude Code session has neither the skills nor the access gate.
 
-maxstack's [`docs/t3-setup.md`](https://github.com/simpsonm09-projects/simpsonm09-maxstack/blob/main/docs/t3-setup.md) is the full reference. A new session is needed after each install.
+maxstack's [`docs/t3-setup.md`](https://github.com/simpsonm09-projects/maxstack/blob/main/docs/t3-setup.md) is the full reference. A new session is needed after each install.
 
 ## GitHub Copilot CLI build
 

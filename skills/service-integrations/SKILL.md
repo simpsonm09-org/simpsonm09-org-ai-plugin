@@ -43,7 +43,7 @@ The general owner is here. The concrete value is not. The personal layer holds t
 - Vault: the human and agent vault identities and the bundle for each brokered tool.
 - Personal services: email through `himalaya`, phone notifications through `ntfy`, texting through `smsgate`, and Discord through `discli`.
 
-See the personal layer skills `integrations-personal`, `agent-vault`, `discord`, and `dev-tools` in `simpsonm09-personal-ai-plugin`.
+See the personal layer skills `integrations-personal`, `agent-vault`, `discord`, and `dev-tools` in `personal-ai-plugin`.
 
 ## Best practices
 

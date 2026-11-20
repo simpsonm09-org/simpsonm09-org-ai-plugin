@@ -6,7 +6,7 @@ description: Use when a change to any fleet repository needs to land, when asked
 # The fleet standard
 
 Every repository in `simpsonm09-projects` follows one standard. The standard lives in
-[`simpsonm09-repo-standard`](https://github.com/simpsonm09-projects/simpsonm09-repo-standard).
+[`repo-standard`](https://github.com/simpsonm09-projects/repo-standard).
 
 ## The gates
 
@@ -27,7 +27,7 @@ A change is done when the standard check is green, the test check is green with 
 changed-line coverage the repository gates, the change is verified on the real artifact,
 commits are signed, no secret or machine path is committed, docs and `docs/manifest.json`
 match, and anything that ships carries a release note. The full text is in the standard's
-[`docs/definition-of-done.md`](https://github.com/simpsonm09-projects/simpsonm09-repo-standard/blob/main/docs/definition-of-done.md).
+[`docs/definition-of-done.md`](https://github.com/simpsonm09-projects/repo-standard/blob/main/docs/definition-of-done.md).
 
 Verification is not "it compiles". Run the feature, call the endpoint, or drive the screen,
 and state the command or the observation in the pull request.

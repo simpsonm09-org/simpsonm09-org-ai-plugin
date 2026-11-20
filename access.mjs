@@ -54,7 +54,7 @@ export function defaultScripts(workspaceRoot) {
     workspaceRoot,
     "projects",
     "repos",
-    "simpsonm09-repo-standard",
+    "repo-standard",
   );
   return {
     access: join(

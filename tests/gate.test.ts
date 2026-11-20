@@ -395,15 +395,14 @@ test("the gate hands the observer's destination to the resolver, not a remote na
       seen.push(observation);
       return { code: 1, stdout: jsonFor("propose", "pushMain") };
     }),
-    git: () =>
-      readerFor("https://github.com/simpsonm09/simpsonm09-repo-standard.git"),
+    git: () => readerFor("https://github.com/simpsonm09/repo-standard.git"),
   });
 
   assert.equal(seen.length, 1);
   assert.deepEqual(seen[0].destination, {
     host: "github.com",
     owner: "simpsonm09",
-    repo: "simpsonm09-repo-standard",
+    repo: "repo-standard",
   });
   assert.equal(seen[0].capability, "pushMain");
   assert.equal(decision.action, "deny");
@@ -419,10 +418,7 @@ test("gateShellEdit resolves the organization remote and denies the org main pus
       seen.push(observation.destination?.owner ?? "");
       return { code: 1, stdout: jsonFor("propose", "pushMain") };
     }),
-    git: () =>
-      readerFor(
-        "https://github.com/simpsonm09-org/simpsonm09-repo-standard.git",
-      ),
+    git: () => readerFor("https://github.com/simpsonm09-org/repo-standard.git"),
   });
 
   assert.deepEqual(seen, ["simpsonm09-org"]);

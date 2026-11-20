@@ -157,7 +157,7 @@ export function buildWorkspace(dir, { level = "read" } = {}) {
     workspace,
     "projects",
     "repos",
-    "simpsonm09-repo-standard",
+    "repo-standard",
     "scripts",
   );
   mkdirSync(standard, { recursive: true });

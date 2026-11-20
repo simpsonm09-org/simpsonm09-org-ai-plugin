@@ -44,7 +44,7 @@ before(() => {
     planted,
     "projects",
     "repos",
-    "simpsonm09-repo-standard",
+    "repo-standard",
     "scripts",
   );
   mkdirSync(standard, { recursive: true });

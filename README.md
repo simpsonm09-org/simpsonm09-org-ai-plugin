@@ -4,7 +4,7 @@ The shared OpenCode layer for the `simpsonm09-projects` organization, and the Cl
 
 This repository lives in `simpsonm09-projects/org-ai-plugin`. Work happens on a branch
 with a pull request into `main`.
-See [`repo-standard`](https://github.com/simpsonm09-projects/simpsonm09-repo-standard)
+See [`repo-standard`](https://github.com/simpsonm09-projects/repo-standard)
 for the branch model and the protection rules.
 
 See the [documentation index](docs/README.md) for the packaged resolver and its release note.
@@ -237,7 +237,7 @@ The tests run the packaged resolver against temporary catalog git repositories w
 
 ## Refresh the pinned resolver
 
-The resolver source is pinned to `simpsonm09-projects/simpsonm09-repo-standard` commit `92d58ab2b42384931d5bf994f89933fc00978332`, path `scripts/agent-access.mjs`. The plugin verifies the bundled bytes against SHA-256 `5867b4b9b539fc634b2951e136a41188f285463f885de7e13f74ba2a50a31be8` before importing them. API version `3` also requires `loadCommittedOwnedRepositories`; that loader reads the exact-target policy from committed `upstream/main` only. The policy, when present, grants only non-default branch pushes and same-repository PR creation. Missing or invalid policy grants no standalone target.
+The resolver source is pinned to `simpsonm09-projects/repo-standard` commit `92d58ab2b42384931d5bf994f89933fc00978332`, path `scripts/agent-access.mjs`. The plugin verifies the bundled bytes against SHA-256 `5867b4b9b539fc634b2951e136a41188f285463f885de7e13f74ba2a50a31be8` before importing them. API version `3` also requires `loadCommittedOwnedRepositories`; that loader reads the exact-target policy from committed `upstream/main` only. The policy, when present, grants only non-default branch pushes and same-repository PR creation. Missing or invalid policy grants no standalone target.
 
 To check the bundle, run `just check-gate-resolver`. To reproduce it, run `just refresh-gate-resolver`. The command reads the exact commit from the local standard clone and never fetches. Restart OpenCode or start a new Claude Code session after installing an updated plugin so each host loads the packaged resolver again.
 

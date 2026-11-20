@@ -1,6 +1,6 @@
 # Cross-platform task runner for humans and agents. `just --list` shows every
 # recipe. Keep each recipe a thin call to a portable tool or a script under
-# scripts/. See https://github.com/simpsonm09-projects/simpsonm09-repo-standard/blob/main/docs/task-runner.md
+# scripts/. See https://github.com/simpsonm09-projects/repo-standard/blob/main/docs/task-runner.md
 set windows-shell := ["powershell.exe", "-NoLogo", "-NoProfile", "-Command"]
 
 # List the recipes.

@@ -37,7 +37,7 @@ try {
   }
   const message = error instanceof Error ? error.message : String(error);
   process.stderr.write(
-    `simpsonm09-org-ai-plugin hook could not start (${message}), so the command is blocked.\n`,
+    `org-ai-plugin hook could not start (${message}), so the command is blocked.\n`,
   );
   process.exitCode = 2;
 }

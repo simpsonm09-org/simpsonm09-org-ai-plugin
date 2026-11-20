@@ -17,8 +17,6 @@ try {
   });
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
-  process.stderr.write(
-    `simpsonm09-org-ai-plugin hook could not start: ${message}\n`,
-  );
+  process.stderr.write(`org-ai-plugin hook could not start: ${message}\n`);
   process.exitCode = 0;
 }

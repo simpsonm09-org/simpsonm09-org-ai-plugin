@@ -190,7 +190,7 @@ export function writeStdout(text) {
   } catch {
     try {
       process.stderr.write(
-        "simpsonm09-org-ai-plugin: Codex denial could not be delivered because stdout is closed.\n",
+        "org-ai-plugin: Codex denial could not be delivered because stdout is closed.\n",
       );
     } catch {
       // There is no protocol channel left to report through.

@@ -1,8 +1,8 @@
-# simpsonm09-org-ai-plugin
+# org-ai-plugin
 
 The shared OpenCode layer for the `simpsonm09-projects` organization, and the Claude Code plugin that applies the same agent-access gate.
 
-This repository lives in `simpsonm09-projects/simpsonm09-org-ai-plugin`. Work happens on a branch
+This repository lives in `simpsonm09-projects/org-ai-plugin`. Work happens on a branch
 with a pull request into `main`.
 See [`repo-standard`](https://github.com/simpsonm09-projects/simpsonm09-repo-standard)
 for the branch model and the protection rules.
@@ -58,7 +58,7 @@ When a repository is not in the fleet catalog, write commands are denied with in
 
 ## Plugin and skills
 
-The layer is configuration and a plugin at the same time. `maxstack`'s `Install-Workspace.ps1` merges the fragment into `opencode.jsonc` and copies the files named in `layer.json` into `.opencode/plugins/simpsonm09-org-ai-plugin`, where OpenCode loads the plugin. The plugin registers every `skills/<id>/SKILL.md` through `ctx.skill.transform`. Claude Code can load that tree through a junction from `.claude/plugins/<name>`, or from a direct copy at that path.
+The layer is configuration and a plugin at the same time. `maxstack`'s `Install-Workspace.ps1` merges the fragment into `opencode.jsonc` and copies the files named in `layer.json` into `.opencode/plugins/org-ai-plugin`, where OpenCode loads the plugin. The plugin registers every `skills/<id>/SKILL.md` through `ctx.skill.transform`. Claude Code can load that tree through a junction from `.claude/plugins/<name>`, or from a direct copy at that path.
 
 | Skill | Purpose |
 | --- | --- |
@@ -73,7 +73,7 @@ To add a skill, create `skills/<id>/SKILL.md` with `name` and `description` fron
 
 ## How it gets loaded
 
-This repository is not installed on its own. [`simpsonm09-maxstack`](https://github.com/simpsonm09-projects/simpsonm09-maxstack)'s `scripts/Install-Workspace.ps1 -Apply` copies the files listed in `layer.json` into `<workspace>/.opencode/plugins/simpsonm09-org-ai-plugin` and `<workspace>/.claude/plugins/simpsonm09-org-ai-plugin`. `runtime/` is part of that list and contains the pinned resolver and its provenance metadata.
+This repository is not installed on its own. [`simpsonm09-maxstack`](https://github.com/simpsonm09-projects/simpsonm09-maxstack)'s `scripts/Install-Workspace.ps1 -Apply` copies the files listed in `layer.json` into `<workspace>/.opencode/plugins/org-ai-plugin` and `<workspace>/.claude/plugins/org-ai-plugin`. `runtime/` is part of that list and contains the pinned resolver and its provenance metadata.
 
 - OpenCode needs no setting. It finds the workspace `.opencode` folder by walking up from the repository or worktree.
 - Claude Code must be started with `--plugin-dir <workspace>/.claude/plugins`. In T3 Code that goes in the Claude provider instance's "Launch arguments". Without it a Claude Code session has neither the skills nor the access gate.
@@ -87,8 +87,8 @@ The same folder is a GitHub Copilot CLI plugin. Copilot reads `.github/plugin/pl
 Load it with the plugin folder, which is the directory that holds `.github/plugin/plugin.json`:
 
 ```bash
-copilot --plugin-dir <workspace>/projects/worktrees/simpsonm09-org-ai-plugin-copilot plugin list
-copilot --plugin-dir <workspace>/projects/worktrees/simpsonm09-org-ai-plugin-copilot
+copilot --plugin-dir <workspace>/projects/worktrees/org-ai-plugin-copilot plugin list
+copilot --plugin-dir <workspace>/projects/worktrees/org-ai-plugin-copilot
 ```
 
 The gate trusts only the layouts in `lib/location.mjs`: a checkout under `projects/repos` or `projects/worktrees`, an installed `.opencode/plugins/<name>` copy, a direct `.claude/plugins/<name>` copy, or the pinned fetch in `.claude/cache/<name>` that Pi loads as a package. A Claude junction to the OpenCode copy resolves to the `.opencode/plugins` layout. A copy in another directory trusts no workspace, so the gate denies every write it cannot check.

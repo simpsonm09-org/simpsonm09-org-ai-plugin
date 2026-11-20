@@ -35,10 +35,10 @@ const LIVE_PUSH = String.raw`{"workspace":"D:\\dev\\simpsonm09","repo":"simpson0
 
 // The wrapper's own paths, as the live model wrote them. Discarded, so they only need the shape.
 const NODE = String.raw`C:\Program Files\nodejs\node.exe`;
-const LAUNCHER = String.raw`D:\dev\simpsonm09\projects\worktrees\simpsonm09-org-ai-plugin-copilot\bin\with-gh-token.mjs`;
+const LAUNCHER = String.raw`D:\dev\simpsonm09\projects\worktrees\org-ai-plugin-copilot\bin\with-gh-token.mjs`;
 const NODE_POSIX = "/c/Program Files/nodejs/node.exe";
 const LAUNCHER_POSIX =
-  "/d/dev/simpsonm09/projects/worktrees/simpsonm09-org-ai-plugin-copilot/bin/with-gh-token.mjs";
+  "/d/dev/simpsonm09/projects/worktrees/org-ai-plugin-copilot/bin/with-gh-token.mjs";
 
 const b64 = (text: string) => Buffer.from(text, "utf8").toString("base64");
 const wrappedPs = (json: string) => `& '${NODE}' '${LAUNCHER}' '${b64(json)}'`;

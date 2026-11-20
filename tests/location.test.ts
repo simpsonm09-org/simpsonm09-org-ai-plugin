@@ -13,21 +13,15 @@ after(() => {
 test("plugin workspace recognition accepts direct Claude copies and existing trusted roots", () => {
   const workspace = "/home/agent/workspace";
   assert.equal(
-    workspaceForPluginRoot(
-      `${workspace}/.claude/plugins/simpsonm09-org-ai-plugin`,
-    ),
+    workspaceForPluginRoot(`${workspace}/.claude/plugins/org-ai-plugin`),
     workspace,
   );
   assert.equal(
-    workspaceForPluginRoot(
-      `${workspace}/.opencode/plugins/simpsonm09-org-ai-plugin`,
-    ),
+    workspaceForPluginRoot(`${workspace}/.opencode/plugins/org-ai-plugin`),
     workspace,
   );
   assert.equal(
-    workspaceForPluginRoot(
-      `${workspace}/projects/repos/simpsonm09-org-ai-plugin`,
-    ),
+    workspaceForPluginRoot(`${workspace}/projects/repos/org-ai-plugin`),
     workspace,
   );
   assert.equal(
@@ -36,9 +30,7 @@ test("plugin workspace recognition accepts direct Claude copies and existing tru
   );
   // Pi loads the pinned org plugin as a package from the maxstack cache.
   assert.equal(
-    workspaceForPluginRoot(
-      `${workspace}/.claude/cache/simpsonm09-org-ai-plugin`,
-    ),
+    workspaceForPluginRoot(`${workspace}/.claude/cache/org-ai-plugin`),
     workspace,
   );
 });
@@ -63,7 +55,7 @@ test("plugin workspace recognition rejects nested copies and cache lookalikes", 
   for (const root of [
     `${workspace}/.claude/plugins/plugin/nested`,
     `${workspace}/.claude/cache/plugins/plugin`,
-    `${workspace}/.claude/cache/simpsonm09-org-ai-plugin/nested`,
+    `${workspace}/.claude/cache/org-ai-plugin/nested`,
     `${workspace}/.claude/plugins-cache/plugin`,
   ]) {
     assert.equal(workspaceForPluginRoot(root), null, root);

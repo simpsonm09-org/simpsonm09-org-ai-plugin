@@ -30,7 +30,7 @@ The registry is general and portable. It names the owner and the command. Accoun
 | Container runtime | `docker` | `docker ps`, `docker logs` |
 | Dependency, secret, and misconfig scan | `trivy` | `trivy fs --scanners vuln,secret,misconfig .` |
 
-The tools covered by `simpsonm09-dev-setup/tools.yaml` install with `just tools-apply`; `tools.yaml` is the source of truth for the per-machine install. The rest (`trivy`, `mise`, `infisical`, `playwright-cli`, `chrome-devtools`, and `ctx7`) install per their own service documentation.
+The tools covered by `dev-setup/tools.yaml` install with `just tools-apply`; `tools.yaml` is the source of truth for the per-machine install. The rest (`trivy`, `mise`, `infisical`, `playwright-cli`, `chrome-devtools`, and `ctx7`) install per their own service documentation.
 
 The machine's container stack is managed through a console. Portainer CE, DbGate, and the Infisical console are documented in the `local-services` skill.
 
@@ -145,7 +145,7 @@ kustomize build overlays/dev
 
 ## Secrets via `infisical`
 
-The workspace reads its secrets from a self-hosted Infisical through `with-secrets` (a human, one command) or `with-vault` (brokered), not by calling `infisical` directly. No shell loads them, and `.envrc` no longer does; see `simpsonm09-dev-setup/docs/secrets.md`. The project is personal; see the personal layer. The steps below are the CLI's own, for reference. `with-secrets` runs the store steps itself.
+The workspace reads its secrets from a self-hosted Infisical through `with-secrets` (a human, one command) or `with-vault` (brokered), not by calling `infisical` directly. No shell loads them, and `.envrc` no longer does; see `dev-setup/docs/secrets.md`. The project is personal; see the personal layer. The steps below are the CLI's own, for reference. `with-secrets` runs the store steps itself.
 
 ```bash
 infisical login --method=universal-auth --plain --silent

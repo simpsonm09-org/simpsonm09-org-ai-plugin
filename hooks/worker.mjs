@@ -28,6 +28,6 @@ try {
   }
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
-  process.stderr.write(`simpsonm09-org-ai-plugin hook: ${message}\n`);
+  process.stderr.write(`org-ai-plugin hook: ${message}\n`);
   process.exitCode = blockOnError ? 2 : 0;
 }

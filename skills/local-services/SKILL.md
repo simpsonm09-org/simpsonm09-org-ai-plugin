@@ -5,7 +5,7 @@ description: Use when a task touches the local container services on this machin
 
 # Local services
 
-The machine runs container-backed services on the Docker Engine inside Ubuntu WSL2. `simpsonm09-dev-setup` owns their Compose files and their documentation. The container stack is the same on every machine, so its service list, addresses, and ports are general. This skill keeps the general Docker and Compose practice.
+The machine runs container-backed services on the Docker Engine inside Ubuntu WSL2. `dev-setup` owns their Compose files and their documentation. The container stack is the same on every machine, so its service list, addresses, and ports are general. This skill keeps the general Docker and Compose practice.
 
 | Service | Job | Address |
 | --- | --- | --- |
@@ -32,7 +32,7 @@ The containers are `infisical-backend`, `infisical-db`, `infisical-redis`, `port
 | Open a shell in a container | `docker exec -it <container> sh` |
 | Recreate a service from its Compose file | `docker compose -f services/<name>/docker-compose.yml up -d` |
 
-The Compose files are under `simpsonm09-dev-setup/services/<name>/`. Infisical needs `ENCRYPTION_KEY` and `AUTH_SECRET` from its own gitignored `.env` before the first start, and it cannot decrypt its database without them.
+The Compose files are under `dev-setup/services/<name>/`. Infisical needs `ENCRYPTION_KEY` and `AUTH_SECRET` from its own gitignored `.env` before the first start, and it cannot decrypt its database without them.
 
 After a Windows or WSL restart, the localhost forward can miss ports that Docker published during boot. If a service does not load at `localhost`, restart the containers so the forward picks them up.
 
@@ -63,7 +63,7 @@ infisical login --method=universal-auth --plain --silent
 infisical export --token "$TOKEN" --projectId "$INFISICAL_PROJECT_ID" --env dev --format json
 ```
 
-A human runs a command that needs these values through `with-secrets --require <names> <tool>`. It logs in, exports the store, and puts the values into that one command's environment; no shell holds them. There is no `.envrc` loader any more; see `simpsonm09-dev-setup/docs/secrets.md`.
+A human runs a command that needs these values through `with-secrets --require <names> <tool>`. It logs in, exports the store, and puts the values into that one command's environment; no shell holds them. There is no `.envrc` loader any more; see `dev-setup/docs/secrets.md`.
 
 Secrets are rotated in Infisical. A foreground process started through `with-secrets` keeps its values until it restarts, so restart it after a rotation. Never write a value into a repository.
 

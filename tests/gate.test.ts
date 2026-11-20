@@ -38,12 +38,12 @@ function readerFor(url: string | null) {
 
 test("repoFromCwd names the clone for a directory inside a repo", () => {
   assert.equal(
-    repoFromCwd(join(reposRoot, "simpsonm09-org-ai-plugin"), ws),
-    "simpsonm09-org-ai-plugin",
+    repoFromCwd(join(reposRoot, "org-ai-plugin"), ws),
+    "org-ai-plugin",
   );
   assert.equal(
-    repoFromCwd(join(reposRoot, "simpsonm09-org-ai-plugin", "src", "deep"), ws),
-    "simpsonm09-org-ai-plugin",
+    repoFromCwd(join(reposRoot, "org-ai-plugin", "src", "deep"), ws),
+    "org-ai-plugin",
   );
 });
 
@@ -183,11 +183,8 @@ test("tokenUsable rejects an absent, malformed, or expiring cache", () => {
 });
 
 test("contextLine names the repository and its level", () => {
-  assert.match(
-    contextLine("simpsonm09-org-ai-plugin", "read"),
-    /simpsonm09-org-ai-plugin/,
-  );
-  assert.match(contextLine("simpsonm09-org-ai-plugin", "read"), /"read"/);
+  assert.match(contextLine("org-ai-plugin", "read"), /org-ai-plugin/);
+  assert.match(contextLine("org-ai-plugin", "read"), /"read"/);
 });
 
 test("parseResolverOutput reads the level, capability, destination, and auth route", () => {

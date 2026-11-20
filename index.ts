@@ -114,7 +114,7 @@ export function loadSkills(root: string): SkillSeed[] {
 }
 
 export default Plugin.define({
-  id: "simpsonm09-org-ai-plugin",
+  id: "org-ai-plugin",
   async setup(ctx) {
     const workspaceRoot = workspaceRootFor(ctx.options);
     const scripts = scriptsFor(ctx.options, workspaceRoot);

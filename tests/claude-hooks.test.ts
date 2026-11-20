@@ -407,7 +407,7 @@ test("a plugin outside every trusted layout denies a write and passes a read", a
 
 test("a direct Claude plugin copy loads its trusted workspace from its own location", async () => {
   writeCatalog(ws, "read");
-  const copy = join(ws, ".claude", "plugins", "simpsonm09-org-ai-plugin");
+  const copy = join(ws, ".claude", "plugins", "org-ai-plugin");
   mkdirSync(dirname(copy), { recursive: true });
   for (const entry of [
     "hooks",
@@ -562,6 +562,50 @@ test("the SessionStart entry point never blocks a session", () => {
     encoding: "utf8",
   });
   assert.equal(result.status, 0);
+});
+
+test("the SessionStart entry point reports a startup failure without blocking", () => {
+  const script = join(repoDir, "hooks", "session-start.mjs");
+  const result = spawnSync(process.execPath, [script, "not-a-runtime"], {
+    windowsHide: true,
+    input: "{}",
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 0);
+  assert.match(result.stderr, /hook could not start: unknown hook runtime/);
+});
+
+test("the worker entry point blocks on an unknown runtime and names it", () => {
+  const script = join(repoDir, "hooks", "worker.mjs");
+  const result = spawnSync(process.execPath, [script, "pre", "not-a-runtime"], {
+    windowsHide: true,
+    input: "{}",
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /org-ai-plugin hook: unknown hook runtime/);
+});
+
+test("an internal failure in a session run reports on stderr and does not block", async () => {
+  const stderr: string[] = [];
+  const original = process.stderr.write.bind(process.stderr);
+  process.stderr.write = ((chunk: string) => {
+    stderr.push(String(chunk));
+    return true;
+  }) as typeof process.stderr.write;
+  try {
+    await runHook(
+      async () => {
+        throw new Error("boom");
+      },
+      { blockOnError: false, input: '{"hook_event_name":"SessionStart"}' },
+    );
+    assert.equal(process.exitCode, 0);
+    assert.match(stderr.join(""), /org-ai-plugin hook: boom/);
+  } finally {
+    process.stderr.write = original;
+    process.exitCode = 0;
+  }
 });
 
 test("an ask prompt's reason shows the repository, its level, and the command the human approves", async () => {

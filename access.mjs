@@ -19,12 +19,6 @@ import {
 } from "./lib/intent.mjs";
 import { loadPinnedAccessApi } from "./lib/pinned-access.mjs";
 
-// The organization the GitHub App is installed on. It is the owner of an organization
-// destination's installation token, and nothing else: a destination outside the organization
-// uses its own ambient authentication, so this constant is never threaded into a personal
-// owner's mint.
-export const OWNER = "simpsonm09-org";
-
 // Every child process and every broker call is bounded, so a stuck call becomes a
 // fail-closed answer rather than a hang. The hook's budget (lib/budget.mjs) bounds the
 // whole run on top of these.

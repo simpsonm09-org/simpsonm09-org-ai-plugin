@@ -63,12 +63,7 @@ export function defaultScripts(workspaceRoot) {
       "agent-access.mjs",
     ),
     token: join(repoStandard, "scripts", "agent-token.mjs"),
-    catalog: join(
-      workspaceRoot,
-      "projects",
-      "repos",
-      "repo-catalog",
-    ),
+    catalog: join(workspaceRoot, "projects", "repos", "repo-catalog"),
   };
 }
 

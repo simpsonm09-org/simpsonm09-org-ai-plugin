@@ -56,7 +56,7 @@ const apiShape = {
 test("the packaged resolver pin names the reviewed artifact and API contract", () => {
   assert.equal(
     RESOLVER_PIN.repository,
-    "simpsonm09-org/simpsonm09-repo-standard",
+    "simpsonm09-projects/simpsonm09-repo-standard",
   );
   assert.equal(RESOLVER_PIN.commit, "c0829a2f83636f9374fb079bdd3e2d34a56f5c42");
   assert.equal(RESOLVER_PIN.sourcePath, "scripts/agent-access.mjs");
